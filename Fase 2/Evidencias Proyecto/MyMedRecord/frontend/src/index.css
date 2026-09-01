@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    @apply bg-stone-50 text-slate-800 antialiased font-sans min-h-screen selection:bg-sky-500 selection:text-white;
+  }
+}
+
+/* Clases de apoyo para la identidad visual cálida e institucional chilena */
+.chile-gradient {
+  background: linear-gradient(135deg, #003366 0%, #004d80 50%, #0d9488 100%);
+}
+
+.chile-banner {
+  background: linear-gradient(90deg, #003366 0%, #003366 50%, #d92d20 50%, #d92d20 100%);
+}

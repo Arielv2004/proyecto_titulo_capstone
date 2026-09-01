@@ -1,0 +1,20 @@
+{
+  "short_name": "MyMedRecord",
+  "name": "MyMedRecord - Ficha Médica Única e Interoperable",
+  "description": "Plataforma de salud digital interoperable bajo Ley N° 21.668 para centralización de fichas clínicas y recetas con IA.",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/patient",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#1e3a8a",
+  "background_color": "#fbfbfb",
+  "lang": "es-CL",
+  "categories": ["medical", "health", "productivity"]
+}
