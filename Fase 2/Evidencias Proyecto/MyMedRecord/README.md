@@ -1,4 +1,4 @@
-﻿# 🏥 MyMedRecord - Plataforma de Interoperabilidad Clínica Digital
+﻿#  MyMedRecord - Plataforma de Interoperabilidad Clínica Digital
 
 > **Proyecto de Portafolio de Título (APT) - Ingeniería en Informática**  
 > **Integrantes:** Ignacio, Ariel, Sergio  
@@ -7,7 +7,7 @@
 
 ---
 
-## 📌 1. Descripción del Proyecto
+##  1. Descripción del Proyecto
 
 **MyMedRecord** es una plataforma de salud digital interoperable concebida bajo la arquitectura **PWA (Progressive Web Application)** con diseño adaptativo dual (portal médico clínico en escritorio y app móvil táctil para pacientes en smartphones).
 
@@ -15,7 +15,7 @@ Permite a los pacientes en Chile ser los **únicos dueños de su historial médi
 
 ---
 
-## 🏛️ 2. Arquitectura del Repositorio
+## 2. Arquitectura del Repositorio
 
 El proyecto utiliza **Clean Architecture**, separación estricta de capas y **Security by Design**:
 
@@ -29,7 +29,7 @@ MyMedRecord/
 └── README.md          # Guía de instalación y puesta en marcha para el equipo
 ```
 
-### 🛡️ Ciberseguridad y Cumplimiento Normativo
+###  Ciberseguridad y Cumplimiento Normativo
 * **Cifrado en Reposo:** Diagnósticos y notas clínicas protegidas con estándar militar **AES-256-GCM**.
 * **Autenticación Blindada:** Sesiones transmitidas en Cookies `HttpOnly`, `Secure` y `SameSite=Strict` (inmunes a ataques XSS/CSRF).
 * **Trazabilidad Inmutable:** Registro continuo en tabla `audit_logs` (registra ID de usuario, IP, acción y timestamp por Ley 21.668).
@@ -37,11 +37,11 @@ MyMedRecord/
 
 ---
 
-## 🚀 3. Guía de Instalación Paso a Paso (Para el Equipo)
+##  3. Guía de Instalación Paso a Paso (Para el Equipo)
 
 Sigue estos 4 pasos para ejecutar el proyecto en tu computador local en menos de 3 minutos:
 
-### 📋 Prerrequisitos
+### Pre-requisitos
 Asegúrate de tener instalado:
 1. **[Docker Desktop](https://www.docker.com/products/docker-desktop/)** (Debe estar abierto y corriendo).
 2. **[Node.js (v18 o superior)](https://nodejs.org/)**
@@ -49,7 +49,7 @@ Asegúrate de tener instalado:
 
 ---
 
-### 🔹 Paso 1: Clonar el Repositorio
+###  Paso 1: Clonar el Repositorio
 Abre tu terminal y clona el proyecto:
 ```bash
 git clone <URL_DEL_REPOSITORIO_GITHUB>
@@ -58,7 +58,7 @@ cd MyMedRecord
 
 ---
 
-### 🔹 Paso 2: Levantar la Base de Datos con Docker
+###  Paso 2: Levantar la Base de Datos con Docker
 Ejecuta en la raíz del proyecto:
 ```bash
 docker compose up -d
@@ -69,7 +69,7 @@ Esto creará automáticamente la base de datos PostgreSQL con todas las tablas e
 
 ---
 
-### 🔹 Paso 3: Iniciar el Backend Core (API)
+###  Paso 3: Iniciar el Backend Core (API)
 Abre una terminal y ejecuta:
 ```bash
 cd backend-core
@@ -81,7 +81,7 @@ npm run dev
 
 ---
 
-### 🔹 Paso 4: Iniciar el Frontend (Web & Móvil)
+###  Paso 4: Iniciar el Frontend (Web & Móvil)
 Abre **otra terminal** y ejecuta:
 ```bash
 cd frontend
@@ -93,19 +93,19 @@ npm run dev
 
 ---
 
-## 👥 4. Cuentas de Prueba Pre-configuradas
+##  4. Cuentas de Prueba Pre-configuradas
 
 Puedes iniciar sesión manualmente o tocar los **botones de acceso rápido** en la pantalla de Login:
 
 | Rol | Correo Electrónico | Contraseña | Funcionalidad en la App |
 | :--- | :--- | :--- | :--- |
-| 🧑‍💼 **Paciente** | `paciente@mymedrecord.cl` | `password123` | Portal Paciente (Ficha, Signos Vitales, QR, Subida) |
-| 👨‍⚕️ **Médico** | `medico@mymedrecord.cl` | `password123` | Portal Médico (Buscador por RUT, Prescripción) |
-| 🛡️ **Admin** | `admin@mymedrecord.cl` | `password123` | Portal Admin (Auditoría Continua, Trazabilidad) |
+|  **Paciente** | `paciente@mymedrecord.cl` | `password123` | Portal Paciente (Ficha, Signos Vitales, QR, Subida) |
+|  **Médico** | `medico@mymedrecord.cl` | `password123` | Portal Médico (Buscador por RUT, Prescripción) |
+|  **Admin** | `admin@mymedrecord.cl` | `password123` | Portal Admin (Auditoría Continua, Trazabilidad) |
 
 ---
 
-## 🌿 5. Flujo de Trabajo en Git para el Equipo
+##  5. Flujo de Trabajo en Git para el Equipo
 
 1. **Nunca subir archivos `.env` ni carpetas `node_modules`** (ya están protegidos en `.gitignore`).
 2. **Crear ramas para nuevas funcionalidades:**
@@ -123,5 +123,5 @@ Puedes iniciar sesión manualmente o tocar los **botones de acceso rápido** en 
 
 ---
 
-## 📜 6. Marco Académico y Licencia
+##  6. Marco Académico y Licencia
 Proyecto desarrollado para el **Portafolio de Título (APT)** de Ingeniería en Informática. Prohibida su copia o distribución no autorizada sin consentimiento del equipo de desarrollo.
