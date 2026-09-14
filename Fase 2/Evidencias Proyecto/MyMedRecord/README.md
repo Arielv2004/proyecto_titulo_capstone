@@ -1,127 +1,102 @@
-﻿#  MyMedRecord - Plataforma de Interoperabilidad Clínica Digital
+# MyMedRecord - Sistema de Digitalización e Interoperabilidad Clínica
 
 > **Proyecto de Portafolio de Título (APT) - Ingeniería en Informática**  
-> **Integrantes:** Ignacio, Ariel, Sergio  
+> **Integrantes:** Ariel Velásquez, Sergio Vera, Ignacio Ruiz  
 > **Marco Regulatorio:** Ley N° 21.668 (Interoperabilidad de Fichas Clínicas) y Ley N° 20.584 (Derechos y Deberes del Paciente)  
-> **Estado:** Base Funcional, Autenticación HttpOnly, Ciberseguridad AES-256, PWA y Base de Datos en Docker
+> **Estado Actual:** Base Funcional Operativa (PostgreSQL 15 en Docker, API REST Express, Frontend React con Modo Claro/Oscuro y Autenticación Dual RUT/Email)
 
 ---
 
-##  1. Descripción del Proyecto
+## 1. Descripción del Proyecto
 
-**MyMedRecord** es una plataforma de salud digital interoperable concebida bajo la arquitectura **PWA (Progressive Web Application)** con diseño adaptativo dual (portal médico clínico en escritorio y app móvil táctil para pacientes en smartphones).
-
-Permite a los pacientes en Chile ser los **únicos dueños de su historial médico**, unificando recetas, atenciones, diagnósticos y exámenes de prestadores públicos (FONASA) y privados (ISAPRE), permitiendo otorgar **consentimientos temporales y auditados** a médicos mediante RUT o código QR.
+MyMedRecord es una plataforma web de salud digital concebida para la interoperabilidad de fichas clínicas en Chile. Permite a los pacientes ser los titulares de su información médica, unificando antecedentes, recetas y atenciones de prestadores públicos (FONASA) y privados (ISAPRE), otorgando consentimientos auditados a profesionales acreditados mediante su RUT o código QR.
 
 ---
 
-## 2. Arquitectura del Repositorio
+## 2. Estado de Avance del Proyecto (Módulos Desarrollados)
 
-El proyecto utiliza **Clean Architecture**, separación estricta de capas y **Security by Design**:
+| Módulo / Funcionalidad | Estado | Descripción del Avance |
+| :--- | :---: | :--- |
+| **Base de Datos Relacional (PostgreSQL 15)** | [Completado] | 10 tablas normalizadas en contenedor Docker (init.sql), con índices, claves foráneas, restricciones de integridad y tabla de auditoría forense (audit_logs). |
+| **Autenticación Dual (RUT o Correo)** | [Completado] | Registro e inicio de sesión funcional con RUT Chileno (con o sin formato, validado mediante Módulo 11) o Email, gestionado con tokens JWT en cookies seguras HttpOnly. |
+| **Ecosistema de 2 Roles Canónicos** | [Completado] | Sistema unificado exclusivamente en Paciente (Titular) y Médico Administrador (atención clínica y supervisión de auditoría). |
+| **Portal del Paciente ("Mi Ficha")** | [Completado] | Dashboard interactivo con alerta de ficha incompleta y modal estructurado con opción "Otro" (texto libre para registrar alergias y patologías). |
+| **Portal del Médico Administrador** | [Completado] | Búsqueda clínica unificada por RUT, revisión de signos vitales, emisión de recetas electrónicas (CIE-10) y panel de trazabilidad (Ley N° 21.668). |
+| **Diseño y Modo Claro / Oscuro** | [Completado] | Interfaz moderna con selector de tema integrado en el menú de usuario y estilos coordinados en todas las vistas. |
+| **Digitalización OCR con IA (ai-service)** | [En desarrollo] | Microservicio en Python con FastAPI y Tesseract para extracción automática de recetas y exámenes médicos. |
+| **Escáner QR en vivo por Cámara** | [En desarrollo] | Tokens temporales operativos en base de datos (access_grants); pendiente vinculación de API de cámara web en tiempo real. |
+
+---
+
+## 3. Estructura de la Arquitectura
 
 ```text
 MyMedRecord/
-├── frontend/          # PWA en React 19 + Vite + TailwindCSS (Cero datos médicos en localStorage)
-├── backend-core/      # API Gateway en Node.js + Express (JWT en Cookies HttpOnly, RBAC, AES-256-GCM)
-├── ai-service/        # Microservicio en Python + FastAPI (OCR Tesseract, PDFMiner, LLM)
-├── database/          # Scripts DDL de inicialización (init.sql) con datos demo en PostgreSQL 15
-├── docker-compose.yml # Orquestador de base de datos PostgreSQL 15 y pgAdmin 4
-└── README.md          # Guía de instalación y puesta en marcha para el equipo
-```
-
-###  Ciberseguridad y Cumplimiento Normativo
-* **Cifrado en Reposo:** Diagnósticos y notas clínicas protegidas con estándar militar **AES-256-GCM**.
-* **Autenticación Blindada:** Sesiones transmitidas en Cookies `HttpOnly`, `Secure` y `SameSite=Strict` (inmunes a ataques XSS/CSRF).
-* **Trazabilidad Inmutable:** Registro continuo en tabla `audit_logs` (registra ID de usuario, IP, acción y timestamp por Ley 21.668).
-* **Validación Oficial de RUT:** Algoritmo chileno **Módulo 11** en tiempo real.
-
----
-
-##  3. Guía de Instalación Paso a Paso (Para el Equipo)
-
-Sigue estos 4 pasos para ejecutar el proyecto en tu computador local en menos de 3 minutos:
-
-### Pre-requisitos
-Asegúrate de tener instalado:
-1. **[Docker Desktop](https://www.docker.com/products/docker-desktop/)** (Debe estar abierto y corriendo).
-2. **[Node.js (v18 o superior)](https://nodejs.org/)**
-3. **[Git](https://git-scm.com/)**
-
----
-
-###  Paso 1: Clonar el Repositorio
-Abre tu terminal y clona el proyecto:
-```bash
-git clone <URL_DEL_REPOSITORIO_GITHUB>
-cd MyMedRecord
+├── frontend/          # Cliente web en React 18 + Vite + TailwindCSS (Modo Claro/Oscuro)
+├── backend-core/      # API REST en Node.js + Express (JWT HttpOnly, RBAC, Bcrypt)
+├── ai-service/        # Microservicio de procesamiento OCR en Python + FastAPI
+├── database/          # Script DDL de inicialización (init.sql) para PostgreSQL 15
+├── docker-compose.yml # Orquestador Docker (Base de Datos + pgAdmin 4)
+└── README.md          # Documentación del avance y guía de ejecución
 ```
 
 ---
 
-###  Paso 2: Levantar la Base de Datos con Docker
-Ejecuta en la raíz del proyecto:
+## 4. Guía de Ejecución Rápida
+
+### Prerrequisitos
+* Docker Desktop (en ejecución).
+* Node.js (v18 o superior).
+
+---
+
+### Paso 1: Levantar Base de Datos (Docker)
+En la raíz del proyecto ejecutar:
 ```bash
 docker compose up -d
 ```
-Esto creará automáticamente la base de datos PostgreSQL con todas las tablas e índices creados y usuarios semilla pre-cargados:
-* **PostgreSQL:** `localhost:5432` (Base de datos: `mymedrecord` / Usuario: `postgres` / Clave: `password`)
-* **pgAdmin 4 (Panel Visual):** `http://localhost:5050` (Usuario: `admin@mymedrecord.cl` / Clave: `admin`)
+* PostgreSQL: localhost:5432 (Base de datos: mymedrecord / Usuario: postgres / Clave: password)
+* pgAdmin 4: http://localhost:5050 (Usuario: admin@mymedrecord.cl / Clave: admin)
 
 ---
 
-###  Paso 3: Iniciar el Backend Core (API)
-Abre una terminal y ejecuta:
+### Paso 2: Iniciar Backend (API)
+En una terminal:
 ```bash
 cd backend-core
 npm install
 npm run dev
 ```
-* **API Backend:** Disponible en `http://localhost:5000/api/v1`
-* *(Nota: El archivo `.env` ya viene configurado por defecto para desarrollo local).*
+* Disponible en: http://localhost:5000/api/v1
 
 ---
 
-###  Paso 4: Iniciar el Frontend (Web & Móvil)
-Abre **otra terminal** y ejecuta:
+### Paso 3: Iniciar Frontend
+En otra terminal:
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-* **Aplicación Web:** Disponible en `http://localhost:5173`
-* **Acceso desde el Celular (Misma red Wi-Fi):** Abre Safari o Chrome en tu teléfono e ingresa a `http://<TU_IP_LOCAL>:5173` (ej: `http://192.168.1.84:5173`).
+* Disponible en: http://localhost:5173
 
 ---
 
-##  4. Cuentas de Prueba Pre-configuradas
+## 5. Cuentas de Demostración Pre-configuradas
 
-Puedes iniciar sesión manualmente o tocar los **botones de acceso rápido** en la pantalla de Login:
+En la pantalla de inicio de sesión se puede ingresar manualmente o utilizar los accesos rápidos:
 
-| Rol | Correo Electrónico | Contraseña | Funcionalidad en la App |
+| Rol Oficial | Identificador (RUT o Correo) | Contraseña | Capacidades Disponibles |
 | :--- | :--- | :--- | :--- |
-|  **Paciente** | `paciente@mymedrecord.cl` | `password123` | Portal Paciente (Ficha, Signos Vitales, QR, Subida) |
-|  **Médico** | `medico@mymedrecord.cl` | `password123` | Portal Médico (Buscador por RUT, Prescripción) |
-|  **Admin** | `admin@mymedrecord.cl` | `password123` | Portal Admin (Auditoría Continua, Trazabilidad) |
+| **Paciente** | paciente@mymedrecord.cl o 12.345.678-9 | password123 | Ficha personal ("Mi Ficha"), signos vitales, antecedentes y generación de QR de emergencia. |
+| **Médico Administrador** | medico@mymedrecord.cl o 98.765.432-1 | password123 | Búsqueda clínica por RUT, emisión de recetas electrónicas y supervisión de auditoría (Ley 21.668). |
 
 ---
 
-##  5. Flujo de Trabajo en Git para el Equipo
-
-1. **Nunca subir archivos `.env` ni carpetas `node_modules`** (ya están protegidos en `.gitignore`).
-2. **Crear ramas para nuevas funcionalidades:**
-   ```bash
-   git checkout -b feature/nombre-de-la-tarea
-   ```
-3. **Hacer commits descriptivos:**
-   ```bash
-   git commit -m "feat: implementacion de modulo X"
-   ```
-4. **Subir cambios a la rama:**
-   ```bash
-   git push origin feature/nombre-de-la-tarea
-   ```
-
----
-
-##  6. Marco Académico y Licencia
-Proyecto desarrollado para el **Portafolio de Título (APT)** de Ingeniería en Informática. Prohibida su copia o distribución no autorizada sin consentimiento del equipo de desarrollo.
+## 6. Flujo de Trabajo y Metodología (Scrum / GitFlow)
+* Sprints: Ciclos semanales de entrega de incrementos de software funcional.
+* Estrategia de Ramas: Ramas temáticas (feature/) para revisión cruzada mediante Pull Requests antes de integrar a las ramas principales.
+* Roles del Equipo:
+  * Product Owner: Ariel Velásquez
+  * Scrum Master: Sergio Vera
+  * Developer: Ignacio Ruiz

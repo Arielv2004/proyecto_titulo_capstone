@@ -23,13 +23,16 @@ class AuthService {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
+    const allowedRoles = ['PACIENTE', 'MEDICO'];
+    const assignedRole = (role && allowedRoles.includes(role.toUpperCase())) ? role.toUpperCase() : 'PACIENTE';
+
     const user = await UserRepository.create({
       rut,
       firstName,
       lastName,
       email,
       passwordHash,
-      role: role || 'PACIENTE',
+      role: assignedRole,
     });
 
     const token = this.generateToken(user);
@@ -37,9 +40,9 @@ class AuthService {
   }
 
   static async login({ email, password }) {
-    const user = await UserRepository.findByEmail(email);
+    const user = await UserRepository.findByIdentifier(email);
     if (!user) {
-      const error = new Error('Credenciales inválidas.');
+      const error = new Error('Credenciales inválidas. Verifica tu correo o RUT y tu contraseña.');
       error.statusCode = 401;
       throw error;
     }

@@ -17,10 +17,9 @@ export const ProtectedRoute = ({ allowedRoles = [] }) => {
   }
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
-    // Redirigir según el rol del usuario
+    // Redirigir según el rol del usuario (Únicamente PACIENTE y MEDICO)
     if (user?.role === 'PACIENTE') return <Navigate to="/patient" replace />;
     if (user?.role === 'MEDICO') return <Navigate to="/doctor" replace />;
-    if (user?.role === 'ADMIN') return <Navigate to="/admin" replace />;
     return <Navigate to="/login" replace />;
   }
 

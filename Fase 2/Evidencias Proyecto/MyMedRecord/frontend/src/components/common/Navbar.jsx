@@ -18,8 +18,9 @@ import {
   X,
   FileCheck
 } from 'lucide-react';
+import { ThemeToggle } from './ThemeToggle';
 
-export const Navbar = ({ roleTitle, roleBadgeColor = 'teal' }) => {
+export const Navbar = ({ roleTitle, roleBadgeColor = 'teal', onOpenProfile }) => {
   const { user, logout } = useAuthStore();
   const [isOpen, setIsOpen] = useState(false);
   const [activeModal, setActiveModal] = useState(null); // 'profile' | 'security' | 'help' | null
@@ -44,9 +45,8 @@ export const Navbar = ({ roleTitle, roleBadgeColor = 'teal' }) => {
   };
 
   const getRoleDisplay = () => {
-    if (user?.role === 'PACIENTE') return { label: 'Paciente Titular', color: 'bg-teal-50 text-teal-800 border-teal-200' };
-    if (user?.role === 'MEDICO') return { label: 'Médico Acreditado', color: 'bg-blue-50 text-blue-900 border-blue-200' };
-    return { label: 'Administrador', color: 'bg-purple-50 text-purple-900 border-purple-200' };
+    if (user?.role === 'PACIENTE') return { label: 'Paciente Titular', color: 'bg-teal-50 dark:bg-teal-950/40 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-800' };
+    return { label: 'Médico Administrador', color: 'bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-teal-300 border-blue-200 dark:border-blue-800' };
   };
 
   const roleInfo = getRoleDisplay();
@@ -65,9 +65,6 @@ export const Navbar = ({ roleTitle, roleBadgeColor = 'teal' }) => {
           <div>
             <div className="flex items-center gap-2">
               <span className="text-base font-extrabold text-blue-950 tracking-tight">MyMedRecord</span>
-              <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full border ${roleInfo.color}`}>
-                {roleTitle || roleInfo.label}
-              </span>
             </div>
             <p className="text-[11px] text-stone-500 font-medium hidden sm:block">
               Interoperabilidad Clínica & Seguridad (Ley N° 21.668)
@@ -114,122 +111,136 @@ export const Navbar = ({ roleTitle, roleBadgeColor = 'teal' }) => {
                       <span className="text-[10px] font-mono font-bold text-blue-900 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200/60">
                         {user?.rut || 'Sin RUT'}
                       </span>
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60 flex items-center gap-0.5">
-                        <CheckCircle2 className="w-3 h-3" /> Activo
+                      <span className="text-[10px] font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded border border-teal-200/70 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-teal-600" /> {roleTitle || 'Portal Paciente'}
                       </span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Opciones del Menú */}
-              <div className="space-y-1 text-xs">
-                <button
-                  onClick={() => { setActiveModal('profile'); setIsOpen(false); }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-stone-700 hover:text-blue-950 hover:bg-stone-100/80 rounded-xl transition-all font-semibold cursor-pointer text-left"
-                >
-                  <User className="w-4 h-4 text-blue-800" />
-                  <span>Mi Ficha y Datos Personales</span>
-                </button>
+                {/* Opciones del Menú */}
+                <div className="space-y-1 text-xs">
+                  <button
+                    onClick={() => {
+                      setIsOpen(false);
+                      if (onOpenProfile) {
+                        onOpenProfile();
+                      } else {
+                        setActiveModal('profile');
+                      }
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-stone-700 hover:text-blue-950 hover:bg-stone-100/80 rounded-xl transition-all font-semibold cursor-pointer text-left"
+                  >
+                    <User className="w-4 h-4 text-blue-800" />
+                    <span>Mi Ficha y Datos Personales</span>
+                  </button>
 
-                <button
-                  onClick={() => { setActiveModal('security'); setIsOpen(false); }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-stone-700 hover:text-blue-950 hover:bg-stone-100/80 rounded-xl transition-all font-semibold cursor-pointer text-left"
-                >
-                  <ShieldCheck className="w-4 h-4 text-teal-700" />
-                  <div className="flex-1 flex items-center justify-between">
-                    <span>Seguridad & Cifrado</span>
-                    <span className="text-[10px] font-bold px-1.5 py-0.2 bg-teal-100 text-teal-900 rounded">AES-256</span>
+                  <button
+                    onClick={() => { setActiveModal('security'); setIsOpen(false); }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-stone-700 hover:text-blue-950 hover:bg-stone-100/80 rounded-xl transition-all font-semibold cursor-pointer text-left"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-teal-700" />
+                    <div className="flex-1 flex items-center justify-between">
+                      <span>Seguridad & Cifrado</span>
+                      <span className="text-[10px] font-bold px-1.5 py-0.2 bg-teal-100 text-teal-900 rounded">AES-256</span>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => { setActiveModal('help'); setIsOpen(false); }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-stone-700 hover:text-blue-950 hover:bg-stone-100/80 rounded-xl transition-all font-semibold cursor-pointer text-left"
+                  >
+                    <FileCheck className="w-4 h-4 text-amber-700" />
+                    <span>Marco Legal (Ley 21.668 & 20.584)</span>
+                  </button>
+                </div>
+
+                {/* Selector de Tema Visual en el Desplegable */}
+                <div className="pt-2 mt-2 border-t border-stone-200">
+                  <div className="mb-2">
+                    <ThemeToggle />
                   </div>
-                </button>
 
-                <button
-                  onClick={() => { setActiveModal('help'); setIsOpen(false); }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-stone-700 hover:text-blue-950 hover:bg-stone-100/80 rounded-xl transition-all font-semibold cursor-pointer text-left"
-                >
-                  <FileCheck className="w-4 h-4 text-amber-700" />
-                  <span>Marco Legal (Ley 21.668 & 20.584)</span>
-                </button>
+                  {/* Botón Cerrar Sesión */}
+                  <button
+                    onClick={() => { logout(); setIsOpen(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-rose-700 hover:bg-rose-50 rounded-xl transition-all font-bold cursor-pointer text-left text-xs"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Cerrar Sesión Segura</span>
+                  </button>
+                </div>
               </div>
-
-              {/* Botón Cerrar Sesión */}
-              <div className="pt-2 mt-2 border-t border-stone-200">
-                <button
-                  onClick={() => { logout(); setIsOpen(false); }}
-                  className="w-full flex items-center gap-2 px-3 py-2.5 text-rose-700 hover:bg-rose-50 rounded-xl transition-all font-bold cursor-pointer text-left text-xs"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>Cerrar Sesión Segura</span>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
       </header>
 
       {/* ========================================================================= */}
       {/* MODAL 1: DATOS PERSONALES Y FICHA CLÍNICA */}
       {/* ========================================================================= */}
       {activeModal === 'profile' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-          <div className="w-full max-w-lg bg-white border border-stone-200 rounded-3xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-stone-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-stone-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3.5 border-b border-stone-200 dark:border-slate-800">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-blue-50 text-blue-900 rounded-xl">
+                <div className="p-2 bg-blue-50 dark:bg-blue-950/60 text-blue-900 dark:text-teal-300 rounded-xl">
                   <User className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-blue-950">Datos Personales y de Ficha</h3>
-                  <p className="text-xs text-stone-500">Identificación oficial en el sistema de salud</p>
+                  <h3 className="text-base font-bold text-blue-950 dark:text-slate-100">Mi Ficha y Datos Personales</h3>
+                  <p className="text-xs text-stone-500 dark:text-slate-400">Identificación oficial y resguardo bajo Ley N° 21.668</p>
                 </div>
               </div>
               <button
                 onClick={() => setActiveModal(null)}
-                className="p-1.5 text-stone-400 hover:text-stone-600 rounded-xl hover:bg-stone-100 cursor-pointer"
+                className="p-1.5 text-stone-400 hover:text-stone-600 dark:hover:text-slate-200 rounded-xl hover:bg-stone-100 dark:hover:bg-slate-800 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-4 py-4 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200/80">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block mb-1">Nombre Completo</span>
-                  <span className="text-sm font-bold text-blue-950">
-                    {user?.first_name ? `${user.first_name} ${user.last_name}` : 'No especificado'}
-                  </span>
+            <div className="space-y-3.5 py-4 text-xs">
+              <div className="p-4 bg-stone-50 dark:bg-slate-800/70 rounded-2xl border border-stone-200/80 dark:border-slate-700/70 flex items-center gap-3.5">
+                <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-blue-900 via-blue-950 to-teal-800 text-teal-300 flex items-center justify-center font-black text-lg shadow-xs shrink-0">
+                  {getInitials()}
                 </div>
-                <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200/80">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block mb-1">RUT Oficial</span>
-                  <span className="text-sm font-bold text-blue-950 font-mono">
-                    {user?.rut || 'Sin registrar'}
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-black text-blue-950 dark:text-slate-100 block truncate">
+                    {user?.first_name ? `${user.first_name} ${user.last_name}` : user?.email}
+                  </span>
+                  <span className="text-xs font-mono text-stone-500 dark:text-slate-400 block mt-0.5">
+                    RUT: <strong className="text-blue-900 dark:text-teal-300">{user?.rut || 'Sin registrar'}</strong>
+                  </span>
+                  <span className="text-[10px] font-extrabold text-teal-800 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/50 px-2 py-0.5 rounded-full border border-teal-200/70 dark:border-teal-800 inline-block mt-1">
+                    Titular Oficial MyMedRecord
                   </span>
                 </div>
               </div>
 
-              <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200/80">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block mb-1">Correo Electrónico de Notificaciones</span>
-                <span className="text-sm font-bold text-blue-950">{user?.email}</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="p-3 bg-white dark:bg-slate-850 rounded-xl border border-stone-200/80 dark:border-slate-700">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 dark:text-slate-500 block mb-0.5">Correo Registrado</span>
+                  <span className="text-xs font-bold text-blue-950 dark:text-slate-200 truncate block">{user?.email}</span>
+                </div>
+                <div className="p-3 bg-white dark:bg-slate-850 rounded-xl border border-stone-200/80 dark:border-slate-700">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 dark:text-slate-500 block mb-0.5">Perfil de Acceso</span>
+                  <span className="text-xs font-bold text-blue-900 dark:text-teal-300 block">{user?.role || 'PACIENTE'}</span>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200/80">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block mb-1">Rol en MyMedRecord</span>
-                  <span className="text-xs font-bold text-teal-800">{user?.role}</span>
-                </div>
-                <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200/80">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block mb-1">Previsión de Salud</span>
-                  <span className="text-xs font-bold text-blue-950">FONASA (Tramo B)</span>
-                </div>
+              <div className="p-3.5 bg-blue-50/50 dark:bg-blue-950/20 rounded-2xl border border-blue-100 dark:border-blue-900/40 text-[11px] text-blue-950 dark:text-blue-200 flex items-center gap-2.5">
+                <ShieldCheck className="w-5 h-5 text-teal-600 dark:text-teal-400 shrink-0" />
+                <span className="leading-relaxed">Identidad protegida conforme a la Ley N° 21.668 de Interoperabilidad Clínica y Ley N° 20.584 de Derechos en Salud.</span>
               </div>
             </div>
 
-            <div className="pt-3 border-t border-stone-200 flex justify-end">
+            <div className="pt-3 border-t border-stone-200 dark:border-slate-800 flex justify-end">
               <button
                 onClick={() => setActiveModal(null)}
-                className="px-5 py-2.5 bg-blue-900 hover:bg-blue-950 text-white font-bold rounded-xl text-xs transition-all cursor-pointer"
+                className="px-5 py-2.5 bg-blue-900 hover:bg-blue-950 text-white font-bold rounded-xl text-xs transition-all cursor-pointer shadow-xs"
               >
-                Entendido
+                Cerrar
               </button>
             </div>
           </div>

@@ -18,7 +18,12 @@ import {
   MapPin
 } from 'lucide-react';
 
-export const BottomNav = ({ onOpenVitalsModal }) => {
+export const BottomNav = ({ 
+  activeTab = 'home', 
+  onTabChange, 
+  onOpenUploadModal, 
+  onOpenQrModal 
+}) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [showActionSheet, setShowActionSheet] = useState(false);
@@ -88,19 +93,21 @@ export const BottomNav = ({ onOpenVitalsModal }) => {
         <div className="flex items-center justify-around relative">
           {/* Tab 1: Inicio */}
           <button
-            onClick={() => navigate('/patient')}
+            onClick={() => onTabChange ? onTabChange('home') : navigate('/patient')}
             className={`flex flex-col items-center gap-1 py-1 px-2.5 transition-all cursor-pointer ${
-              location.pathname === '/patient' ? 'text-blue-900 font-bold' : 'text-stone-400 hover:text-stone-600'
+              activeTab === 'home' ? 'text-blue-900 font-extrabold' : 'text-stone-400 hover:text-stone-600'
             }`}
           >
             <Home className="w-5 h-5" />
             <span className="text-[10px]">Inicio</span>
           </button>
 
-          {/* Tab 2: Historial / Timeline */}
+          {/* Tab 2: Historial / Documentos */}
           <button
-            onClick={() => navigate('/patient')}
-            className="flex flex-col items-center gap-1 py-1 px-2.5 text-stone-400 hover:text-stone-600 transition-all cursor-pointer"
+            onClick={() => onTabChange ? onTabChange('records') : navigate('/patient')}
+            className={`flex flex-col items-center gap-1 py-1 px-2.5 transition-all cursor-pointer ${
+              activeTab === 'records' ? 'text-blue-900 font-extrabold' : 'text-stone-400 hover:text-stone-600'
+            }`}
           >
             <Clock className="w-5 h-5" />
             <span className="text-[10px]">Historial</span>
@@ -119,8 +126,10 @@ export const BottomNav = ({ onOpenVitalsModal }) => {
 
           {/* Tab 4: Ayuda / FAQ */}
           <button
-            onClick={() => setShowFaqModal(true)}
-            className="flex flex-col items-center gap-1 py-1 px-2.5 text-stone-400 hover:text-stone-600 transition-all cursor-pointer"
+            onClick={() => onTabChange ? onTabChange('help') : navigate('/patient')}
+            className={`flex flex-col items-center gap-1 py-1 px-2.5 transition-all cursor-pointer ${
+              activeTab === 'help' ? 'text-blue-900 font-extrabold' : 'text-stone-400 hover:text-stone-600'
+            }`}
           >
             <HelpCircle className="w-5 h-5" />
             <span className="text-[10px]">Ayuda</span>
@@ -128,8 +137,10 @@ export const BottomNav = ({ onOpenVitalsModal }) => {
 
           {/* Tab 5: Mi Ficha */}
           <button
-            onClick={() => navigate('/patient')}
-            className="flex flex-col items-center gap-1 py-1 px-2.5 text-stone-400 hover:text-stone-600 transition-all cursor-pointer"
+            onClick={() => onTabChange ? onTabChange('profile') : navigate('/patient')}
+            className={`flex flex-col items-center gap-1 py-1 px-2.5 transition-all cursor-pointer ${
+              activeTab === 'profile' ? 'text-blue-900 font-extrabold' : 'text-stone-400 hover:text-stone-600'
+            }`}
           >
             <User className="w-5 h-5" />
             <span className="text-[10px]">Mi Ficha</span>
@@ -200,26 +211,26 @@ export const BottomNav = ({ onOpenVitalsModal }) => {
                 <ChevronRight className="w-4 h-4 text-blue-900 group-hover:translate-x-0.5 transition-transform" />
               </button>
 
-              {/* Opción 3: Registrar Signos Vitales */}
+              {/* Opción 3: Compartir Ficha con Código QR */}
               <button
                 onClick={() => {
                   setShowActionSheet(false);
-                  if (onOpenVitalsModal) onOpenVitalsModal();
+                  if (onOpenQrModal) onOpenQrModal();
                 }}
-                className="w-full p-4 bg-stone-50 hover:bg-stone-100 border border-stone-200 rounded-2xl flex items-center gap-3.5 transition-all text-left cursor-pointer group"
+                className="w-full p-4 bg-amber-50/70 hover:bg-amber-100/70 border border-amber-200 rounded-2xl flex items-center gap-3.5 transition-all text-left cursor-pointer group"
               >
-                <div className="w-10 h-10 rounded-xl bg-stone-800 text-white flex items-center justify-center shadow-xs">
-                  <HeartPulse className="w-5 h-5 text-teal-300" />
+                <div className="w-10 h-10 rounded-xl bg-amber-600 text-white flex items-center justify-center shadow-xs">
+                  <QrCode className="w-5 h-5 text-amber-100" />
                 </div>
                 <div className="flex-1">
-                  <span className="text-xs font-bold text-slate-800 block">
-                    Registrar Signos Vitales
+                  <span className="text-xs font-bold text-amber-950 block">
+                    Mostrar Código QR Médico
                   </span>
-                  <span className="text-[11px] text-stone-500 block">
-                    Presión arterial, glucosa, frecuencia cardíaca o SpO2.
+                  <span className="text-[11px] text-amber-800/80 block">
+                    Autoriza a tu médico tratante por 24 horas (Ley 21.668).
                   </span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-stone-400 group-hover:translate-x-0.5 transition-transform" />
+                <ChevronRight className="w-4 h-4 text-amber-600 group-hover:translate-x-0.5 transition-transform" />
               </button>
             </div>
           </div>

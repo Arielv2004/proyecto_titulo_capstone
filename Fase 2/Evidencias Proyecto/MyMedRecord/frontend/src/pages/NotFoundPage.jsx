@@ -13,9 +13,7 @@ export const NotFoundPage = () => {
   const getHomeRoute = () => {
     if (!user) return '/login';
     if (user.role === 'PACIENTE') return '/patient';
-    if (user.role === 'MEDICO') return '/doctor';
-    if (user.role === 'ADMIN') return '/admin';
-    return '/login';
+    return '/doctor';
   };
 
   return (

@@ -1,6 +1,6 @@
 /**
  * Middleware para Control de Acceso Basado en Roles (RBAC)
- * @param  {...string} allowedRoles - Roles permitidos ('PACIENTE', 'MEDICO', 'ADMIN')
+ * @param  {...string} allowedRoles - Roles permitidos ('PACIENTE', 'MEDICO')
  */
 const rbacMiddleware = (...allowedRoles) => {
   return (req, res, next) => {

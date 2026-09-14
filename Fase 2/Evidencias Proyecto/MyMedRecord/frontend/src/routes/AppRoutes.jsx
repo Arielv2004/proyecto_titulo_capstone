@@ -6,7 +6,6 @@ import { LoginPage } from '../pages/LoginPage';
 import { RegisterPage } from '../pages/RegisterPage';
 import { PatientDashboard } from '../pages/PatientDashboard';
 import { DoctorDashboard } from '../pages/DoctorDashboard';
-import { AdminDashboard } from '../pages/AdminDashboard';
 import { PrivacyPolicyPage } from '../pages/PrivacyPolicyPage';
 import { TermsPage } from '../pages/TermsPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
@@ -39,14 +38,10 @@ export const AppRoutes = () => {
         <Route path="/patient" element={<PatientDashboard />} />
       </Route>
 
-      {/* Rutas Protegidas Médico */}
+      {/* Rutas Protegidas Médico Administrador (Rol Oficial: MEDICO) */}
       <Route element={<ProtectedRoute allowedRoles={['MEDICO']} />}>
         <Route path="/doctor" element={<DoctorDashboard />} />
-      </Route>
-
-      {/* Rutas Protegidas Administrador */}
-      <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
-        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin" element={<Navigate to="/doctor" replace />} />
       </Route>
 
       {/* Ruta 404 Personalizada */}

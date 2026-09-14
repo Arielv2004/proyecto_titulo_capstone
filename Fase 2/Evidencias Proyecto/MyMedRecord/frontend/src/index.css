@@ -1,8 +1,10 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   body {
-    @apply bg-stone-50 text-slate-800 antialiased font-sans min-h-screen selection:bg-sky-500 selection:text-white;
+    @apply bg-stone-50 text-slate-800 antialiased font-sans min-h-screen selection:bg-sky-500 selection:text-white transition-colors duration-200;
   }
 }
 
@@ -13,4 +15,166 @@
 
 .chile-banner {
   background: linear-gradient(90deg, #003366 0%, #003366 50%, #d92d20 50%, #d92d20 100%);
+}
+
+/* ==========================================================================
+   ESTILOS DE MODO OSCURO (DARK MODE - Medical Slate / Midnight Navy)
+   Diseñado para ergonomía visual en turnos de guardia médica y uso nocturno
+   ========================================================================== */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background-color: #0b1120 !important;
+  color: #f1f5f9 !important;
+}
+
+/* Fondos y contenedores */
+html.dark .bg-white {
+  background-color: #111827 !important;
+}
+
+html.dark .bg-white\/95 {
+  background-color: rgba(17, 24, 39, 0.95) !important;
+}
+
+html.dark .bg-white\/90 {
+  background-color: rgba(17, 24, 39, 0.90) !important;
+}
+
+html.dark .bg-white\/80 {
+  background-color: rgba(17, 24, 39, 0.80) !important;
+}
+
+html.dark .bg-stone-50 {
+  background-color: #0f172a !important;
+}
+
+html.dark .bg-stone-100,
+html.dark .bg-stone-100\/80 {
+  background-color: #1e293b !important;
+}
+
+html.dark .bg-stone-200 {
+  background-color: #334155 !important;
+}
+
+/* Bordes y separadores */
+html.dark .border-stone-200,
+html.dark .border-stone-200\/80,
+html.dark .border-stone-200\/90,
+html.dark .border-stone-200\/60,
+html.dark .border-stone-200\/50,
+html.dark .border-stone-300 {
+  border-color: #1e293b !important;
+}
+
+/* Textos y contrastes */
+html.dark .text-slate-800,
+html.dark .text-slate-900,
+html.dark .text-blue-950,
+html.dark .text-stone-800,
+html.dark .text-stone-900 {
+  color: #f8fafc !important;
+}
+
+html.dark .text-stone-700,
+html.dark .text-stone-600 {
+  color: #cbd5e1 !important;
+}
+
+html.dark .text-stone-500,
+html.dark .text-stone-400 {
+  color: #94a3b8 !important;
+}
+
+/* Badges y Chips clínicos en modo oscuro */
+html.dark .bg-teal-50 {
+  background-color: rgba(13, 148, 136, 0.18) !important;
+  color: #5eead4 !important;
+}
+
+html.dark .border-teal-200 {
+  border-color: rgba(13, 148, 136, 0.35) !important;
+}
+
+html.dark .bg-blue-50 {
+  background-color: rgba(30, 58, 138, 0.25) !important;
+  color: #93c5fd !important;
+}
+
+html.dark .border-blue-200 {
+  border-color: rgba(59, 130, 246, 0.35) !important;
+}
+
+html.dark .bg-emerald-50 {
+  background-color: rgba(5, 150, 105, 0.20) !important;
+  color: #6ee7b7 !important;
+}
+
+html.dark .border-emerald-200 {
+  border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+html.dark .bg-rose-50 {
+  background-color: rgba(225, 29, 72, 0.20) !important;
+  color: #fda4af !important;
+}
+
+html.dark .border-rose-200 {
+  border-color: rgba(244, 63, 94, 0.35) !important;
+}
+
+html.dark .bg-amber-50 {
+  background-color: rgba(217, 119, 6, 0.20) !important;
+  color: #fcd34d !important;
+}
+
+html.dark .border-amber-200 {
+  border-color: rgba(245, 158, 11, 0.35) !important;
+}
+
+html.dark .bg-purple-50 {
+  background-color: rgba(147, 51, 234, 0.20) !important;
+  color: #d8b4fe !important;
+}
+
+/* Sombras en modo oscuro */
+html.dark .shadow-xs,
+html.dark .shadow-sm,
+html.dark .shadow-md,
+html.dark .shadow-xl,
+html.dark .shadow-2xl {
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Inputs, Textareas y Selectores */
+html.dark input:not([type="checkbox"]):not([type="radio"]),
+html.dark select,
+html.dark textarea {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* Barra de scroll en modo oscuro */
+html.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+html.dark ::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+html.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }
