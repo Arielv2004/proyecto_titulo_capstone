@@ -1,6 +1,9 @@
 const express = require('express');
+
 const router = express.Router();
+
 const authRoutes = require('./auth.routes');
+const appointmentRoutes = require('./appointment.routes');
 
 const db = require('../config/db');
 
@@ -17,6 +20,7 @@ router.get('/health', (req, res) => {
 router.get('/db/overview', async (req, res) => {
   try {
     const data = await db.getSchemaOverview();
+
     res.status(200).json({
       success: true,
       data,
@@ -31,5 +35,6 @@ router.get('/db/overview', async (req, res) => {
 
 // Enrutadores principales
 router.use('/auth', authRoutes);
+router.use('/appointments', appointmentRoutes);
 
 module.exports = router;
