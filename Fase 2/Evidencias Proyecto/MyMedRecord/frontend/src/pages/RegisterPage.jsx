@@ -14,7 +14,6 @@ import {
   EyeOff, 
   AlertCircle, 
   CheckCircle2,
-  Stethoscope,
   LogIn,
   UserPlus
 } from 'lucide-react';
@@ -35,7 +34,7 @@ export const RegisterPage = () => {
   const { register, isLoading, error } = useAuthStore();
   const navigate = useNavigate();
 
-  useMetaTags('Registro de Ficha Clínica', 'Crea tu cuenta de paciente o médico administrador en la red MyMedRecord.');
+  useMetaTags('Registro de Ficha Clínica', 'Crea tu cuenta de paciente en la red MyMedRecord.');
 
   const isRutValid = formData.rut.trim() !== '' && validateRut(formData.rut);
 
@@ -60,8 +59,7 @@ export const RegisterPage = () => {
     if (result.success) {
       setRegistrationSuccess(true);
       setTimeout(() => {
-        if (result.user.role === 'PACIENTE') navigate('/patient');
-        else navigate('/doctor');
+        navigate('/patient');
       }, 900);
     }
   };
@@ -123,7 +121,7 @@ export const RegisterPage = () => {
               Crear Ficha Médica
             </h1>
             <p className="text-xs text-stone-500 dark:text-slate-400 mt-1">
-              Registro seguro como <strong>Paciente</strong> o <strong>Médico Administrador</strong>.
+              Registro seguro de cuenta personal como <strong>Paciente Titular</strong>.
             </p>
           </div>
 
@@ -250,24 +248,14 @@ export const RegisterPage = () => {
               </div>
             </div>
 
-            {/* Tipo de Usuario: Únicamente Paciente y Médico Administrador */}
-            <div>
-              <label className="block text-xs font-bold text-stone-700 dark:text-slate-300 mb-1">
-                Tipo de Usuario en el Sistema
-              </label>
-              <select
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                className="w-full px-3.5 py-2.5 bg-stone-50/80 dark:bg-slate-800/80 border border-stone-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 text-sm focus:border-blue-700 dark:focus:border-teal-400 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer font-medium"
-              >
-                <option value="PACIENTE">🧑‍💼 Paciente (Titular de Ficha Clínica)</option>
-                <option value="MEDICO">👨‍⚕️ Médico Administrador (Profesional Acreditado)</option>
-              </select>
-              <span className="block text-[11px] text-stone-400 dark:text-slate-500 mt-1">
-                {formData.role === 'PACIENTE' 
-                  ? 'Gestiona tu ficha médica personal, recetas inteligentes y antecedentes de salud.'
-                  : 'Acceso acreditado para consultar fichas vía QR/RUT, emitir recetas y supervisar accesos.'}
+            {/* Perfil de Titular de Ficha */}
+            <div className="p-3 bg-stone-50 dark:bg-slate-800/60 rounded-xl border border-stone-200 dark:border-slate-700 flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold text-stone-700 dark:text-slate-300 block">Tipo de Cuenta</span>
+                <span className="text-[11px] text-stone-500 dark:text-slate-400">Titular y dueño exclusivo de su historial clínico</span>
+              </div>
+              <span className="text-xs font-extrabold text-teal-800 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 px-2.5 py-1 rounded-lg shrink-0">
+                Paciente
               </span>
             </div>
 

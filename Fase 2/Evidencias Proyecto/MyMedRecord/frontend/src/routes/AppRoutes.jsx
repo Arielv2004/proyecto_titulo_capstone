@@ -5,7 +5,7 @@ import { ProtectedRoute } from '../components/auth/ProtectedRoute';
 import { LoginPage } from '../pages/LoginPage';
 import { RegisterPage } from '../pages/RegisterPage';
 import { PatientDashboard } from '../pages/PatientDashboard';
-import { DoctorDashboard } from '../pages/DoctorDashboard';
+import { DoctorQrAccessPage } from '../pages/DoctorQrAccessPage';
 import { PrivacyPolicyPage } from '../pages/PrivacyPolicyPage';
 import { TermsPage } from '../pages/TermsPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
@@ -30,6 +30,7 @@ export const AppRoutes = () => {
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/doctor/qr-access" element={<DoctorQrAccessPage />} />
       <Route path="/privacy" element={<PrivacyPolicyPage />} />
       <Route path="/terms" element={<TermsPage />} />
 
@@ -38,11 +39,9 @@ export const AppRoutes = () => {
         <Route path="/patient" element={<PatientDashboard />} />
       </Route>
 
-      {/* Rutas Protegidas Médico Administrador (Rol Oficial: MEDICO) */}
-      <Route element={<ProtectedRoute allowedRoles={['MEDICO']} />}>
-        <Route path="/doctor" element={<DoctorDashboard />} />
-        <Route path="/admin" element={<Navigate to="/doctor" replace />} />
-      </Route>
+      {/* Redirección de Rutas Médicas hacia el Portal QR Oficial */}
+      <Route path="/doctor" element={<Navigate to="/doctor/qr-access" replace />} />
+      <Route path="/admin" element={<Navigate to="/doctor/qr-access" replace />} />
 
       {/* Ruta 404 Personalizada */}
       <Route path="*" element={<NotFoundPage />} />

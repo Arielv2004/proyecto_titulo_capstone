@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authRoutes = require('./auth.routes');
+const accessGrantRoutes = require('./access-grant.routes');
 
 const db = require('../config/db');
 
@@ -31,5 +32,6 @@ router.get('/db/overview', async (req, res) => {
 
 // Enrutadores principales
 router.use('/auth', authRoutes);
+router.use('/access-grants', accessGrantRoutes);
 
 module.exports = router;

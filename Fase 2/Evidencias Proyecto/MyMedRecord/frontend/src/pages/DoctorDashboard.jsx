@@ -149,7 +149,7 @@ export const DoctorDashboard = () => {
                     <span className="text-[11px] text-emerald-700 dark:text-emerald-300 block">Sincronizada con la ficha del paciente y registrada en Audit Logs (Ley 21.668).</span>
                   </div>
                 </div>
-                <button onClick={() => setPrescriptionSuccess(false)} className="text-emerald-700 dark:text-emerald-400 p-1 font-bold cursor-pointer">✕</button>
+                <button onClick={() => setPrescriptionSuccess(false)} className="text-emerald-700 dark:text-emerald-400 p-1 font-bold cursor-pointer"><X className="w-4 h-4" /></button>
               </div>
             )}
 

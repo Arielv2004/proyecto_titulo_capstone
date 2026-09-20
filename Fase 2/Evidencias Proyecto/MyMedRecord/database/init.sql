@@ -59,9 +59,9 @@ CREATE TABLE patient_profiles (
 );
 
 -- ==============================================================================
--- TABLA 3: access_grants (Visor Médico de Emergencia y Acceso por Código QR)
--- Permite acceso temporal (30-60 min) a doctores sin exigirles cuenta previa,
--- cumpliendo con la Ley de Urgencia y Ley 21.668.
+-- TABLA 3: access_grants (Portal de Acceso Médico por Código QR)
+-- Permite acceso temporal e interoperable a profesionales de la salud bajo Ley N° 21.668,
+-- validando su RUT profesional y centro médico sin exigirles cuenta previa en el sistema.
 -- ==============================================================================
 CREATE TABLE access_grants (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -196,7 +196,7 @@ CREATE INDEX idx_audit_logs_patient ON audit_logs(patient_id, created_at DESC);
 -- Hash bcrypt correspondiente: $2b$10$sAeGx1oVam0wqcCk.A5aaeYHKGW2vGEF9gFe8kDcBqzMMpLoS4VOW
 -- ==============================================================================
 
--- 1. Usuarios demo (Exclusivamente Paciente y Médico Administrador)
+-- 1. Usuarios demo (Paciente y Médico)
 INSERT INTO users (id, rut, first_name, last_name, email, password_hash, role)
 VALUES 
     ('a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d', '12345678-9', 'Ignacio', 'Pérez', 'paciente@mymedrecord.cl', '$2b$10$sAeGx1oVam0wqcCk.A5aaeYHKGW2vGEF9gFe8kDcBqzMMpLoS4VOW', 'PACIENTE'),
@@ -312,16 +312,17 @@ VALUES
     ('f1a2b3c4-d5e6-7f8a-9b0c-1d2e3f4a5b02', 'Triglicéridos', '140', 'mg/dL', '< 150 mg/dL', FALSE)
 ON CONFLICT DO NOTHING;
 
--- 9. Acceso temporal demo mediante QR (para pruebas del Visor Médico de Urgencia)
-INSERT INTO access_grants (id, patient_id, token, grant_type, doctor_name, doctor_institution, expires_at, is_revoked)
+-- 9. Pase de Acceso Médico por Código QR inicial de demostración (Ley 21.668)
+INSERT INTO access_grants (id, patient_id, token, grant_type, doctor_rut, doctor_name, doctor_institution, expires_at, is_revoked)
 VALUES (
     'a3b4c5d6-e7f8-9a0b-1c2d-3e4f5a6b7c8d',
     'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
-    'QR-EMERGENCIA-DEMO-2026-TOKEN',
+    'MMR-12H-DEMO-2026-CONSULTA',
     'QR_TEMPORAL',
-    'Dr. Médico Urgencia SAMU',
-    'Servicio de Urgencia Hospital Sótero del Río',
-    NOW() + INTERVAL '2 hours',
+    '98765432-1',
+    'Dr. Ariel Velásquez',
+    'Centro Médico y Consulta de Especialidades',
+    NOW() + INTERVAL '12 hours',
     FALSE
 )
 ON CONFLICT (token) DO NOTHING;

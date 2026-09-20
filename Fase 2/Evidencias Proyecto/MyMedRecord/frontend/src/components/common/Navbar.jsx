@@ -45,8 +45,7 @@ export const Navbar = ({ roleTitle, roleBadgeColor = 'teal', onOpenProfile }) =>
   };
 
   const getRoleDisplay = () => {
-    if (user?.role === 'PACIENTE') return { label: 'Paciente Titular', color: 'bg-teal-50 dark:bg-teal-950/40 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-800' };
-    return { label: 'Médico Administrador', color: 'bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-teal-300 border-blue-200 dark:border-blue-800' };
+    return { label: 'Paciente Titular', color: 'bg-teal-50 dark:bg-teal-950/40 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-800' };
   };
 
   const roleInfo = getRoleDisplay();
@@ -351,14 +350,14 @@ export const Navbar = ({ roleTitle, roleBadgeColor = 'teal', onOpenProfile }) =>
 
             <div className="space-y-3 py-4 text-xs">
               <div className="p-3.5 bg-stone-50 border border-stone-200 rounded-2xl">
-                <span className="font-bold text-blue-950 block mb-1">📜 Ley N° 21.668 (Interoperabilidad de Fichas Clínicas)</span>
+                <span className="font-bold text-blue-950 block mb-1">Ley N° 21.668 (Interoperabilidad de Fichas Clínicas)</span>
                 <p className="text-stone-600 text-[11px] leading-relaxed">
                   Establece la obligación legal de que los prestadores de salud (públicos y privados) permitan el acceso y la transferencia estandarizada de la información clínica del paciente para asegurar la continuidad asistencial.
                 </p>
               </div>
 
               <div className="p-3.5 bg-stone-50 border border-stone-200 rounded-2xl">
-                <span className="font-bold text-blue-950 block mb-1">🛡️ Ley N° 20.584 (Derechos y Deberes del Paciente)</span>
+                <span className="font-bold text-blue-950 block mb-1">Ley N° 20.584 (Derechos y Deberes del Paciente)</span>
                 <p className="text-stone-600 text-[11px] leading-relaxed">
                   Garantiza que el titular de la ficha clínica es el paciente. Nadie puede acceder a tus registros sin tu consentimiento explícito (gestionado en MyMedRecord mediante autorización por RUT o QR temporal).
                 </p>

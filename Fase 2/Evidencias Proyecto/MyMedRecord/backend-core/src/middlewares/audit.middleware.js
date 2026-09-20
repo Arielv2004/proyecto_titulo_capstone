@@ -23,7 +23,7 @@ const auditMiddleware = (actionName) => {
           );
         }
       } catch (err) {
-        console.error('⚠️ Error al registrar log de auditoría:', err.message);
+        console.error('[Audit Error] Error al registrar log de auditoría:', err.message);
       }
     });
 
