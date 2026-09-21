@@ -1,7 +1,7 @@
 const express = require('express');
 
 const router = express.Router();
-
+const documentRoutes = require('./document.routes');
 const authRoutes = require('./auth.routes');
 const appointmentRoutes = require('./appointment.routes');
 
@@ -36,5 +36,5 @@ router.get('/db/overview', async (req, res) => {
 // Enrutadores principales
 router.use('/auth', authRoutes);
 router.use('/appointments', appointmentRoutes);
-
+router.use('/documents', documentRoutes);
 module.exports = router;

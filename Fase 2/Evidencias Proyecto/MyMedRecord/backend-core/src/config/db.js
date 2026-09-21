@@ -26,8 +26,9 @@ module.exports = {
   async getSchemaOverview() {
     try {
       const usersRes = await pool.query('SELECT id, rut, first_name, last_name, email, role, is_active, created_at FROM users ORDER BY created_at ASC');
-      const vitalsRes = await pool.query('SELECT * FROM vital_signs ORDER BY recorded_at DESC');
       const docsRes = await pool.query('SELECT * FROM documents ORDER BY created_at DESC');
+      const prescriptionsRes = await pool.query('SELECT * FROM prescriptions ORDER BY created_at DESC');
+      const labReportsRes = await pool.query('SELECT * FROM lab_reports ORDER BY created_at DESC');
       const grantsRes = await pool.query('SELECT * FROM access_grants ORDER BY created_at DESC');
       const logsRes = await pool.query('SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 50');
 
@@ -36,8 +37,9 @@ module.exports = {
         status: 'CONNECTED',
         tables: {
           users: { count: usersRes.rowCount, rows: usersRes.rows },
-          vital_signs: { count: vitalsRes.rowCount, rows: vitalsRes.rows },
           documents: { count: docsRes.rowCount, rows: docsRes.rows },
+          prescriptions: { count: prescriptionsRes.rowCount, rows: prescriptionsRes.rows },
+          lab_reports: { count: labReportsRes.rowCount, rows: labReportsRes.rows },
           access_grants: { count: grantsRes.rowCount, rows: grantsRes.rows },
           audit_logs: { count: logsRes.rowCount, rows: logsRes.rows },
         },
