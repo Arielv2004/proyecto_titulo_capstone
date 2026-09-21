@@ -62,17 +62,16 @@ CREATE TABLE patient_profiles (
 
 -- ==============================================================================
 -- TABLA 3: access_grants
--- Autorizaciones temporales creadas voluntariamente por el paciente.
+-- Autorizaciones temporales de acceso a la ficha clínica.
 --
 -- DIRECTO:
--- El paciente selecciona a un médico registrado y comparte su ficha
--- para una atención que ya fue agendada externamente.
+-- El paciente comparte voluntariamente su ficha con un médico registrado.
 --
 -- QR_TEMPORAL:
--- El paciente genera un QR con un token temporal.
+-- El paciente genera un código QR asociado a un token temporal de acceso.
 --
--- Ambos mecanismos utilizan:
--- /shared-record/:token
+-- Ambos mecanismos utilizan un acceso temporal y controlado
+-- mediante /shared-record/:token.
 -- ==============================================================================
 CREATE TABLE access_grants (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -372,42 +371,7 @@ CREATE INDEX idx_lab_test_items_report
 CREATE INDEX idx_audit_logs_patient
     ON audit_logs(patient_id, created_at DESC);
 
--- ==============================================================================
--- DATOS INICIALES DE DEMOSTRACIÓN
--- ==============================================================================
-
--- ==============================================================================
--- 1. USUARIOS DEMO
--- ==============================================================================
-
-INSERT INTO users (
-    id,
-    rut,
-    first_name,
-    last_name,
-    email,
-    password_hash,
-    role
-)
-VALUES
-(
-    'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
-    '12345678-9',
-    'Ignacio',
-    'Pérez',
-    'paciente@mymedrecord.cl',
-    '$2b$10$sAeGx1oVam0wqcCk.A5aaeYHKGW2vGEF9gFe8kDcBqzMMpLoS4VOW',
-    'PACIENTE'
-),
-(
-    'b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e',
-    '98765432-1',
-    'Dr. Ariel',
-    'Velásquez',
-    'medico@mymedrecord.cl',
-    '$2b$10$sAeGx1oVam0wqcCk.A5aaeYHKGW2vGEF9gFe8kDcBqzMMpLoS4VOW',
-    'MEDICO'
-)
+-- 
 ON CONFLICT (email) DO NOTHING;
 
 -- ==============================================================================

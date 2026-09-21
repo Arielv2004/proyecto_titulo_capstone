@@ -1,5 +1,11 @@
 import React, { useEffect } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+
+import {
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from 'react-router-dom';
 
 import { useAuthStore } from '../store/useAuthStore';
 import { ProtectedRoute } from '../components/auth/ProtectedRoute';
@@ -9,6 +15,7 @@ import { RegisterPage } from '../pages/RegisterPage';
 import { PatientDashboard } from '../pages/PatientDashboard';
 import { DoctorDashboard } from '../pages/DoctorDashboard';
 import { SharedRecordPage } from '../pages/SharedRecordPage';
+import { DoctorQrAccessPage } from '../pages/DoctorQrAccessPage';
 import { PrivacyPolicyPage } from '../pages/PrivacyPolicyPage';
 import { TermsPage } from '../pages/TermsPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
@@ -34,7 +41,10 @@ export const AppRoutes = () => {
       {/* RUTAS PÚBLICAS */}
       {/* ========================= */}
 
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route
+        path="/"
+        element={<Navigate to="/login" replace />}
+      />
 
       <Route
         path="/login"
@@ -44,6 +54,12 @@ export const AppRoutes = () => {
       <Route
         path="/register"
         element={<RegisterPage />}
+      />
+
+      {/* Acceso médico mediante QR */}
+      <Route
+        path="/doctor/qr-access"
+        element={<DoctorQrAccessPage />}
       />
 
       <Route

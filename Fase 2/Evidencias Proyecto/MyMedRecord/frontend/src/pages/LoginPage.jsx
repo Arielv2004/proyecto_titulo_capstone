@@ -8,13 +8,12 @@ import {
   Mail, 
   ShieldCheck, 
   ArrowRight, 
-  UserCheck, 
-  Stethoscope, 
   Eye, 
   EyeOff, 
   AlertCircle,
   LogIn,
-  UserPlus
+  UserPlus,
+  QrCode
 } from 'lucide-react';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 
@@ -31,18 +30,7 @@ export const LoginPage = () => {
     if (e) e.preventDefault();
     const result = await login(email, password);
     if (result.success) {
-      if (result.user.role === 'PACIENTE') navigate('/patient');
-      else navigate('/doctor');
-    }
-  };
-
-  const handleQuickDemo = async (demoEmail) => {
-    setEmail(demoEmail);
-    setPassword('password123');
-    const result = await login(demoEmail, 'password123');
-    if (result.success) {
-      if (result.user.role === 'PACIENTE') navigate('/patient');
-      else navigate('/doctor');
+      navigate('/patient');
     }
   };
 
@@ -175,32 +163,16 @@ export const LoginPage = () => {
             </button>
           </form>
 
-          {/* Accesos Rápidos Demo: Solo Paciente y Médico Administrador */}
-          <div className="mt-6 pt-5 border-t border-stone-200 dark:border-slate-800">
-            <span className="block text-[11px] font-bold uppercase tracking-wider text-stone-400 dark:text-slate-500 text-center mb-3">
-              Acceso Rápido por Perfil (Demostración)
-            </span>
-            <div className="grid grid-cols-2 gap-2.5">
-              <button
-                type="button"
-                onClick={() => handleQuickDemo('paciente@mymedrecord.cl')}
-                className="flex flex-col items-center justify-center p-3 bg-teal-50 dark:bg-teal-950/30 hover:bg-teal-100/80 dark:hover:bg-teal-900/40 border border-teal-200 dark:border-teal-800 rounded-2xl transition-all text-center cursor-pointer active:scale-95"
-              >
-                <UserCheck className="w-5 h-5 text-teal-700 dark:text-teal-400 mb-1" />
-                <span className="text-xs font-bold text-teal-900 dark:text-teal-200">Paciente</span>
-                <span className="text-[10px] text-teal-700 dark:text-teal-400">Titular de Ficha</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickDemo('medico@mymedrecord.cl')}
-                className="flex flex-col items-center justify-center p-3 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100/80 dark:hover:bg-blue-900/40 border border-blue-200 dark:border-blue-800 rounded-2xl transition-all text-center cursor-pointer active:scale-95"
-              >
-                <Stethoscope className="w-5 h-5 text-blue-800 dark:text-teal-300 mb-1" />
-                <span className="text-xs font-bold text-blue-950 dark:text-slate-100">Médico Admin</span>
-                <span className="text-[10px] text-blue-700 dark:text-slate-400">Gestión Clínica</span>
-              </button>
-            </div>
+          {/* Acceso Médico Inmediato por QR (Sin Cuenta Previa) */}
+          {/* Acceso Médico Inmediato por QR (Sin Cuenta Previa) */}
+          <div className="mt-4 pt-4 border-t border-stone-100 dark:border-slate-800">
+            <Link
+              to="/doctor/qr-access"
+              className="w-full py-3 bg-teal-50 dark:bg-teal-950/40 hover:bg-teal-100/80 dark:hover:bg-teal-900/50 border border-teal-300 dark:border-teal-800 text-teal-900 dark:text-teal-200 font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 text-xs cursor-pointer"
+            >
+              <QrCode className="w-4 h-4 text-teal-700 dark:text-teal-400" />
+              <span>¿Eres Médico? Escanear QR de Paciente</span>
+            </Link>
           </div>
 
           <div className="mt-6 text-center text-xs text-stone-600 dark:text-slate-400">

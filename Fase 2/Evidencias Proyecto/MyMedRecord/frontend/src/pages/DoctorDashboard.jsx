@@ -319,7 +319,9 @@ export const DoctorDashboard = () => {
 
         {activeTab === 'CLINICAL' && (
           <div className="space-y-6 animate-in fade-in duration-200">
+
             {/* BIENVENIDA */}
+
 
             <div className="bg-gradient-to-r from-blue-950 to-blue-900 text-white rounded-3xl p-6 shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
