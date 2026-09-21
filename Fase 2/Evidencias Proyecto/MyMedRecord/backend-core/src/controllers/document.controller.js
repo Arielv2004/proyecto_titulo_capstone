@@ -57,6 +57,25 @@ class DocumentController {
             next(error);
         }
     }
-}
 
+    static async remove(req, res, next) {
+        try {
+            const result = await DocumentService.deleteDocument(req.params.id, req.user);
+
+            return res.status(200).json({
+                success: true,
+                message: 'Documento eliminado del historial.',
+                data: result,
+            });
+        } catch (error) {
+            if (error.statusCode) {
+                return res.status(error.statusCode).json({
+                    success: false,
+                    message: error.message,
+                });
+            }
+            next(error);
+        }
+    }
+}
 module.exports = DocumentController;

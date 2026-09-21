@@ -46,6 +46,7 @@ router.use(authMiddleware);
 // ─── Rutas ────────────────────────────────────────────────────────────────
 router.post('/upload', upload.single('file'), DocumentController.upload);
 router.get('/', DocumentController.list);
+router.delete('/:id', DocumentController.remove);
 router.get('/:id', DocumentController.getById);
 
 module.exports = router;

@@ -195,7 +195,8 @@ CREATE TABLE documents (
                 'PROCESANDO',
                 'PENDIENTE_REVISION',
                 'CONFIRMADO',
-                'ERROR'
+                'ERROR',
+		'ELIMINADO'
             )
         ),
 

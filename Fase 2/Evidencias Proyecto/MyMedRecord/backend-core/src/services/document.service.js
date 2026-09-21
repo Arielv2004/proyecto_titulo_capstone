@@ -49,6 +49,7 @@ class DocumentService {
             status: 'PROCESANDO',
         });
 
+
         // 3. Enviar al ai-service
         let aiResult;
         try {
@@ -57,7 +58,7 @@ class DocumentService {
             // Si la IA falla, dejamos el documento pendiente para revisión manual
             await DocumentRepository.updateDocumentStatus(
                 doc.id,
-                'PENDIENTE_REVISION'
+                'ERROR'
             );
 
             await DocumentRepository.logAudit({
@@ -160,6 +161,46 @@ class DocumentService {
         }
 
         return { ...doc, structured };
+    }
+    static async deleteDocument(documentId, user) {
+        const doc = await DocumentRepository.findById(documentId);
+        if (!doc) {
+            const error = new Error('Documento no encontrado.');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        if (user.role === 'PACIENTE' && doc.patient_id !== user.id) {
+            const error = new Error('No tienes permiso para eliminar este documento.');
+            error.statusCode = 403;
+            throw error;
+        }
+
+        const allowDelete = ['ERROR', 'PROCESANDO'];
+        if (!allowDelete.includes(doc.status)) {
+            const error = new Error(
+                `No se puede eliminar un documento con estado ${doc.status}. ` +
+                `Solo los documentos con error o en proceso pueden eliminarse.`
+            );
+            error.statusCode = 400;
+            throw error;
+        }
+
+        await DocumentRepository.softDelete(documentId);
+
+        await DocumentRepository.logAudit({
+            userId: user.id,
+            patientId: doc.patient_id,
+            action: 'DELETE_DOCUMENT',
+            details: {
+                documentId,
+                previous_status: doc.status,
+                document_type: doc.document_type,
+            },
+            ipAddress: '0.0.0.0',
+        });
+
+        return { id: documentId, deleted: true };
     }
 
     // ─── PRIVADOS ───────────────────────────────────────────────────────────

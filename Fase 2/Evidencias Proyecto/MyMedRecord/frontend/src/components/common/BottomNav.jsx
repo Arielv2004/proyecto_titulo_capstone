@@ -1,15 +1,15 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  Home, 
-  Clock, 
-  Plus, 
-  HelpCircle, 
-  User, 
-  Camera, 
-  Upload, 
-  HeartPulse, 
-  X, 
+import {
+  Home,
+  Clock,
+  Plus,
+  HelpCircle,
+  User,
+  Camera,
+  Upload,
+  HeartPulse,
+  X,
   ChevronRight,
   ShieldCheck,
   FileText,
@@ -18,32 +18,42 @@ import {
   MapPin
 } from 'lucide-react';
 
-export const BottomNav = ({ 
-  activeTab = 'home', 
-  onTabChange, 
-  onOpenUploadModal, 
-  onOpenQrModal 
+export const BottomNav = ({
+  activeTab = 'home',
+  onTabChange,
+  onOpenUploadModal,
+  onOpenQrModal,
+  onFileSelected,
+  isUploading = false,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [showActionSheet, setShowActionSheet] = useState(false);
   const [showFaqModal, setShowFaqModal] = useState(false);
   const [showUploadPreview, setShowUploadPreview] = useState(null);
-  
+
   const cameraInputRef = useRef(null);
   const fileInputRef = useRef(null);
 
   const handleFileSelected = (e, source) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setShowUploadPreview({
-        name: file.name,
-        size: (file.size / 1024).toFixed(1) + ' KB',
-        type: file.type.includes('pdf') ? 'PDF' : 'IMAGEN',
-        source,
-      });
+    if (!file) return;
+    // Si hay un callback del padre, subimos directamente
+    if (onFileSelected) {
+      onFileSelected(file);
       setShowActionSheet(false);
+      e.target.value = '';
+      return;
     }
+    // Fallback: mostrar preview local (compatibilidad)
+    setShowUploadPreview({
+      name: file.name,
+      size: (file.size / 1024).toFixed(1) + ' KB',
+      type: file.type.includes('pdf') ? 'PDF' : 'IMAGEN',
+      source,
+    });
+    setShowActionSheet(false);
+    e.target.value = '';
   };
 
   const FAQS = [
@@ -94,9 +104,8 @@ export const BottomNav = ({
           {/* Tab 1: Inicio */}
           <button
             onClick={() => onTabChange ? onTabChange('home') : navigate('/patient')}
-            className={`flex flex-col items-center gap-1 py-1 px-2.5 transition-all cursor-pointer ${
-              activeTab === 'home' ? 'text-blue-900 font-extrabold' : 'text-stone-400 hover:text-stone-600'
-            }`}
+            className={`flex flex-col items-center gap-1 py-1 px-2.5 transition-all cursor-pointer ${activeTab === 'home' ? 'text-blue-900 font-extrabold' : 'text-stone-400 hover:text-stone-600'
+              }`}
           >
             <Home className="w-5 h-5" />
             <span className="text-[10px]">Inicio</span>
@@ -105,9 +114,8 @@ export const BottomNav = ({
           {/* Tab 2: Historial / Documentos */}
           <button
             onClick={() => onTabChange ? onTabChange('records') : navigate('/patient')}
-            className={`flex flex-col items-center gap-1 py-1 px-2.5 transition-all cursor-pointer ${
-              activeTab === 'records' ? 'text-blue-900 font-extrabold' : 'text-stone-400 hover:text-stone-600'
-            }`}
+            className={`flex flex-col items-center gap-1 py-1 px-2.5 transition-all cursor-pointer ${activeTab === 'records' ? 'text-blue-900 font-extrabold' : 'text-stone-400 hover:text-stone-600'
+              }`}
           >
             <Clock className="w-5 h-5" />
             <span className="text-[10px]">Historial</span>
@@ -127,9 +135,8 @@ export const BottomNav = ({
           {/* Tab 4: Ayuda / FAQ */}
           <button
             onClick={() => onTabChange ? onTabChange('help') : navigate('/patient')}
-            className={`flex flex-col items-center gap-1 py-1 px-2.5 transition-all cursor-pointer ${
-              activeTab === 'help' ? 'text-blue-900 font-extrabold' : 'text-stone-400 hover:text-stone-600'
-            }`}
+            className={`flex flex-col items-center gap-1 py-1 px-2.5 transition-all cursor-pointer ${activeTab === 'help' ? 'text-blue-900 font-extrabold' : 'text-stone-400 hover:text-stone-600'
+              }`}
           >
             <HelpCircle className="w-5 h-5" />
             <span className="text-[10px]">Ayuda</span>
@@ -138,9 +145,8 @@ export const BottomNav = ({
           {/* Tab 5: Mi Ficha */}
           <button
             onClick={() => onTabChange ? onTabChange('profile') : navigate('/patient')}
-            className={`flex flex-col items-center gap-1 py-1 px-2.5 transition-all cursor-pointer ${
-              activeTab === 'profile' ? 'text-blue-900 font-extrabold' : 'text-stone-400 hover:text-stone-600'
-            }`}
+            className={`flex flex-col items-center gap-1 py-1 px-2.5 transition-all cursor-pointer ${activeTab === 'profile' ? 'text-blue-900 font-extrabold' : 'text-stone-400 hover:text-stone-600'
+              }`}
           >
             <User className="w-5 h-5" />
             <span className="text-[10px]">Mi Ficha</span>
@@ -153,7 +159,7 @@ export const BottomNav = ({
       {/* ========================================================================= */}
       {showActionSheet && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
-          <div 
+          <div
             className="w-full max-w-md bg-white rounded-t-3xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-200 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
           >
             {/* Manilla superior decorativa */}
@@ -176,6 +182,7 @@ export const BottomNav = ({
               {/* Opción 1: Abrir Cámara para foto de Receta */}
               <button
                 onClick={() => cameraInputRef.current?.click()}
+                disabled={isUploading}
                 className="w-full p-4 bg-teal-50/70 hover:bg-teal-100/70 border border-teal-200 rounded-2xl flex items-center gap-3.5 transition-all text-left cursor-pointer group"
               >
                 <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-xs">
@@ -195,6 +202,7 @@ export const BottomNav = ({
               {/* Opción 2: Subir PDF o de Galería */}
               <button
                 onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
                 className="w-full p-4 bg-blue-50/70 hover:bg-blue-100/70 border border-blue-200 rounded-2xl flex items-center gap-3.5 transition-all text-left cursor-pointer group"
               >
                 <div className="w-10 h-10 rounded-xl bg-blue-900 text-white flex items-center justify-center shadow-xs">
@@ -263,7 +271,7 @@ export const BottomNav = ({
 
             <div className="space-y-3 py-4 text-xs">
               {FAQS.map((faq, idx) => (
-                <div 
+                <div
                   key={idx}
                   className="border border-stone-200/90 rounded-2xl overflow-hidden transition-all"
                 >

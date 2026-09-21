@@ -1,31 +1,33 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useMetaTags } from '../hooks/useMetaTags';
+import { documentsApi, mapDocumentFromApi } from '../services/documentsApi';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
-import { 
+import {
   Home,
-  Pill, 
-  FlaskConical, 
-  Stethoscope, 
-  ScanLine, 
-  Camera, 
-  QrCode, 
-  Search, 
-  FileText, 
-  ChevronRight, 
-  Sparkles, 
-  ShieldCheck, 
-  Building2, 
-  User, 
-  Clock, 
-  ArrowUpRight, 
-  CheckCircle2, 
-  AlertCircle, 
-  Download, 
-  Eye, 
-  Share2, 
-  X, 
-  Layers, 
-  Lock, 
+  Pill,
+  FlaskConical,
+  Stethoscope,
+  ScanLine,
+  Camera,
+  QrCode,
+  Search,
+  FileText,
+  ChevronRight,
+  Sparkles,
+  ShieldCheck,
+  Building2,
+  User,
+  Clock,
+  ArrowUpRight,
+  CheckCircle2,
+  AlertCircle,
+  Download,
+  Eye,
+  Share2,
+  X,
+  Layers,
+  Lock,
   Calendar,
   UploadCloud,
   HelpCircle,
@@ -48,7 +50,6 @@ import {
 import { Navbar } from '../components/common/Navbar';
 import { BottomNav } from '../components/common/BottomNav';
 import { ThemeToggle } from '../components/common/ThemeToggle';
-import { useMetaTags } from '../hooks/useMetaTags';
 
 export const PatientDashboard = () => {
   const { user } = useAuthStore();
@@ -118,88 +119,81 @@ export const PatientDashboard = () => {
   const [showQrModal, setShowQrModal] = useState(false);
 
   // Documentos Médicos Digitalizados (Extraídos por IA)
-  const [documents] = useState([
-    {
-      id: 'doc-001',
-      category: 'RECETA',
-      title: 'Receta Médica - Tratamiento Infección Respiratoria',
-      institution: 'Hospital de Puerto Montt',
-      doctor: 'Dr. Ariel González (Medicina General)',
-      date: '02 Septiembre 2026',
-      status: 'ACTIVA',
-      summary: '2 medicamentos prescritos · Vigente por 7 días',
-      extractedData: {
-        medicamentos: [
-          { nombre: 'Amoxicilina', dosis: '500 mg', posologia: '1 comprimido cada 8 horas', duracion: '7 días', horario: '08:00 - 16:00 - 00:00' },
-          { nombre: 'Paracetamol', dosis: '500 mg', posologia: '1 comprimido cada 8 horas (en caso de dolor)', duracion: '3 días', horario: 'Condicional' }
-        ],
-        indicaciones: 'Ingerir con abundante agua junto con las comidas. No suspender antes del plazo indicado.',
-        vigenciaHasta: '09 Septiembre 2026',
-        diagnostico: 'Faringitis Aguda (CIE-10: J02.9)'
-      },
-      encryption: 'AES-256-GCM',
-      confidence: '98.5%'
-    },
-    {
-      id: 'doc-002',
-      category: 'EXAMEN',
-      title: 'Informe de Laboratorio - Perfil Bioquímico & Lipídico',
-      institution: 'Laboratorio Clínico Bionet (Puerto Montt)',
-      doctor: 'Dra. Marcela Lagos (Bioquímica)',
-      date: '28 Agosto 2026',
-      status: 'NORMAL',
-      summary: '4 parámetros analizados · Todos dentro del rango basal',
-      extractedData: {
-        parametros: [
-          { nombre: 'Glucosa en Ayunas', valor: '92 mg/dL', rangoRef: '70 - 100 mg/dL', estado: 'NORMAL' },
-          { nombre: 'Colesterol Total', valor: '185 mg/dL', rangoRef: '< 200 mg/dL', estado: 'NORMAL' },
-          { nombre: 'Triglicéridos', valor: '130 mg/dL', rangoRef: '< 150 mg/dL', estado: 'NORMAL' },
-          { nombre: 'Hemoglobina Glicosilada (HbA1c)', valor: '5.4 %', rangoRef: '< 5.7 %', estado: 'NORMAL' }
-        ],
-        observaciones: 'Muestra tomada con 10 horas de ayuno estricto. Parámetros normales.',
-        diagnostico: 'Chequeo Preventivo Anual'
-      },
-      encryption: 'AES-256-GCM',
-      confidence: '99.1%'
-    },
-    {
-      id: 'doc-003',
-      category: 'CONSULTA',
-      title: 'Informe de Atención Médica - Medicina General',
-      institution: 'Centro de Salud Familiar (CESFAM) Carmela Carvajal',
-      doctor: 'Dr. Ariel González',
-      date: '15 Agosto 2026',
-      status: 'COMPLETADA',
-      summary: 'Control preventivo · Se solicitan exámenes basales',
-      extractedData: {
-        anamnesis: 'Paciente acude a control de salud preventivo. Asintomático al momento del examen.',
-        diagnostico: 'Examen de Salud de Rutina (CIE-10: Z00.0)',
-        plan: 'Se indican exámenes de laboratorio de rutina y control con resultados en 12 meses.',
-        signosVitalesEnConsulta: 'PA: 120/80 mmHg | FC: 72 lpm | T°: 36.6°C | Peso: 74 kg'
-      },
-      encryption: 'AES-256-GCM',
-      confidence: '97.8%'
-    },
-    {
-      id: 'doc-004',
-      category: 'IMAGEN',
-      title: 'Informe Radiológico - Radiografía de Tórax PA y Lateral',
-      institution: 'Clínica Puerto Montt',
-      doctor: 'Dr. Roberto Muñoz (Radiólogo)',
-      date: '05 Agosto 2026',
-      status: 'SIN ALTERACIÓN',
-      summary: 'Campos pulmonares libres · Silueta cardíaca normal',
-      extractedData: {
-        tecnica: 'Proyecciones posteroanterior y lateral de tórax de alta resolución.',
-        conclusiones: 'Campos pulmonares libres de condensaciones. Índice cardiotorácico dentro de límites normales.',
-        diagnostico: 'Radiografía de Tórax sin alteraciones pleuropulmonares agudas'
-      },
-      encryption: 'AES-256-GCM',
-      confidence: '99.4%'
-    }
-  ]);
+  // Documentos Médicos Digitalizados (cargados desde el backend)
+  const [documents, setDocuments] = useState([]);
+  const [loadingDocs, setLoadingDocs] = useState(true);
+  const [docsError, setDocsError] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState(null);
 
-  // Pilares clínicos
+  // Cargar documentos del backend al montar el componente
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        setLoadingDocs(true);
+        setDocsError(null);
+        const res = await documentsApi.list();
+        if (mounted) {
+          const mapped = (res.data || []).map(mapDocumentFromApi);
+          setDocuments(mapped);
+        }
+      } catch (err) {
+        if (mounted) {
+          setDocsError(
+            err.response?.data?.message || 'Error al cargar tus documentos'
+          );
+        }
+      } finally {
+        if (mounted) setLoadingDocs(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  // Manejar la subida de un archivo
+  const handleUploadFile = async (file) => {
+    if (!file) return;
+    setIsUploading(true);
+    setUploadProgress(0);
+    setUploadError(null);
+    try {
+      const res = await documentsApi.upload(file, (pct) => setUploadProgress(pct));
+      const newDoc = mapDocumentFromApi({
+        ...res.data.document,
+        structured: res.data.structured,
+      });
+      setDocuments((prev) => [newDoc, ...prev]);
+      setShowUploadModal(false);
+      setSelectedDocument(newDoc);
+    } catch (err) {
+      setUploadError(
+        err.response?.data?.message || 'Error al procesar el documento'
+      );
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
+  // Manejar la eliminación de un documento con error
+  const handleDeleteDocument = async (doc) => {
+    const confirm = window.confirm(
+      `¿Eliminar "${doc.title}" del historial?\n\nEsta acción no se puede deshacer.`
+    );
+    if (!confirm) return;
+
+    try {
+      await documentsApi.remove(doc.id);
+      setDocuments((prev) => prev.filter((d) => d.id !== doc.id));
+      if (selectedDocument?.id === doc.id) {
+        setSelectedDocument(null);
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Error al eliminar el documento');
+    }
+  };
+  // Pilares clínicos (categorías del dashboard)
   const clinicalPillars = [
     {
       id: 'RECETA',
@@ -207,7 +201,7 @@ export const PatientDashboard = () => {
       subtitle: 'Tratamientos y medicamentos',
       icon: Pill,
       count: documents.filter(d => d.category === 'RECETA').length,
-      badgeText: '1 Vigente',
+      badgeText: 'Vigentes',
       border: 'border-emerald-200/80',
       iconColor: 'text-emerald-700',
       iconBg: 'bg-emerald-100/80'
@@ -218,7 +212,7 @@ export const PatientDashboard = () => {
       subtitle: 'Sangre, orina y perfiles',
       icon: FlaskConical,
       count: documents.filter(d => d.category === 'EXAMEN').length,
-      badgeText: 'Normales',
+      badgeText: 'Resultados',
       border: 'border-teal-200/80',
       iconColor: 'text-teal-700',
       iconBg: 'bg-teal-100/80'
@@ -229,7 +223,7 @@ export const PatientDashboard = () => {
       subtitle: 'Atenciones y diagnósticos',
       icon: Stethoscope,
       count: documents.filter(d => d.category === 'CONSULTA').length,
-      badgeText: 'CESFAM & Hospital',
+      badgeText: 'Historial',
       border: 'border-blue-200/80',
       iconColor: 'text-blue-800',
       iconBg: 'bg-blue-100/80'
@@ -240,7 +234,7 @@ export const PatientDashboard = () => {
       subtitle: 'Radiografías y ecografías',
       icon: ScanLine,
       count: documents.filter(d => d.category === 'IMAGEN').length,
-      badgeText: 'Sin hallazgos',
+      badgeText: 'Estudios',
       border: 'border-indigo-200/80',
       iconColor: 'text-indigo-800',
       iconBg: 'bg-indigo-100/80'
@@ -349,9 +343,9 @@ export const PatientDashboard = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-stone-50 text-slate-800">
-      <Navbar 
-        roleTitle="Portal Paciente" 
-        onOpenProfile={() => setCurrentTab('profile')} 
+      <Navbar
+        roleTitle="Portal Paciente"
+        onOpenProfile={() => setCurrentTab('profile')}
       />
 
       {/* Barra de Navegación por Pestañas Superior (Escritorio / Tablet) */}
@@ -359,9 +353,8 @@ export const PatientDashboard = () => {
         <div className="max-w-6xl mx-auto px-6 flex items-center gap-2 py-2">
           <button
             onClick={() => setCurrentTab('home')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              currentTab === 'home' ? 'bg-blue-900 text-white shadow-xs' : 'text-stone-600 hover:bg-stone-100'
-            }`}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${currentTab === 'home' ? 'bg-blue-900 text-white shadow-xs' : 'text-stone-600 hover:bg-stone-100'
+              }`}
           >
             <Home className="w-4 h-4" />
             <span>Inicio</span>
@@ -369,9 +362,8 @@ export const PatientDashboard = () => {
 
           <button
             onClick={() => setCurrentTab('records')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              currentTab === 'records' ? 'bg-blue-900 text-white shadow-xs' : 'text-stone-600 hover:bg-stone-100'
-            }`}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${currentTab === 'records' ? 'bg-blue-900 text-white shadow-xs' : 'text-stone-600 hover:bg-stone-100'
+              }`}
           >
             <Clock className="w-4 h-4" />
             <span>Historial y Documentos</span>
@@ -382,9 +374,8 @@ export const PatientDashboard = () => {
 
           <button
             onClick={() => setCurrentTab('profile')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              currentTab === 'profile' ? 'bg-blue-900 text-white shadow-xs' : 'text-stone-600 hover:bg-stone-100'
-            }`}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${currentTab === 'profile' ? 'bg-blue-900 text-white shadow-xs' : 'text-stone-600 hover:bg-stone-100'
+              }`}
           >
             <User className="w-4 h-4" />
             <span>Mi Ficha y Datos</span>
@@ -392,9 +383,8 @@ export const PatientDashboard = () => {
 
           <button
             onClick={() => setCurrentTab('help')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              currentTab === 'help' ? 'bg-blue-900 text-white shadow-xs' : 'text-stone-600 hover:bg-stone-100'
-            }`}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${currentTab === 'help' ? 'bg-blue-900 text-white shadow-xs' : 'text-stone-600 hover:bg-stone-100'
+              }`}
           >
             <HelpCircle className="w-4 h-4" />
             <span>Ayuda & FAQ</span>
@@ -484,7 +474,7 @@ export const PatientDashboard = () => {
             {/* Hero Header */}
             <div className="relative overflow-hidden bg-gradient-to-br from-blue-950 via-slate-900 to-teal-950 rounded-3xl p-6 sm:p-8 text-white shadow-md border border-slate-800">
               <div className="absolute -right-12 -top-12 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
-              
+
               <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
@@ -667,11 +657,10 @@ export const PatientDashboard = () => {
                 <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
                   <button
                     onClick={() => setSelectedCategory('ALL')}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
-                      selectedCategory === 'ALL'
-                        ? 'bg-blue-900 text-white shadow-xs'
-                        : 'bg-stone-100 hover:bg-stone-200 text-stone-600'
-                    }`}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${selectedCategory === 'ALL'
+                      ? 'bg-blue-900 text-white shadow-xs'
+                      : 'bg-stone-100 hover:bg-stone-200 text-stone-600'
+                      }`}
                   >
                     <Layers className="w-3.5 h-3.5" />
                     <span>Todos</span>
@@ -682,11 +671,10 @@ export const PatientDashboard = () => {
                     <button
                       key={p.id}
                       onClick={() => setSelectedCategory(p.id)}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
-                        selectedCategory === p.id
-                          ? 'bg-blue-900 text-white shadow-xs'
-                          : 'bg-stone-100 hover:bg-stone-200 text-stone-600'
-                      }`}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${selectedCategory === p.id
+                        ? 'bg-blue-900 text-white shadow-xs'
+                        : 'bg-stone-100 hover:bg-stone-200 text-stone-600'
+                        }`}
                     >
                       <span>{p.title}</span>
                       <span className="text-[10px] opacity-80">({p.count})</span>
@@ -717,7 +705,23 @@ export const PatientDashboard = () => {
 
               {/* Listado de Documentos */}
               <div className="space-y-3 pt-2">
-                {filteredDocuments.length === 0 ? (
+                {loadingDocs ? (
+                  <div className="text-center py-12 bg-stone-50 rounded-2xl border border-dashed border-stone-300">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-900 mx-auto mb-3" />
+                    <p className="text-sm font-bold text-stone-700">Cargando tus documentos...</p>
+                  </div>
+                ) : docsError ? (
+                  <div className="text-center py-12 bg-rose-50 rounded-2xl border border-rose-200">
+                    <AlertCircle className="w-10 h-10 text-rose-500 mx-auto mb-2" />
+                    <p className="text-sm font-bold text-rose-900">{docsError}</p>
+                    <button
+                      onClick={() => window.location.reload()}
+                      className="mt-3 text-xs font-bold text-rose-700 underline"
+                    >
+                      Reintentar
+                    </button>
+                  </div>
+                ) : filteredDocuments.length === 0 ? (
                   <div className="text-center py-12 bg-stone-50 rounded-2xl border border-dashed border-stone-300">
                     <FileText className="w-10 h-10 text-stone-300 mx-auto mb-2" />
                     <p className="text-sm font-bold text-stone-700">No se encontraron documentos en esta categoría</p>
@@ -754,7 +758,14 @@ export const PatientDashboard = () => {
                               <span className="text-[11px] text-stone-400 font-medium">
                                 {doc.date}
                               </span>
-                              <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded font-bold">
+                              <span
+                                className={`text-[10px] font-mono px-1.5 py-0.2 rounded font-bold border ${doc.status === 'ERROR'
+                                  ? 'text-rose-700 bg-rose-50 border-rose-200'
+                                  : doc.status === 'CONFIRMADO' || doc.status === 'CONFIRMADA'
+                                    ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
+                                    : 'text-amber-700 bg-amber-50 border-amber-200'
+                                  }`}
+                              >
                                 {doc.status}
                               </span>
                             </div>
@@ -784,21 +795,36 @@ export const PatientDashboard = () => {
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0 border-t md:border-t-0 pt-3 md:pt-0 border-stone-200">
-                          <button
-                            onClick={() => setSelectedDocument(doc)}
-                            className="px-4 py-2.5 bg-blue-900 hover:bg-blue-950 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
-                          >
-                            <Eye className="w-3.5 h-3.5 text-teal-300" />
-                            <span>Ver Ficha Detallada</span>
-                          </button>
+                          {doc.status !== 'ERROR' && (
+                            <>
+                              <button
+                                onClick={() => setSelectedDocument(doc)}
+                                className="px-4 py-2.5 bg-blue-900 hover:bg-blue-950 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-teal-300" />
+                                <span>Ver Ficha Detallada</span>
+                              </button>
 
-                          <button
-                            onClick={() => alert(`Exportando copia legal con timbre digital Ley 21.668...`)}
-                            className="p-2.5 bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 rounded-xl transition-all cursor-pointer shadow-2xs"
-                            title="Descargar archivo"
-                          >
-                            <Download className="w-4 h-4 text-stone-600" />
-                          </button>
+                              <button
+                                onClick={() => alert(`Exportando copia legal con timbre digital Ley 21.668...`)}
+                                className="p-2.5 bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 rounded-xl transition-all cursor-pointer shadow-2xs"
+                                title="Descargar archivo"
+                              >
+                                <Download className="w-4 h-4 text-stone-600" />
+                              </button>
+                            </>
+                          )}
+
+                          {doc.status === 'ERROR' && (
+                            <button
+                              onClick={() => handleDeleteDocument(doc)}
+                              className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                              title="Eliminar del historial"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Eliminar</span>
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
@@ -1595,17 +1621,17 @@ export const PatientDashboard = () => {
                 <UploadCloud className="w-10 h-10 text-teal-600 mx-auto mb-2" />
                 <span className="font-bold text-blue-950 block">Toma una foto a tu papel médico</span>
                 <span className="text-[11px] text-stone-500 block mt-0.5">Soporta recetas manuscritas, exámenes de laboratorio y PDF</span>
-                <input 
-                  type="file" 
+                <input
+                  type="file"
                   accept="image/*,application/pdf"
                   capture="environment"
-                  className="hidden" 
+                  className="hidden"
+                  disabled={isUploading}
                   onChange={(e) => {
-                    if (e.target.files?.[0]) {
-                      alert(`Documento seleccionado: ${e.target.files[0].name}. En el siguiente paso lo procesaremos con el motor OCR.`);
-                      setShowUploadModal(false);
-                    }
-                  }} 
+                    const file = e.target.files?.[0];
+                    if (file) handleUploadFile(file);
+                    e.target.value = '';
+                  }}
                 />
               </label>
 
@@ -1618,6 +1644,36 @@ export const PatientDashboard = () => {
                 </p>
               </div>
             </div>
+            {isUploading && (
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-blue-950 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-teal-600 animate-pulse" />
+                    Analizando con IA...
+                  </span>
+                  <span className="font-mono text-blue-900">{uploadProgress}%</span>
+                </div>
+                <div className="w-full h-2 bg-blue-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-blue-900 to-teal-500 transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+                <p className="text-[11px] text-stone-600">
+                  OCR + clasificación con Gemini. Esto puede tardar hasta 30 segundos.
+                </p>
+              </div>
+            )}
+
+            {uploadError && (
+              <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <span className="text-xs font-bold text-rose-950 block">Error al procesar</span>
+                  <p className="text-[11px] text-rose-800 mt-0.5">{uploadError}</p>
+                </div>
+              </div>
+            )}
 
             <div className="pt-2 flex justify-end gap-2">
               <button
@@ -1753,7 +1809,7 @@ export const PatientDashboard = () => {
                   </span>
                   <span className="text-[10px] text-rose-700 dark:text-rose-400 font-mono">Crítico para recetas</span>
                 </div>
-                
+
                 {/* Tags seleccionados */}
                 <div className="flex flex-wrap gap-1.5 min-h-[28px]">
                   {editFormData.allergies.length === 0 ? (
@@ -1788,11 +1844,10 @@ export const PatientDashboard = () => {
                         key={item}
                         type="button"
                         onClick={() => handleToggleAllergy(item)}
-                        className={`px-2 py-0.5 rounded-md text-[11px] font-semibold border transition-all cursor-pointer ${
-                          editFormData.allergies.includes(item)
-                            ? 'bg-rose-600 text-white border-rose-600'
-                            : 'bg-white dark:bg-slate-800 text-stone-600 dark:text-slate-300 border-stone-200 dark:border-slate-700 hover:border-rose-300'
-                        }`}
+                        className={`px-2 py-0.5 rounded-md text-[11px] font-semibold border transition-all cursor-pointer ${editFormData.allergies.includes(item)
+                          ? 'bg-rose-600 text-white border-rose-600'
+                          : 'bg-white dark:bg-slate-800 text-stone-600 dark:text-slate-300 border-stone-200 dark:border-slate-700 hover:border-rose-300'
+                          }`}
                       >
                         {editFormData.allergies.includes(item) ? `✓ ${item}` : `+ ${item}`}
                       </button>
@@ -1874,11 +1929,10 @@ export const PatientDashboard = () => {
                         key={item}
                         type="button"
                         onClick={() => handleToggleCondition(item)}
-                        className={`px-2 py-0.5 rounded-md text-[11px] font-semibold border transition-all cursor-pointer ${
-                          editFormData.chronicConditions.includes(item)
-                            ? 'bg-blue-900 text-white border-blue-900'
-                            : 'bg-white dark:bg-slate-800 text-stone-600 dark:text-slate-300 border-stone-200 dark:border-slate-700 hover:border-blue-300'
-                        }`}
+                        className={`px-2 py-0.5 rounded-md text-[11px] font-semibold border transition-all cursor-pointer ${editFormData.chronicConditions.includes(item)
+                          ? 'bg-blue-900 text-white border-blue-900'
+                          : 'bg-white dark:bg-slate-800 text-stone-600 dark:text-slate-300 border-stone-200 dark:border-slate-700 hover:border-blue-300'
+                          }`}
                       >
                         {editFormData.chronicConditions.includes(item) ? `✓ ${item}` : `+ ${item}`}
                       </button>
@@ -1927,11 +1981,10 @@ export const PatientDashboard = () => {
                   <button
                     type="button"
                     onClick={() => setEditFormData({ ...editFormData, isOrganDonor: !editFormData.isOrganDonor })}
-                    className={`px-3 py-1.5 rounded-lg font-bold text-xs cursor-pointer transition-all ${
-                      editFormData.isOrganDonor
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-stone-200 text-stone-700 dark:bg-slate-700 dark:text-slate-300'
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg font-bold text-xs cursor-pointer transition-all ${editFormData.isOrganDonor
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-stone-200 text-stone-700 dark:bg-slate-700 dark:text-slate-300'
+                      }`}
                   >
                     {editFormData.isOrganDonor ? 'Sí, Soy Donante' : 'No Donante'}
                   </button>
@@ -1990,11 +2043,13 @@ export const PatientDashboard = () => {
       )}
 
       {/* Navegación Móvil Inferior */}
-      <BottomNav 
+      <BottomNav
         activeTab={currentTab}
         onTabChange={(tab) => setCurrentTab(tab)}
-        onOpenUploadModal={() => setShowUploadModal(true)} 
-        onOpenQrModal={() => setShowQrModal(true)} 
+        onOpenUploadModal={() => setShowUploadModal(true)}
+        onOpenQrModal={() => setShowQrModal(true)}
+        onFileSelected={handleUploadFile}
+        isUploading={isUploading}
       />
 
       <footer className="py-4 text-center text-[11px] text-stone-400 border-t border-stone-200 bg-white">

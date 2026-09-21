@@ -69,6 +69,7 @@ class DocumentRepository {
         d.status, d.created_at, d.updated_at
       FROM documents d
       WHERE d.patient_id = $1
+        AND d.status <> 'ELIMINADO'
     `;
     const values = [patientId];
 
@@ -242,6 +243,18 @@ class DocumentRepository {
     const result = await db.query(query, values);
     return result.rows[0];
   }
-}
 
+
+  static async softDelete(documentId) {
+    const query = `
+      UPDATE documents
+      SET status = 'ELIMINADO',
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+      RETURNING *;
+    `;
+    const result = await db.query(query, [documentId]);
+    return result.rows[0] || null;
+  }
+}
 module.exports = DocumentRepository;
