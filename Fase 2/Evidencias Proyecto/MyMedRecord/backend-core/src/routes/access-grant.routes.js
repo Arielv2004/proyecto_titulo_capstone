@@ -9,6 +9,9 @@ router.post('/generate', authMiddleware, AccessGrantController.generate);
 // Obtener QR activo y vigente del paciente (Requiere paciente autenticado)
 router.get('/active', authMiddleware, AccessGrantController.getActive);
 
+// Obtener todos los pases y accesos del paciente (Requiere paciente autenticado)
+router.get('/my-grants', authMiddleware, AccessGrantController.getMyGrants);
+
 // Revocar QR activo (Requiere paciente autenticado)
 router.patch('/:id/revoke', authMiddleware, AccessGrantController.revoke);
 

@@ -89,6 +89,27 @@ class AccessGrantRepository {
   }
 
   /**
+   * Obtener todos los pases y accesos (activos, revocados y expirados) del paciente
+   */
+  static async getAllByPatient(patientId) {
+    const query = `
+      SELECT 
+        ag.*,
+        GREATEST(0, ROUND(EXTRACT(EPOCH FROM (ag.expires_at - NOW())) / 60)) AS minutes_remaining,
+        CASE
+          WHEN ag.is_revoked THEN 'REVOCADO'
+          WHEN ag.expires_at <= NOW() THEN 'EXPIRADO'
+          ELSE 'ACTIVO'
+        END AS status_label
+      FROM access_grants ag
+      WHERE ag.patient_id = $1
+      ORDER BY ag.created_at DESC;
+    `;
+    const result = await db.query(query, [patientId]);
+    return result.rows;
+  }
+
+  /**
    * Obtener la ficha clínica completa y recetas del paciente para el Visor Médico
    */
   static async getPatientClinicalData(patientId) {

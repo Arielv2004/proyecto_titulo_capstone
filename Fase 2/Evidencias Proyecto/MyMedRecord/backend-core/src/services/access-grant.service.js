@@ -182,6 +182,41 @@ class AccessGrantService {
       createdAt: grant.created_at,
     };
   }
+
+  /**
+   * Obtener todos los pases y accesos del paciente con metadata calculada
+   */
+  static async getMyGrants(patientId) {
+    const grants = await AccessGrantRepository.getAllByPatient(patientId);
+    return grants.map(grant => {
+      const now = new Date();
+      const expiry = new Date(grant.expires_at);
+      const minutesRemaining = Math.max(0, Math.round((expiry - now) / (1000 * 60)));
+
+      let status = 'ACTIVO';
+      if (grant.is_revoked) {
+        status = 'REVOCADO';
+      } else if (expiry <= now) {
+        status = 'EXPIRADO';
+      }
+
+      return {
+        id: grant.id,
+        token: grant.token,
+        grantType: grant.grant_type,
+        doctorRut: grant.doctor_rut,
+        doctorName: grant.doctor_name,
+        doctorInstitution: grant.doctor_institution,
+        startsAt: grant.starts_at || grant.created_at,
+        expiresAt: grant.expires_at,
+        minutesRemaining,
+        isRevoked: grant.is_revoked,
+        accessCount: grant.access_count,
+        status,
+        createdAt: grant.created_at,
+      };
+    });
+  }
 }
 
 module.exports = AccessGrantService;

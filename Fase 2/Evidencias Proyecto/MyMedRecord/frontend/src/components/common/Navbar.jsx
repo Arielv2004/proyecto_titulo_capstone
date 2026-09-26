@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 
-export const Navbar = ({ roleTitle, roleBadgeColor = 'teal', onOpenProfile }) => {
+export const Navbar = ({ roleTitle, roleBadgeColor = 'teal', onOpenProfile, onOpenHelp }) => {
   const { user, logout } = useAuthStore();
   const [isOpen, setIsOpen] = useState(false);
   const [activeModal, setActiveModal] = useState(null); // 'profile' | 'security' | 'help' | null
@@ -152,6 +152,21 @@ export const Navbar = ({ roleTitle, roleBadgeColor = 'teal', onOpenProfile }) =>
                   >
                     <FileCheck className="w-4 h-4 text-amber-700" />
                     <span>Marco Legal (Ley 21.668 & 20.584)</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setIsOpen(false);
+                      if (onOpenHelp) {
+                        onOpenHelp();
+                      } else {
+                        setActiveModal('help');
+                      }
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-stone-700 hover:text-blue-950 hover:bg-stone-100/80 rounded-xl transition-all font-semibold cursor-pointer text-left"
+                  >
+                    <HelpCircle className="w-4 h-4 text-blue-900" />
+                    <span>Centro de Ayuda & FAQ</span>
                   </button>
                 </div>
 

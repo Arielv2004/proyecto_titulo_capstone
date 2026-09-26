@@ -136,6 +136,87 @@ export const PatientDashboard = () => {
   const [copiedLink, setCopiedLink] = useState(false);
   const [remainingTimeText, setRemainingTimeText] = useState('');
 
+  // Estado para Lista de Pases QR y Accesos (Punto 2)
+  const [myGrants, setMyGrants] = useState([]);
+  const [loadingGrants, setLoadingGrants] = useState(false);
+
+  // Estado para Bitácora de Auditoría (Punto 3 - Ley 21.668)
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [loadingAudit, setLoadingAudit] = useState(false);
+
+  // 1. Cargar perfil clínico real desde la base de datos PostgreSQL (Punto 1)
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await api.get('/patient-profile/me');
+        if (mounted && res.data?.success && res.data?.data) {
+          const d = res.data.data;
+          const p = {
+            bloodType: d.blood_type || '',
+            healthInsurance: d.health_insurance || '',
+            isOrganDonor: d.is_organ_donor ?? true,
+            allergies: Array.isArray(d.allergies) ? d.allergies : [],
+            chronicConditions: Array.isArray(d.chronic_conditions) ? d.chronic_conditions : [],
+            emergencyContactName: d.emergency_contact_name || '',
+            emergencyContactPhone: d.emergency_contact_phone || '',
+            isCompleted: !!(d.blood_type && d.health_insurance)
+          };
+          setPatientProfile(p);
+        }
+      } catch (err) {
+        console.warn('Error cargando perfil del paciente desde backend:', err);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  // 2. Cargar lista de pases y accesos del paciente (Punto 2)
+  const fetchMyGrants = async () => {
+    try {
+      setLoadingGrants(true);
+      const res = await api.get('/access-grants/my-grants');
+      if (res.data?.success) {
+        setMyGrants(res.data.data || []);
+      }
+    } catch (err) {
+      console.warn('Error cargando pases de acceso:', err);
+    } finally {
+      setLoadingGrants(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMyGrants();
+  }, []);
+
+  // 3. Cargar bitácora de auditoría (Punto 3 - Ley N° 21.668)
+  const fetchAuditLogs = async () => {
+    try {
+      setLoadingAudit(true);
+      const res = await api.get('/audit/my-logs');
+      if (res.data?.success) {
+        setAuditLogs(res.data.data || []);
+      }
+    } catch (err) {
+      console.warn('Error cargando bitácora de auditoría:', err);
+    } finally {
+      setLoadingAudit(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAuditLogs();
+  }, []);
+
+  // Refrescar en tiempo real al ingresar a la pestana de auditoria y accesos
+  useEffect(() => {
+    if (currentTab === 'audit') {
+      fetchAuditLogs();
+      fetchMyGrants();
+    }
+  }, [currentTab]);
+
   // Documentos Médicos Digitalizados (Extraídos por IA)
   // Documentos Médicos Digitalizados (cargados desde el backend)
   const [documents, setDocuments] = useState([]);
@@ -293,7 +374,7 @@ export const PatientDashboard = () => {
     setShowProfileEditModal(true);
   };
 
-  const handleSaveProfile = (e) => {
+  const handleSaveProfile = async (e) => {
     e.preventDefault();
     const updated = {
       ...editFormData,
@@ -301,12 +382,14 @@ export const PatientDashboard = () => {
     };
     setPatientProfile(updated);
     try {
+      await api.put('/patient-profile/me', updated);
       localStorage.setItem('mymedrecord_saved_patient_profile', JSON.stringify(updated));
       if (user?.email) {
         localStorage.setItem(`mymedrecord_saved_patient_profile_${user.email}`, JSON.stringify(updated));
       }
+      fetchAuditLogs();
     } catch (err) {
-      console.error('Error saving profile to localStorage:', err);
+      console.error('Error guardando perfil en backend:', err);
     }
     setShowProfileEditModal(false);
     setShowSuccessAlert(true);
@@ -438,6 +521,8 @@ export const PatientDashboard = () => {
           expires_at: g.expiresAt || g.expires_at,
           status: 'ACTIVE'
         });
+        await fetchMyGrants();
+        fetchAuditLogs();
       }
     } catch (err) {
       console.error('Error generating grant:', err);
@@ -447,7 +532,7 @@ export const PatientDashboard = () => {
     }
   };
 
-  // Revocar acceso inmediato
+  // Revocar acceso inmediato del grant activo del modal
   const handleRevokeGrant = async () => {
     if (!activeGrant?.id) return;
     const confirmed = window.confirm(
@@ -462,11 +547,35 @@ export const PatientDashboard = () => {
         reason: 'Revocado manualmente por el paciente desde su panel de control'
       });
       setActiveGrant(null);
+      await fetchMyGrants();
+      fetchAuditLogs();
     } catch (err) {
       console.error('Error revoking grant:', err);
       setGrantError(err.response?.data?.message || 'Error al revocar el acceso');
     } finally {
       setIsRevokingGrant(false);
+    }
+  };
+
+  // Revocar un pase específico de la lista (Punto 2)
+  const handleRevokeSpecificGrant = async (grantId) => {
+    const confirmed = window.confirm(
+      '¿Estás seguro de que deseas revocar este pase de acceso médico inmediatamente? Cualquier profesional que intente usarlo perderá el acceso.'
+    );
+    if (!confirmed) return;
+
+    try {
+      await api.patch(`/access-grants/${grantId}/revoke`, {
+        reason: 'Revocado manualmente por el paciente'
+      });
+      await fetchMyGrants();
+      if (activeGrant?.id === grantId) {
+        setActiveGrant(null);
+      }
+      fetchAuditLogs();
+    } catch (err) {
+      console.error('Error revoking grant:', err);
+      alert(err.response?.data?.message || 'Error al revocar el acceso');
     }
   };
 
@@ -582,11 +691,12 @@ export const PatientDashboard = () => {
       <Navbar
         roleTitle="Portal Paciente"
         onOpenProfile={() => setCurrentTab('profile')}
+        onOpenHelp={() => setCurrentTab('help')}
       />
 
-      {/* Barra de Navegación por Pestañas Superior (Escritorio / Tablet) */}
-      <div className="hidden sm:block bg-white border-b border-stone-200/80 sticky top-14 z-20">
-        <div className="max-w-6xl mx-auto px-6 flex items-center gap-2 py-2">
+      {/* Barra de Navegación por Pestañas Superior (Solo Escritorio / Tablet) */}
+      <div className="hidden sm:block bg-white border-b border-stone-200/80 sticky top-14 z-20 overflow-x-auto scrollbar-none shadow-xs">
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 flex items-center gap-1.5 sm:gap-2 py-2 min-w-max">
           <button
             onClick={() => setCurrentTab('home')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${currentTab === 'home' ? 'bg-blue-900 text-white shadow-xs' : 'text-stone-600 hover:bg-stone-100'
@@ -615,6 +725,22 @@ export const PatientDashboard = () => {
           >
             <User className="w-4 h-4" />
             <span>Mi Ficha y Datos</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setCurrentTab('audit');
+              fetchAuditLogs();
+              fetchMyGrants();
+            }}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${currentTab === 'audit' ? 'bg-blue-900 text-white shadow-xs' : 'text-stone-600 hover:bg-stone-100'
+              }`}
+          >
+            <ShieldCheck className="w-4 h-4 text-teal-400" />
+            <span>Auditoría & Accesos</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 font-bold">
+              Ley 21.668
+            </span>
           </button>
 
           <button
@@ -733,15 +859,15 @@ export const PatientDashboard = () => {
                 <div className="flex flex-col sm:flex-row items-stretch gap-2.5 shrink-0">
                   <button
                     onClick={() => setShowUploadModal(true)}
-                    className="px-6 py-3.5 bg-gradient-to-r from-teal-400 to-emerald-400 hover:from-teal-300 hover:to-emerald-300 active:scale-95 text-blue-950 font-black rounded-2xl transition-all text-xs flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20 cursor-pointer"
+                    className="px-5 py-3.5 bg-gradient-to-r from-teal-400 to-emerald-400 hover:from-teal-300 hover:to-emerald-300 active:scale-95 text-blue-950 font-black rounded-2xl transition-all text-xs flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20 cursor-pointer"
                   >
                     <Camera className="w-4 h-4 text-blue-950" />
-                    <span>Digitalizar Papel con IA</span>
+                    <span>Digitalizar con IA</span>
                   </button>
 
                   <button
                     onClick={() => setShowQrModal(true)}
-                    className="px-5 py-3.5 bg-white/10 hover:bg-white/20 active:scale-95 border border-white/20 text-white font-bold rounded-2xl transition-all text-xs flex items-center justify-center gap-2 cursor-pointer backdrop-blur-xs"
+                    className="px-4 py-3.5 bg-white/10 hover:bg-white/20 active:scale-95 border border-white/20 text-white font-bold rounded-2xl transition-all text-xs flex items-center justify-center gap-2 cursor-pointer backdrop-blur-xs"
                   >
                     <QrCode className="w-4 h-4 text-teal-300" />
                     <span>QR para Médico</span>
@@ -846,6 +972,130 @@ export const PatientDashboard = () => {
                   <p className="text-[11px] text-stone-400">Duración: 3 días (SOS)</p>
                 </div>
               </div>
+            </section>
+
+            {/* Gestión Rápida de Pases QR Activos (Punto 2) */}
+            <section className="bg-white border border-stone-200/90 rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center">
+                    <QrCode className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm sm:text-base font-bold text-blue-950">
+                        Pases de Acceso Médico (Ley N° 21.668)
+                      </h3>
+                      {myGrants.some(g => g.status === 'ACTIVO') && (
+                        <span className="flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                          Vigente
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-stone-500">
+                      Controla quién puede consultar tu ficha en tiempo real o revoca accesos de inmediato
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowQrModal(true)}
+                    className="px-4 py-2 bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                  >
+                    <Plus className="w-4 h-4 text-teal-300" />
+                    <span>Generar Nuevo QR</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setCurrentTab('audit');
+                      fetchAuditLogs();
+                      fetchMyGrants();
+                    }}
+                    className="px-3 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-teal-600" />
+                    <span>Ver Trazabilidad</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Lista de Pases Activos Recientes */}
+              {myGrants.length === 0 ? (
+                <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200/80 text-center text-xs text-stone-500">
+                  No tienes pases QR generados. Puedes crear uno para que tu médico escanee tu ficha en la consulta.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {myGrants.slice(0, 4).map((grant) => (
+                    <div
+                      key={grant.id}
+                      className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${
+                        grant.status === 'ACTIVO'
+                          ? 'bg-emerald-50/40 border-emerald-200 shadow-xs'
+                          : grant.status === 'REVOCADO'
+                          ? 'bg-rose-50/30 border-rose-200/60 opacity-80'
+                          : 'bg-stone-50/70 border-stone-200/80 opacity-70'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-xs text-blue-950">
+                              {grant.token}
+                            </span>
+                            <span
+                              className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                                grant.status === 'ACTIVO'
+                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                  : grant.status === 'REVOCADO'
+                                  ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                                  : 'bg-stone-200 text-stone-700'
+                              }`}
+                            >
+                              {grant.status}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-stone-500">
+                            {grant.doctorName ? (
+                              <span className="text-teal-900 font-semibold flex items-center gap-1">
+                                <Stethoscope className="w-3.5 h-3.5" />
+                                Escaneado por: {grant.doctorName} ({grant.doctorInstitution || 'Centro Médico'})
+                              </span>
+                            ) : (
+                              <span>Sin escanear todavía (esperando médico)</span>
+                            )}
+                          </p>
+                        </div>
+
+                        {grant.status === 'ACTIVO' && (
+                          <span className="text-[11px] font-mono font-bold text-emerald-800 flex items-center gap-1 shrink-0 bg-white px-2 py-1 rounded-lg border border-emerald-200">
+                            <Timer className="w-3.5 h-3.5" />
+                            {grant.minutesRemaining} min
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="pt-2 border-t border-stone-200/60 flex items-center justify-between text-[11px]">
+                        <span className="text-stone-400">
+                          {grant.createdAt ? new Date(grant.createdAt).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
+                        </span>
+
+                        {grant.status === 'ACTIVO' && (
+                          <button
+                            onClick={() => handleRevokeSpecificGrant(grant.id)}
+                            className="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span>Revocar Acceso</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
 
             {/* Accesos Rápidos a Documentos */}
@@ -1689,6 +1939,360 @@ export const PatientDashboard = () => {
             </div>
           </div>
         )}
+
+        {/* ========================================================================= */}
+        {/* PESTAÑA 5: SEGURIDAD, AUDITORÍA Y TRAZABILIDAD (LEY N° 21.668 Y 20.584) */}
+        {/* ========================================================================= */}
+        {currentTab === 'audit' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            {/* Encabezado Principal y Sello Normativo */}
+            <div className="bg-gradient-to-r from-blue-950 via-blue-900 to-teal-900 rounded-3xl p-6 sm:p-7 text-white shadow-md relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-80 h-80 bg-teal-400/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full bg-teal-400/20 text-teal-300 font-extrabold text-[10px] tracking-wider uppercase border border-teal-400/30">
+                      Cumplimiento Normativo
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full bg-white/10 text-white font-mono text-[10px] border border-white/20">
+                      Ley N° 21.668 & Ley N° 20.584
+                    </span>
+                  </div>
+
+                  <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                    <ShieldCheck className="w-6 h-6 text-teal-300 shrink-0" />
+                    <span>Bitácora de Auditoría y Trazabilidad Médica</span>
+                  </h1>
+
+                  <p className="text-xs text-blue-100/90 max-w-2xl leading-relaxed">
+                    Por ley, tu expediente clínico te pertenece. Cada vez que un profesional de la salud consulta tu ficha, se genera un código QR o se actualizan tus antecedentes, queda registrado de forma inmutable con fecha, hora, identidad y dirección IP.
+                  </p>
+                </div>
+
+                <div className="shrink-0 flex sm:flex-col items-center sm:items-end justify-between gap-2 border-t sm:border-t-0 sm:border-l border-white/15 pt-3 sm:pt-0 sm:pl-6">
+                  <div className="text-left sm:text-right">
+                    <span className="text-[10px] text-teal-200 uppercase tracking-wider block font-bold">Total Registros</span>
+                    <span className="text-2xl font-black font-mono text-white">{auditLogs.length}</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      fetchAuditLogs();
+                      fetchMyGrants();
+                    }}
+                    disabled={loadingAudit}
+                    className="px-3.5 py-2 bg-white/10 hover:bg-white/20 active:scale-95 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer backdrop-blur-xs border border-white/20"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${loadingAudit ? 'animate-spin' : ''}`} />
+                    <span>Actualizar</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* SECCIÓN 1: GESTIÓN DE PASES Y AUTORIZACIONES (PUNTO 2) */}
+            <section className="bg-white border border-stone-200/90 rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-stone-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center font-bold">
+                    <QrCode className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-extrabold text-blue-950">
+                      Pases de Acceso Médico Emitidos
+                    </h2>
+                    <p className="text-xs text-stone-500">
+                      Historial completo de autorizaciones temporales (QR y directas)
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setShowQrModal(true)}
+                  className="px-4 py-2 bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-xs self-start sm:self-auto"
+                >
+                  <Plus className="w-4 h-4 text-teal-300" />
+                  <span>Emitir Nuevo Pase QR</span>
+                </button>
+              </div>
+
+              {myGrants.length === 0 ? (
+                <div className="py-8 text-center text-xs text-stone-500 space-y-1">
+                  <p className="font-bold text-stone-700">No hay pases médicos registrados.</p>
+                  <p>Cuando generes un código QR para un médico, aparecerá aquí con su estado de vigencia.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {/* Vista Móvil: Tarjetas responsivas (sm:hidden) */}
+                  <div className="sm:hidden space-y-3">
+                    {myGrants.map((grant) => (
+                      <div
+                        key={grant.id}
+                        className={`p-4 rounded-2xl border transition-all space-y-3 ${
+                          grant.status === 'ACTIVO'
+                            ? 'bg-emerald-50/50 border-emerald-300 shadow-xs'
+                            : grant.status === 'REVOCADO'
+                            ? 'bg-rose-50/40 border-rose-200/80'
+                            : 'bg-stone-50 border-stone-200'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-black text-xs text-blue-950">
+                                {grant.token}
+                              </span>
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
+                                  grant.status === 'ACTIVO'
+                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                    : grant.status === 'REVOCADO'
+                                    ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                                    : 'bg-stone-200 text-stone-700'
+                                }`}
+                              >
+                                {grant.status}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-stone-400 font-mono mt-0.5 block">
+                              {grant.grantType === 'QR_TEMPORAL' ? 'QR Temporal' : 'Acceso Directo'} · {grant.createdAt ? new Date(grant.createdAt).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}
+                            </span>
+                          </div>
+
+                          {grant.status === 'ACTIVO' && (
+                            <span className="text-[11px] font-mono font-bold text-emerald-900 bg-white px-2 py-1 rounded-lg border border-emerald-200 flex items-center gap-1 shrink-0">
+                              <Timer className="w-3.5 h-3.5 text-emerald-600" />
+                              {grant.minutesRemaining} min
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Detalle Médico */}
+                        <div className="text-xs text-stone-600 bg-white/70 p-2.5 rounded-xl border border-stone-200/60">
+                          {grant.doctorName ? (
+                            <div>
+                              <span className="font-bold text-blue-950 block">{grant.doctorName}</span>
+                              <span className="text-[11px] text-stone-500">{grant.doctorInstitution || 'Centro de Salud'} (RUT: {grant.doctorRut || 'N/A'})</span>
+                            </div>
+                          ) : (
+                            <span className="text-stone-400 italic">Pendiente de escaneo por tu médico</span>
+                          )}
+                        </div>
+
+                        {grant.status === 'ACTIVO' && (
+                          <div className="pt-1 flex items-center justify-between gap-2">
+                            <button
+                              onClick={() => setShowQrModal(true)}
+                              className="flex-1 py-2 bg-blue-900 hover:bg-blue-950 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                            >
+                              <QrCode className="w-3.5 h-3.5 text-teal-300" />
+                              <span>Ver QR</span>
+                            </button>
+                            <button
+                              onClick={() => handleRevokeSpecificGrant(grant.id)}
+                              className="py-2 px-4 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold rounded-xl text-xs flex items-center justify-center gap-1 transition-all cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Revocar</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Vista Escritorio: Tabla completa (hidden sm:block) */}
+                  <div className="hidden sm:block overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-stone-200 text-stone-400 font-bold uppercase text-[10px] tracking-wider">
+                          <th className="py-3 px-3">Código / Token</th>
+                          <th className="py-3 px-3">Modalidad</th>
+                          <th className="py-3 px-3">Fecha Emisión</th>
+                          <th className="py-3 px-3">Vigencia / Restante</th>
+                          <th className="py-3 px-3">Médico / Centro</th>
+                          <th className="py-3 px-3">Estado</th>
+                          <th className="py-3 px-3 text-right">Acción</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-stone-100">
+                        {myGrants.map((grant) => (
+                          <tr key={grant.id} className="hover:bg-stone-50/80 transition-colors">
+                            <td className="py-3 px-3 font-mono font-bold text-blue-950">
+                              {grant.token}
+                            </td>
+                            <td className="py-3 px-3">
+                              <span className="px-2 py-0.5 rounded-md bg-stone-100 text-stone-700 font-bold text-[10px]">
+                                {grant.grantType === 'QR_TEMPORAL' ? 'QR Temporal' : 'Directo'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 text-stone-500 whitespace-nowrap">
+                              {grant.createdAt ? new Date(grant.createdAt).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}
+                            </td>
+                            <td className="py-3 px-3 font-mono text-stone-700 whitespace-nowrap">
+                              {grant.status === 'ACTIVO' ? (
+                                <span className="font-bold text-emerald-700 flex items-center gap-1">
+                                  <Timer className="w-3.5 h-3.5" />
+                                  {grant.minutesRemaining} min restantes
+                                </span>
+                              ) : (
+                                <span className="text-stone-400">Vencido</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-3">
+                              {grant.doctorName ? (
+                                <div>
+                                  <span className="font-bold text-blue-950 block">{grant.doctorName}</span>
+                                  <span className="text-[10px] text-stone-500">{grant.doctorInstitution || 'Centro de Salud'} (RUT: {grant.doctorRut || 'N/A'})</span>
+                                </div>
+                              ) : (
+                                <span className="text-stone-400 italic">Pendiente de escaneo</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-3">
+                              <span
+                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider inline-block ${
+                                  grant.status === 'ACTIVO'
+                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                    : grant.status === 'REVOCADO'
+                                    ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                                    : 'bg-stone-200 text-stone-700'
+                                }`}
+                              >
+                                {grant.status}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 text-right">
+                              {grant.status === 'ACTIVO' ? (
+                                <button
+                                  onClick={() => handleRevokeSpecificGrant(grant.id)}
+                                  className="px-3 py-1 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold rounded-lg transition-colors cursor-pointer text-xs flex items-center gap-1 ml-auto"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  <span>Revocar</span>
+                                </button>
+                              ) : (
+                                <span className="text-stone-400 text-[11px]">—</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {/* SECCIÓN 2: LÍNEA DE TIEMPO DE AUDITORÍA (PUNTO 3 - LEY 21.668) */}
+            <section className="bg-white border border-stone-200/90 rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-stone-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-900 border border-blue-200 flex items-center justify-center font-bold">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-extrabold text-blue-950">
+                      Registro Inmutable de Accesos y Eventos
+                    </h2>
+                    <p className="text-xs text-stone-500">
+                      Trazabilidad legal de cada acción realizada sobre tu información médica
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 text-[11px] text-stone-500 bg-stone-100 px-3 py-1.5 rounded-xl self-start sm:self-auto">
+                  <Lock className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>Bitácora protegida contra manipulación</span>
+                </div>
+              </div>
+
+              {loadingAudit ? (
+                <div className="py-12 text-center space-y-2">
+                  <RefreshCw className="w-6 h-6 text-blue-900 animate-spin mx-auto" />
+                  <p className="text-xs text-stone-500">Consultando registros legales...</p>
+                </div>
+              ) : auditLogs.length === 0 ? (
+                <div className="py-8 text-center text-xs text-stone-500 space-y-1">
+                  <p className="font-bold text-stone-700">Sin registros de auditoría por ahora.</p>
+                  <p>Toda interacción quedará firmada aquí automáticamente.</p>
+                </div>
+              ) : (
+                <div className="relative pl-6 space-y-4 before:content-[''] before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-stone-200">
+                  {auditLogs.map((log) => {
+                    const isMedicalAccess = log.category === 'ACCESO_MEDICO';
+                    const isRevoke = log.category === 'SEGURIDAD';
+                    const isConsent = log.category === 'CONSENTIMIENTO';
+
+                    return (
+                      <div key={log.id} className="relative group">
+                        {/* Nodo en la línea */}
+                        <div
+                          className={`absolute -left-6 top-1.5 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center shadow-xs ${
+                            isMedicalAccess
+                              ? 'bg-emerald-600 text-white'
+                              : isRevoke
+                              ? 'bg-rose-600 text-white'
+                              : isConsent
+                              ? 'bg-amber-500 text-white'
+                              : 'bg-blue-900 text-white'
+                          }`}
+                        >
+                          <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
+                        </div>
+
+                        {/* Tarjeta del evento */}
+                        <div className="p-4 bg-stone-50/70 hover:bg-stone-50 rounded-2xl border border-stone-200/80 transition-all space-y-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-extrabold text-blue-950 text-xs sm:text-sm">
+                                {log.title}
+                              </h3>
+                              <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                                  isMedicalAccess
+                                    ? 'bg-emerald-100 text-emerald-900'
+                                    : isRevoke
+                                    ? 'bg-rose-100 text-rose-900'
+                                    : isConsent
+                                    ? 'bg-amber-100 text-amber-900'
+                                    : 'bg-stone-200 text-stone-700'
+                                }`}
+                              >
+                                {log.category.replace(/_/g, ' ')}
+                              </span>
+                            </div>
+
+                            <span className="text-[11px] font-mono text-stone-500 flex items-center gap-1 shrink-0">
+                              <Clock className="w-3 h-3 text-stone-400" />
+                              {log.createdAt ? new Date(log.createdAt).toLocaleDateString('es-CL', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit'
+                              }) : '—'}
+                            </span>
+                          </div>
+
+                          <p className="text-xs text-stone-600 leading-relaxed">
+                            {log.description}
+                          </p>
+
+                          <div className="pt-2 border-t border-stone-200/60 flex flex-wrap items-center justify-between gap-2 text-[10px] text-stone-400 font-mono">
+                            <span>IP: {log.ipAddress || '127.0.0.1'}</span>
+                            <span className="truncate max-w-xs">{log.userAgent || 'Navegador Web'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          </div>
+        )}
       </main>
 
       {/* ========================================================================= */}
@@ -2485,6 +3089,7 @@ export const PatientDashboard = () => {
         onOpenQrModal={() => setShowQrModal(true)}
         onFileSelected={handleUploadFile}
         isUploading={isUploading}
+        hasActiveGrants={myGrants.some(g => g.status === 'ACTIVO')}
       />
 
       <footer className="py-4 text-center text-[11px] text-stone-400 border-t border-stone-200 bg-white">

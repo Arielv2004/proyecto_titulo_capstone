@@ -4,21 +4,21 @@ import { Html5Qrcode } from 'html5-qrcode';
 import { formatRut, validateRut } from '../utils/rutValidator';
 import { useMetaTags } from '../hooks/useMetaTags';
 import api from '../services/api';
-import { 
-  HeartHandshake, 
-  ShieldCheck, 
-  QrCode, 
-  Camera, 
-  Upload, 
-  FileText, 
-  AlertCircle, 
-  CheckCircle2, 
-  Clock, 
-  UserCheck, 
-  Phone, 
-  HeartPulse, 
-  AlertTriangle, 
-  Lock, 
+import {
+  HeartHandshake,
+  ShieldCheck,
+  QrCode,
+  Camera,
+  Upload,
+  FileText,
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  UserCheck,
+  Phone,
+  HeartPulse,
+  AlertTriangle,
+  Lock,
   ArrowLeft,
   RefreshCw,
   Printer,
@@ -409,14 +409,13 @@ export const DoctorQrAccessPage = () => {
                       required
                       value={doctorData.rut}
                       onChange={handleRutChange}
-                      placeholder="9.876.543-2"
-                      className={`w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border rounded-xl text-sm font-mono focus:outline-none transition-all ${
-                        rutTouched && doctorData.rut
-                          ? isRutValid
-                            ? 'border-emerald-500 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-emerald-100'
-                            : 'border-rose-400 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-rose-100'
-                          : 'border-stone-300 dark:border-slate-700 focus:border-blue-700 dark:focus:border-teal-400'
-                      }`}
+                      placeholder="00.000.000-0"
+                      className={`w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border rounded-xl text-sm font-mono focus:outline-none transition-all ${rutTouched && doctorData.rut
+                        ? isRutValid
+                          ? 'border-emerald-500 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-emerald-100'
+                          : 'border-rose-400 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-rose-100'
+                        : 'border-stone-300 dark:border-slate-700 focus:border-blue-700 dark:focus:border-teal-400'
+                        }`}
                     />
                   </div>
 
@@ -436,14 +435,14 @@ export const DoctorQrAccessPage = () => {
 
                   <div>
                     <label className="block text-xs font-bold text-stone-700 dark:text-slate-300 mb-1">
-                      Centro de Salud / Clínica / Consulta *
+                      Centro de Salud  *
                     </label>
                     <input
                       type="text"
                       required
                       value={doctorData.institution}
                       onChange={(e) => setDoctorData({ ...doctorData, institution: e.target.value })}
-                      placeholder="Ej: Hospital Puerto Montt, Clínica Alemana, CESFAM o Consulta Privada"
+                      placeholder="Ej: Hospital, Clínica, CESFAM, Consulta Privada"
                       className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-xl text-sm text-slate-800 dark:text-slate-100 focus:border-blue-700 dark:focus:border-teal-400 focus:outline-none"
                     />
                   </div>
@@ -463,11 +462,10 @@ export const DoctorQrAccessPage = () => {
                     <button
                       type="button"
                       onClick={() => setActiveScanTab('CAMERA')}
-                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
-                        activeScanTab === 'CAMERA'
-                          ? 'bg-white dark:bg-slate-800 text-blue-900 dark:text-teal-300 shadow-xs'
-                          : 'text-stone-600 dark:text-slate-400'
-                      }`}
+                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${activeScanTab === 'CAMERA'
+                        ? 'bg-white dark:bg-slate-800 text-blue-900 dark:text-teal-300 shadow-xs'
+                        : 'text-stone-600 dark:text-slate-400'
+                        }`}
                     >
                       <Camera className="w-3.5 h-3.5" />
                       <span>Cámara</span>
@@ -475,11 +473,10 @@ export const DoctorQrAccessPage = () => {
                     <button
                       type="button"
                       onClick={() => setActiveScanTab('UPLOAD')}
-                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
-                        activeScanTab === 'UPLOAD'
-                          ? 'bg-white dark:bg-slate-800 text-blue-900 dark:text-teal-300 shadow-xs'
-                          : 'text-stone-600 dark:text-slate-400'
-                      }`}
+                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${activeScanTab === 'UPLOAD'
+                        ? 'bg-white dark:bg-slate-800 text-blue-900 dark:text-teal-300 shadow-xs'
+                        : 'text-stone-600 dark:text-slate-400'
+                        }`}
                     >
                       <Upload className="w-3.5 h-3.5" />
                       <span>Subir Imagen</span>
@@ -487,11 +484,10 @@ export const DoctorQrAccessPage = () => {
                     <button
                       type="button"
                       onClick={() => setActiveScanTab('MANUAL')}
-                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
-                        activeScanTab === 'MANUAL'
-                          ? 'bg-white dark:bg-slate-800 text-blue-900 dark:text-teal-300 shadow-xs'
-                          : 'text-stone-600 dark:text-slate-400'
-                      }`}
+                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${activeScanTab === 'MANUAL'
+                        ? 'bg-white dark:bg-slate-800 text-blue-900 dark:text-teal-300 shadow-xs'
+                        : 'text-stone-600 dark:text-slate-400'
+                        }`}
                     >
                       <Keyboard className="w-3.5 h-3.5" />
                       <span>Manual</span>
@@ -503,22 +499,22 @@ export const DoctorQrAccessPage = () => {
                 <div id="qr-file-processor" className="hidden" />
 
                 {/* Input para captura de foto directa con la cámara del celular (soporta iOS y Android sobre HTTP y HTTPS) */}
-                <input 
-                  type="file" 
-                  ref={cameraCaptureInputRef} 
-                  accept="image/*" 
-                  capture="environment" 
-                  onChange={handleFileUpload} 
-                  className="hidden" 
+                <input
+                  type="file"
+                  ref={cameraCaptureInputRef}
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleFileUpload}
+                  className="hidden"
                 />
 
                 {/* Input estándar para selección de archivos (Galería de fotos o PC) */}
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  accept="image/*" 
-                  onChange={handleFileUpload} 
-                  className="hidden" 
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="hidden"
                 />
 
                 {/* Contenido según pestaña de escáner */}

@@ -91,6 +91,24 @@ class AccessGrantController {
       next(error);
     }
   }
+
+  /**
+   * GET /api/v1/access-grants/my-grants
+   * Paciente consulta todos sus pases y accesos generados
+   */
+  static async getMyGrants(req, res, next) {
+    try {
+      const patientId = req.user.id;
+      const grants = await AccessGrantService.getMyGrants(patientId);
+
+      return res.status(200).json({
+        success: true,
+        data: grants,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = AccessGrantController;

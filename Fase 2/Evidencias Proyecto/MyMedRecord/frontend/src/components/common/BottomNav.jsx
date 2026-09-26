@@ -25,6 +25,7 @@ export const BottomNav = ({
   onOpenQrModal,
   onFileSelected,
   isUploading = false,
+  hasActiveGrants = false,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -132,14 +133,20 @@ export const BottomNav = ({
             </button>
           </div>
 
-          {/* Tab 4: Ayuda / FAQ */}
+          {/* Tab 4: Accesos & Auditoría (Ley N° 21.668) */}
           <button
-            onClick={() => onTabChange ? onTabChange('help') : navigate('/patient')}
-            className={`flex flex-col items-center gap-1 py-1 px-2.5 transition-all cursor-pointer ${activeTab === 'help' ? 'text-blue-900 font-extrabold' : 'text-stone-400 hover:text-stone-600'
-              }`}
+            onClick={() => onTabChange ? onTabChange('audit') : navigate('/patient')}
+            className={`flex flex-col items-center gap-1 py-1 px-2.5 transition-all cursor-pointer relative ${
+              activeTab === 'audit' ? 'text-teal-700 font-extrabold' : 'text-stone-400 hover:text-stone-600'
+            }`}
           >
-            <HelpCircle className="w-5 h-5" />
-            <span className="text-[10px]">Ayuda</span>
+            <div className="relative">
+              <ShieldCheck className="w-5 h-5" />
+              {hasActiveGrants && (
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white animate-pulse" />
+              )}
+            </div>
+            <span className="text-[10px]">Accesos</span>
           </button>
 
           {/* Tab 5: Mi Ficha */}
@@ -239,6 +246,28 @@ export const BottomNav = ({
                   </span>
                 </div>
                 <ChevronRight className="w-4 h-4 text-amber-600 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+
+              {/* Opción 4: Bitácora de Auditoría (Ley 21.668) */}
+              <button
+                onClick={() => {
+                  setShowActionSheet(false);
+                  if (onTabChange) onTabChange('audit');
+                }}
+                className="w-full p-4 bg-emerald-50/70 hover:bg-emerald-100/70 border border-emerald-200 rounded-2xl flex items-center gap-3.5 transition-all text-left cursor-pointer group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-emerald-700 text-white flex items-center justify-center shadow-xs">
+                  <ShieldCheck className="w-5 h-5 text-emerald-100" />
+                </div>
+                <div className="flex-1">
+                  <span className="text-xs font-bold text-emerald-950 block">
+                    Bitácora de Auditoría y Accesos
+                  </span>
+                  <span className="text-[11px] text-emerald-800/80 block">
+                    Consulta quién accedió a tu ficha (Ley N° 21.668).
+                  </span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
               </button>
             </div>
           </div>
