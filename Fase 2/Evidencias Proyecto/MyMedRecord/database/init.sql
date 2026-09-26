@@ -20,6 +20,8 @@ DROP TABLE IF EXISTS prescriptions CASCADE;
 DROP TABLE IF EXISTS vital_signs CASCADE;
 DROP TABLE IF EXISTS documents CASCADE;
 DROP TABLE IF EXISTS patient_profiles CASCADE;
+DROP TABLE IF EXISTS doctor_profiles CASCADE;
+DROP TABLE IF EXISTS health_institutions CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 
 -- ==============================================================================
@@ -61,7 +63,62 @@ CREATE TABLE patient_profiles (
 );
 
 -- ==============================================================================
--- TABLA 3: access_grants
+-- TABLA 3: health_institutions
+-- Catálogo de hospitales, clínicas, CESFAM y consultas.
+-- Permite que el paciente seleccione primero una institución y luego vea
+-- los médicos registrados/verificados asociados a ella.
+-- ==============================================================================
+CREATE TABLE health_institutions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(200) NOT NULL,
+    institution_type VARCHAR(30) NOT NULL
+        CHECK (institution_type IN ('HOSPITAL', 'CLINICA', 'CESFAM', 'CENTRO_MEDICO', 'CONSULTA', 'OTRO')),
+    rut VARCHAR(12),
+    address VARCHAR(255),
+    commune VARCHAR(100),
+    city VARCHAR(100),
+    phone VARCHAR(20),
+    email VARCHAR(150),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_health_institution_name_city UNIQUE (name, city)
+);
+
+-- ==============================================================================
+-- TABLA 4: doctor_profiles
+-- Información profesional separada de la autenticación de users.
+-- Un usuario MEDICO no se considera profesional verificado solo por registrarse:
+-- su perfil mantiene el estado de validación de sus antecedentes.
+-- ==============================================================================
+CREATE TABLE doctor_profiles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    institution_id UUID REFERENCES health_institutions(id) ON DELETE SET NULL,
+    institution_name_other VARCHAR(200),
+
+    -- Identificador profesional informado por el médico.
+    -- En producción debe contrastarse con una fuente oficial antes de marcar
+    -- el perfil como VERIFICADO.
+    professional_registry VARCHAR(100),
+    specialty VARCHAR(150),
+    professional_title VARCHAR(150) DEFAULT 'Médico/a Cirujano/a',
+
+    verification_status VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE'
+        CHECK (verification_status IN ('PENDIENTE', 'VERIFICADO', 'RECHAZADO', 'SUSPENDIDO')),
+    verified_at TIMESTAMP WITH TIME ZONE,
+    is_available_for_sharing BOOLEAN NOT NULL DEFAULT FALSE,
+
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    CHECK (
+        (verification_status = 'VERIFICADO' AND verified_at IS NOT NULL)
+        OR verification_status <> 'VERIFICADO'
+    )
+);
+
+-- ==============================================================================
+-- TABLA 5: access_grants
 -- Autorizaciones temporales de acceso a la ficha clínica.
 --
 -- DIRECTO:
@@ -81,6 +138,12 @@ CREATE TABLE access_grants (
 
     doctor_id UUID
         REFERENCES users(id) ON DELETE CASCADE,
+
+    -- Datos del profesional que utiliza un acceso QR.
+    -- En acceso DIRECTO, doctor_id identifica al médico registrado.
+    doctor_rut VARCHAR(12),
+    doctor_name VARCHAR(200),
+    doctor_institution VARCHAR(200),
 
     token VARCHAR(100) UNIQUE NOT NULL,
 
@@ -119,7 +182,7 @@ CREATE TABLE access_grants (
 );
 
 -- ==============================================================================
--- TABLA 4: appointments
+-- TABLA 6: appointments
 -- Agenda médica temporal del prototipo.
 --
 -- Esta tabla se mantiene mientras migramos el flujo existente hacia
@@ -157,7 +220,7 @@ CREATE TABLE appointments (
 );
 
 -- ==============================================================================
--- TABLA 5: documents
+-- TABLA 7: documents
 -- Repositorio Universal de Documentos Digitalizados
 -- ==============================================================================
 CREATE TABLE documents (
@@ -203,7 +266,7 @@ CREATE TABLE documents (
 );
 
 -- ==============================================================================
--- TABLA 6: prescriptions
+-- TABLA 8: prescriptions
 -- Cabecera de Recetas Médicas Extraídas
 -- ==============================================================================
 CREATE TABLE prescriptions (
@@ -235,7 +298,7 @@ CREATE TABLE prescriptions (
 );
 
 -- ==============================================================================
--- TABLA 7: prescription_items
+-- TABLA 9: prescription_items
 -- Medicamentos asociados a una receta
 -- ==============================================================================
 CREATE TABLE prescription_items (
@@ -254,7 +317,7 @@ CREATE TABLE prescription_items (
 );
 
 -- ==============================================================================
--- TABLA 8: lab_reports
+-- TABLA 10: lab_reports
 -- Informes de laboratorio
 -- ==============================================================================
 CREATE TABLE lab_reports (
@@ -274,7 +337,7 @@ CREATE TABLE lab_reports (
 );
 
 -- ==============================================================================
--- TABLA 9: lab_test_items
+-- TABLA 11: lab_test_items
 -- Resultados individuales de laboratorio
 -- ==============================================================================
 CREATE TABLE lab_test_items (
@@ -293,7 +356,7 @@ CREATE TABLE lab_test_items (
 );
 
 -- ==============================================================================
--- TABLA 10: audit_logs
+-- TABLA 12: audit_logs
 -- Bitácora de Auditoría
 -- ==============================================================================
 CREATE TABLE audit_logs (
@@ -325,6 +388,21 @@ CREATE INDEX idx_users_email
 
 CREATE INDEX idx_patient_profiles_user
     ON patient_profiles(user_id);
+
+CREATE INDEX idx_health_institutions_name
+    ON health_institutions(name);
+
+CREATE INDEX idx_health_institutions_city
+    ON health_institutions(city);
+
+CREATE INDEX idx_doctor_profiles_institution
+    ON doctor_profiles(institution_id);
+
+CREATE INDEX idx_doctor_profiles_verification
+    ON doctor_profiles(verification_status);
+
+CREATE INDEX idx_doctor_profiles_specialty
+    ON doctor_profiles(specialty);
 
 -- Access Grants
 CREATE INDEX idx_access_grants_token
@@ -371,8 +449,99 @@ CREATE INDEX idx_lab_test_items_report
 CREATE INDEX idx_audit_logs_patient
     ON audit_logs(patient_id, created_at DESC);
 
--- 
+-- ==============================================================================
+-- DATOS DEMO: USUARIOS INICIALES
+-- ==============================================================================
+
+INSERT INTO users (
+    id, rut, first_name, last_name, email, password_hash, role, phone, is_active
+) VALUES
+(
+    'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
+    '12.345.678-5',
+    'Juan',
+    'Pérez',
+    'paciente@mymedrecord.cl',
+    crypt('Paciente123!', gen_salt('bf')),
+    'PACIENTE',
+    '+56 9 1111 1111',
+    TRUE
+),
+(
+    'b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e',
+    '11.111.111-1',
+    'Carlos',
+    'Morales',
+    'medico@mymedrecord.cl',
+    crypt('Medico123!', gen_salt('bf')),
+    'MEDICO',
+    '+56 9 2222 2222',
+    TRUE
+)
 ON CONFLICT (email) DO NOTHING;
+
+-- ==============================================================================
+-- INSTITUCIONES DE SALUD DEMO
+-- ==============================================================================
+INSERT INTO health_institutions (
+    id, name, institution_type, address, commune, city, phone, is_active
+) VALUES
+(
+    '11111111-1111-4111-8111-111111111111',
+    'Hospital Puerto Montt',
+    'HOSPITAL',
+    'Los Aromos 65',
+    'Puerto Montt',
+    'Puerto Montt',
+    NULL,
+    TRUE
+),
+(
+    '22222222-2222-4222-8222-222222222222',
+    'CESFAM Los Castaños',
+    'CESFAM',
+    NULL,
+    'Puerto Montt',
+    'Puerto Montt',
+    NULL,
+    TRUE
+),
+(
+    '33333333-3333-4333-8333-333333333333',
+    'Clínica Puerto Montt',
+    'CLINICA',
+    NULL,
+    'Puerto Montt',
+    'Puerto Montt',
+    NULL,
+    TRUE
+)
+ON CONFLICT (name, city) DO NOTHING;
+
+-- ==============================================================================
+-- PERFIL PROFESIONAL DEL MÉDICO DEMO
+-- ==============================================================================
+INSERT INTO doctor_profiles (
+    user_id,
+    institution_id,
+    professional_registry,
+    specialty,
+    professional_title,
+    verification_status,
+    verified_at,
+    is_available_for_sharing
+)
+VALUES (
+    'b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e',
+    '11111111-1111-4111-8111-111111111111',
+    'DEMO-RNPI-0001',
+    'Medicina General',
+    'Médico Cirujano',
+    'VERIFICADO',
+    CURRENT_TIMESTAMP,
+    TRUE
+)
+ON CONFLICT (user_id) DO NOTHING;
 
 -- ==============================================================================
 -- 2. PERFIL CLÍNICO INICIAL DEL PACIENTE
@@ -711,3 +880,35 @@ VALUES (
     '127.0.0.1',
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) MyMedRecord/1.0'
 );
+
+-- ==============================================================================
+-- VISTA: médicos disponibles para compartir ficha
+-- El frontend puede usar esta vista para mostrar:
+-- institución -> médicos verificados disponibles.
+-- ==============================================================================
+CREATE OR REPLACE VIEW available_doctors AS
+SELECT
+    u.id AS doctor_id,
+    u.rut,
+    u.first_name,
+    u.last_name,
+    u.email,
+    dp.professional_registry,
+    dp.specialty,
+    dp.professional_title,
+    hi.id AS institution_id,
+    hi.name AS institution_name,
+    hi.institution_type,
+    hi.city
+FROM users u
+JOIN doctor_profiles dp
+    ON dp.user_id = u.id
+JOIN health_institutions hi
+    ON hi.id = dp.institution_id
+WHERE u.role = 'MEDICO'
+  AND u.is_active = TRUE
+  AND dp.verification_status = 'VERIFICADO'
+  AND dp.is_available_for_sharing = TRUE
+  AND hi.is_active = TRUE;
+
+-- Fin init.sql MyMedRecord

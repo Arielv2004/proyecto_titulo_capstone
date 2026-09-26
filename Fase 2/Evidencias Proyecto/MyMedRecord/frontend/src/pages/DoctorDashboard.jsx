@@ -660,7 +660,7 @@ export const DoctorDashboard = () => {
 
                 <button
                   type="button"
-                  onClick={handleQrDemo}
+                  onClick={() => navigate('/doctor/qr-access')}
                   className="px-5 py-3 bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 font-bold rounded-2xl text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
                 >
                   <QrCode className="w-4 h-4" />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { useMetaTags } from '../hooks/useMetaTags';
@@ -6,7 +6,6 @@ import { validateRut, formatRut } from '../utils/rutValidator';
 
 import {
   HeartHandshake,
-  Lock,
   ShieldCheck,
   ArrowRight,
   Eye,
@@ -17,6 +16,11 @@ import {
   UserPlus,
   UserRound,
   Stethoscope,
+  Search,
+  Building2,
+  MapPin,
+  PlusCircle,
+  X,
 } from 'lucide-react';
 
 import { ThemeToggle } from '../components/common/ThemeToggle';
@@ -29,16 +33,73 @@ export const RegisterPage = () => {
     email: '',
     password: '',
     role: 'PACIENTE',
+    professionalRegistry: '',
+    specialty: '',
+    institutionId: '',
+    institutionNameOther: '',
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [rutTouched, setRutTouched] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
+  // Instituciones
+  const [institutions, setInstitutions] = useState([]);
+  const [loadingInstitutions, setLoadingInstitutions] = useState(false);
+  const [institutionsError, setInstitutionsError] = useState('');
+
+  // Buscador
+  const [institutionSearch, setInstitutionSearch] = useState('');
+  const [showInstitutionResults, setShowInstitutionResults] = useState(false);
+  const [useOtherInstitution, setUseOtherInstitution] = useState(false);
+
   const { register, isLoading, error } = useAuthStore();
   const navigate = useNavigate();
 
   const isDoctor = formData.role === 'MEDICO';
+
+  // =====================================================
+  // CARGAR INSTITUCIONES
+  // =====================================================
+
+  useEffect(() => {
+    if (!isDoctor || institutions.length > 0) return;
+
+    const loadInstitutions = async () => {
+      setLoadingInstitutions(true);
+      setInstitutionsError('');
+
+      try {
+        const response = await fetch(
+          'http://localhost:5000/api/v1/health-institutions'
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            'No fue posible cargar las instituciones de salud.'
+          );
+        }
+
+        const data = await response.json();
+
+        const list = Array.isArray(data)
+          ? data
+          : data.institutions || [];
+
+        setInstitutions(list);
+      } catch (err) {
+        console.error(err);
+
+        setInstitutionsError(
+          'No se pudieron cargar las instituciones. Verifica que el backend esté ejecutándose.'
+        );
+      } finally {
+        setLoadingInstitutions(false);
+      }
+    };
+
+    loadInstitutions();
+  }, [isDoctor, institutions.length]);
 
   useMetaTags(
     isDoctor ? 'Registro Médico' : 'Registro de Ficha Clínica',
@@ -46,6 +107,10 @@ export const RegisterPage = () => {
       ? 'Crea tu cuenta profesional en MyMedRecord.'
       : 'Crea tu cuenta de paciente en MyMedRecord.'
   );
+
+  // =====================================================
+  // RUT
+  // =====================================================
 
   const isRutValid =
     formData.rut.trim() !== '' && validateRut(formData.rut);
@@ -62,6 +127,10 @@ export const RegisterPage = () => {
     setRutTouched(true);
   };
 
+  // =====================================================
+  // INPUTS GENERALES
+  // =====================================================
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -69,12 +138,136 @@ export const RegisterPage = () => {
     });
   };
 
+  // =====================================================
+  // CAMBIO DE TIPO DE CUENTA
+  // =====================================================
+
   const handleRoleChange = (role) => {
-    setFormData({
-      ...formData,
+    setFormData((current) => ({
+      ...current,
       role,
-    });
+
+      // Si vuelve a paciente, limpiamos los campos médicos.
+      ...(role === 'PACIENTE'
+        ? {
+            professionalRegistry: '',
+            specialty: '',
+            institutionId: '',
+            institutionNameOther: '',
+          }
+        : {}),
+    }));
+
+    if (role === 'PACIENTE') {
+      setInstitutionSearch('');
+      setUseOtherInstitution(false);
+      setShowInstitutionResults(false);
+    }
   };
+
+  // =====================================================
+  // BUSCADOR DE INSTITUCIONES
+  // =====================================================
+
+  const filteredInstitutions = useMemo(() => {
+    const search = institutionSearch.trim().toLowerCase();
+
+    if (!search) {
+      return institutions.slice(0, 8);
+    }
+
+    return institutions
+      .filter((institution) => {
+        const searchableText = [
+          institution.name,
+          institution.institution_type,
+          institution.commune,
+          institution.city,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+
+        return searchableText.includes(search);
+      })
+      .slice(0, 8);
+  }, [institutionSearch, institutions]);
+
+  const selectedInstitution = useMemo(
+    () =>
+      institutions.find(
+        (institution) => institution.id === formData.institutionId
+      ),
+    [institutions, formData.institutionId]
+  );
+
+  const handleInstitutionSearch = (e) => {
+    const value = e.target.value;
+
+    setInstitutionSearch(value);
+    setShowInstitutionResults(true);
+
+    // Si modifica la búsqueda después de haber seleccionado
+    // una institución, eliminamos la selección anterior.
+    if (formData.institutionId) {
+      setFormData((current) => ({
+        ...current,
+        institutionId: '',
+      }));
+    }
+  };
+
+  const handleSelectInstitution = (institution) => {
+    setFormData((current) => ({
+      ...current,
+      institutionId: institution.id,
+      institutionNameOther: '',
+    }));
+
+    setInstitutionSearch(institution.name);
+    setUseOtherInstitution(false);
+    setShowInstitutionResults(false);
+  };
+
+  const handleClearInstitution = () => {
+    setFormData((current) => ({
+      ...current,
+      institutionId: '',
+    }));
+
+    setInstitutionSearch('');
+    setShowInstitutionResults(true);
+  };
+
+  const handleUseOtherInstitution = () => {
+    setUseOtherInstitution(true);
+
+    setFormData((current) => ({
+      ...current,
+      institutionId: '',
+      institutionNameOther: '',
+    }));
+
+    setInstitutionSearch('');
+    setShowInstitutionResults(false);
+  };
+
+  const handleReturnToInstitutionSearch = () => {
+    setUseOtherInstitution(false);
+
+    setFormData((current) => ({
+      ...current,
+      institutionId: '',
+      institutionNameOther: '',
+    }));
+
+    setInstitutionSearch('');
+    setShowInstitutionResults(false);
+  };
+
+  // =====================================================
+  // SUBMIT
+  // =====================================================
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -86,7 +279,43 @@ export const RegisterPage = () => {
       return;
     }
 
-    const result = await register(formData);
+    if (isDoctor) {
+      if (!formData.professionalRegistry.trim()) {
+        alert('Ingresa tu registro profesional.');
+        return;
+      }
+
+      if (!formData.specialty.trim()) {
+        alert('Ingresa tu especialidad médica.');
+        return;
+      }
+
+      if (
+        !formData.institutionId &&
+        !formData.institutionNameOther.trim()
+      ) {
+        alert(
+          'Selecciona una institución de salud o indica otra institución.'
+        );
+        return;
+      }
+    }
+
+    const payload = {
+      ...formData,
+
+      institutionId:
+        isDoctor && formData.institutionId
+          ? formData.institutionId
+          : null,
+
+      institutionNameOther:
+        isDoctor && formData.institutionNameOther.trim()
+          ? formData.institutionNameOther.trim()
+          : null,
+    };
+
+    const result = await register(payload);
 
     if (result.success) {
       setRegistrationSuccess(true);
@@ -100,6 +329,10 @@ export const RegisterPage = () => {
       }, 900);
     }
   };
+
+  const doctorInstitutionValid =
+    Boolean(formData.institutionId) ||
+    Boolean(formData.institutionNameOther.trim());
 
   return (
     <div className="flex min-h-screen flex-col bg-stone-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors">
@@ -131,7 +364,6 @@ export const RegisterPage = () => {
         <div className="flex items-center gap-2.5">
           <div className="hidden sm:flex items-center gap-2 text-[11px] text-stone-600 dark:text-slate-300 bg-stone-100 dark:bg-slate-800 px-3 py-1 rounded-full border border-stone-200 dark:border-slate-700">
             <ShieldCheck className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
-
             <span>Ley N° 21.668 & N° 20.584</span>
           </div>
 
@@ -142,7 +374,7 @@ export const RegisterPage = () => {
       {/* Main */}
       <main className="flex-1 flex items-center justify-center p-4 sm:p-6">
         <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-stone-200/90 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm">
-          
+
           {/* Selector Login / Registro */}
           <div className="flex p-1 mb-6 bg-stone-100 dark:bg-slate-800/80 rounded-2xl border border-stone-200 dark:border-slate-700/80">
             <Link
@@ -257,7 +489,6 @@ export const RegisterPage = () => {
           {error && (
             <div className="mb-5 p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-2xl text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center gap-2.5">
               <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
-
               <span>{error}</span>
             </div>
           )}
@@ -275,7 +506,7 @@ export const RegisterPage = () => {
 
           {/* Formulario */}
           <form onSubmit={handleSubmit} className="space-y-3.5">
-            
+
             {/* Nombre y apellido */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -421,6 +652,285 @@ export const RegisterPage = () => {
               </div>
             </div>
 
+            {/* Información profesional del médico */}
+            {isDoctor && (
+              <div className="space-y-3.5 rounded-2xl border border-teal-200 dark:border-teal-900 bg-teal-50/40 dark:bg-teal-950/20 p-4">
+                <div>
+                  <h2 className="text-sm font-extrabold text-blue-950 dark:text-slate-100 flex items-center gap-2">
+                    <Stethoscope className="w-4 h-4 text-teal-700 dark:text-teal-300" />
+                    Información profesional
+                  </h2>
+
+                  <p className="text-[10px] text-stone-500 dark:text-slate-400 mt-1">
+                    Estos antecedentes permiten asociar la cuenta a un perfil médico.
+                    La cuenta quedará pendiente de verificación profesional.
+                  </p>
+                </div>
+
+                {/* Registro profesional */}
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 dark:text-slate-300 mb-1">
+                    Registro profesional
+                  </label>
+
+                  <input
+                    type="text"
+                    name="professionalRegistry"
+                    required={isDoctor}
+                    value={formData.professionalRegistry}
+                    onChange={handleChange}
+                    placeholder="Ej: RNPI-123456"
+                    className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800/80 border border-stone-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100 dark:focus:ring-teal-950/40 transition-all"
+                  />
+                </div>
+
+                {/* Especialidad */}
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 dark:text-slate-300 mb-1">
+                    Especialidad
+                  </label>
+
+                  <input
+                    type="text"
+                    name="specialty"
+                    required={isDoctor}
+                    value={formData.specialty}
+                    onChange={handleChange}
+                    placeholder="Ej: Medicina General"
+                    className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800/80 border border-stone-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100 dark:focus:ring-teal-950/40 transition-all"
+                  />
+                </div>
+
+                {/* Institución */}
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 dark:text-slate-300 mb-1">
+                    Institución de salud
+                  </label>
+
+                  {!useOtherInstitution ? (
+                    <>
+                      {/* Institución seleccionada */}
+                      {selectedInstitution ? (
+                        <div className="rounded-xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-2.5">
+                              <div className="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center shrink-0">
+                                <Building2 className="w-4 h-4 text-emerald-700 dark:text-emerald-300" />
+                              </div>
+
+                              <div>
+                                <p className="text-xs font-extrabold text-emerald-900 dark:text-emerald-200">
+                                  {selectedInstitution.name}
+                                </p>
+
+                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-[10px] text-emerald-700 dark:text-emerald-300">
+                                  {selectedInstitution.institution_type && (
+                                    <span>
+                                      {selectedInstitution.institution_type}
+                                    </span>
+                                  )}
+
+                                  {(selectedInstitution.commune ||
+                                    selectedInstitution.city) && (
+                                    <span className="flex items-center gap-1">
+                                      <MapPin className="w-3 h-3" />
+                                      {selectedInstitution.commune ||
+                                        selectedInstitution.city}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={handleClearInstitution}
+                              className="p-1.5 rounded-lg text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all cursor-pointer"
+                              title="Cambiar institución"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          {/* Buscador */}
+                          <div className="relative">
+                            <Search className="absolute left-3.5 top-3 w-4 h-4 text-stone-400" />
+
+                            <input
+                              type="text"
+                              value={institutionSearch}
+                              onChange={handleInstitutionSearch}
+                              onFocus={() =>
+                                setShowInstitutionResults(true)
+                              }
+                              placeholder={
+                                loadingInstitutions
+                                  ? 'Cargando instituciones...'
+                                  : 'Buscar hospital, clínica, CESFAM...'
+                              }
+                              disabled={loadingInstitutions}
+                              autoComplete="off"
+                              className="w-full pl-10 pr-3.5 py-2.5 bg-white dark:bg-slate-800/80 border border-stone-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100 dark:focus:ring-teal-950/40 transition-all disabled:opacity-60"
+                            />
+
+                            {/* Resultados */}
+                            {showInstitutionResults &&
+                              !loadingInstitutions && (
+                                <div className="mt-2 overflow-hidden rounded-xl border border-stone-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
+                                  {filteredInstitutions.length > 0 ? (
+                                    <div className="max-h-52 overflow-y-auto">
+                                      {filteredInstitutions.map(
+                                        (institution) => (
+                                          <button
+                                            key={institution.id}
+                                            type="button"
+                                            onClick={() =>
+                                              handleSelectInstitution(
+                                                institution
+                                              )
+                                            }
+                                            className="w-full px-3 py-2.5 flex items-start gap-2.5 text-left border-b last:border-b-0 border-stone-100 dark:border-slate-700 hover:bg-teal-50 dark:hover:bg-teal-950/30 transition-colors cursor-pointer"
+                                          >
+                                            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center shrink-0">
+                                              <Building2 className="w-4 h-4 text-blue-800 dark:text-teal-300" />
+                                            </div>
+
+                                            <div className="min-w-0">
+                                              <p className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                                                {institution.name}
+                                              </p>
+
+                                              <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5 text-[10px] text-stone-500 dark:text-slate-400">
+                                                {institution.institution_type && (
+                                                  <span>
+                                                    {
+                                                      institution.institution_type
+                                                    }
+                                                  </span>
+                                                )}
+
+                                                {(institution.commune ||
+                                                  institution.city) && (
+                                                  <span className="flex items-center gap-1">
+                                                    <MapPin className="w-3 h-3" />
+                                                    {institution.commune ||
+                                                      institution.city}
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </div>
+                                          </button>
+                                        )
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <div className="px-3 py-3 text-center">
+                                      <p className="text-xs font-semibold text-stone-600 dark:text-slate-300">
+                                        No encontramos esa institución.
+                                      </p>
+
+                                      <p className="text-[10px] text-stone-500 dark:text-slate-400 mt-1">
+                                        Puedes ingresarla manualmente.
+                                      </p>
+                                    </div>
+                                  )}
+
+                                  {/* Otra institución */}
+                                  <button
+                                    type="button"
+                                    onClick={handleUseOtherInstitution}
+                                    className="w-full px-3 py-2.5 flex items-center gap-2 text-left bg-stone-50 dark:bg-slate-900/70 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors cursor-pointer border-t border-stone-200 dark:border-slate-700"
+                                  >
+                                    <PlusCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+
+                                    <div>
+                                      <p className="text-xs font-bold text-stone-700 dark:text-slate-200">
+                                        Mi institución no aparece
+                                      </p>
+
+                                      <p className="text-[10px] text-stone-500 dark:text-slate-400">
+                                        Ingresar el nombre manualmente
+                                      </p>
+                                    </div>
+                                  </button>
+                                </div>
+                              )}
+                          </div>
+
+                          {!showInstitutionResults && (
+                            <button
+                              type="button"
+                              onClick={handleUseOtherInstitution}
+                              className="mt-2 text-[11px] font-bold text-blue-800 dark:text-teal-300 hover:underline flex items-center gap-1 cursor-pointer"
+                            >
+                              <PlusCircle className="w-3.5 h-3.5" />
+                              Mi institución no aparece
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    /* Institución manual */
+                    <div className="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50/60 dark:bg-amber-950/20 p-3">
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-amber-700 dark:text-amber-300" />
+
+                          <span className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                            Otra institución
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handleReturnToInstitutionSearch}
+                          className="text-[10px] font-bold text-blue-800 dark:text-teal-300 hover:underline cursor-pointer"
+                        >
+                          Volver al buscador
+                        </button>
+                      </div>
+
+                      <input
+                        type="text"
+                        name="institutionNameOther"
+                        value={formData.institutionNameOther}
+                        onChange={handleChange}
+                        placeholder="Ej: Centro Médico Los Alerces"
+                        maxLength={200}
+                        autoFocus
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800/80 border border-amber-300 dark:border-amber-800 rounded-xl text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-100 dark:focus:ring-amber-950/40 transition-all"
+                      />
+
+                      <p className="mt-1.5 text-[10px] text-amber-700 dark:text-amber-300">
+                        Esta institución será informada manualmente y podrá
+                        validarse junto con los antecedentes profesionales.
+                      </p>
+                    </div>
+                  )}
+
+                  {institutionsError && (
+                    <p className="mt-1.5 text-[10px] font-semibold text-rose-600 dark:text-rose-400">
+                      {institutionsError}
+                    </p>
+                  )}
+                </div>
+
+                {/* Aviso de verificación */}
+                <div className="flex items-start gap-2 rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/20 p-3">
+                  <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0 text-amber-700 dark:text-amber-300" />
+
+                  <p className="text-[10px] leading-relaxed text-amber-800 dark:text-amber-200">
+                    Registrarse como médico no habilita automáticamente el acceso
+                    a fichas clínicas. El perfil profesional debe quedar
+                    verificado antes de aparecer disponible para los pacientes.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Resumen del tipo de cuenta */}
             <div
               className={`p-3 rounded-xl border flex items-center justify-between ${
@@ -457,7 +967,12 @@ export const RegisterPage = () => {
               type="submit"
               disabled={
                 isLoading ||
-                (formData.rut && !isRutValid)
+                loadingInstitutions ||
+                (formData.rut && !isRutValid) ||
+                (isDoctor &&
+                  (!formData.professionalRegistry.trim() ||
+                    !formData.specialty.trim() ||
+                    !doctorInstitutionValid))
               }
               className="w-full mt-3 py-3 bg-blue-900 hover:bg-blue-950 active:scale-[0.99] text-white font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 text-sm cursor-pointer disabled:opacity-50"
             >
