@@ -13,11 +13,11 @@ const pool = new Pool({
 });
 
 pool.on('connect', () => {
-  console.log('🐘 Conectado exitosamente a PostgreSQL (Docker).');
+  console.log('[PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).');
 });
 
 pool.on('error', (err) => {
-  console.error('❌ Error en el pool de PostgreSQL:', err.message);
+  console.error('[PostgreSQL Error] Error en el pool de PostgreSQL:', err.message);
 });
 
 module.exports = {

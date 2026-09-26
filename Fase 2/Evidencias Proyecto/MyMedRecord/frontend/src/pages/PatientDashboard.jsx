@@ -44,8 +44,16 @@ import {
   Save,
   Plus,
   Trash2,
-  Mail
+  Mail,
+  Copy,
+  Check,
+  RefreshCw,
+  ExternalLink,
+  Timer
 } from 'lucide-react';
+
+import { QRCodeSVG } from 'qrcode.react';
+import api from '../services/api';
 
 import { Navbar } from '../components/common/Navbar';
 import { BottomNav } from '../components/common/BottomNav';
@@ -117,6 +125,16 @@ export const PatientDashboard = () => {
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
+
+  // Estado para gestión dinámica de QR de Acceso Médico (Ley N° 21.668)
+  const [qrDuration, setQrDuration] = useState(12); // 2, 12, 24 horas
+  const [activeGrant, setActiveGrant] = useState(null);
+  const [isLoadingGrant, setIsLoadingGrant] = useState(false);
+  const [isGeneratingGrant, setIsGeneratingGrant] = useState(false);
+  const [isRevokingGrant, setIsRevokingGrant] = useState(false);
+  const [grantError, setGrantError] = useState(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [remainingTimeText, setRemainingTimeText] = useState('');
 
   // Documentos Médicos Digitalizados (Extraídos por IA)
   // Documentos Médicos Digitalizados (cargados desde el backend)
@@ -339,6 +357,224 @@ export const PatientDashboard = () => {
       }));
     }
     setCustomCondition('');
+  };
+
+  // Cargar token QR activo al abrir el modal
+  const fetchActiveGrant = async () => {
+    try {
+      setIsLoadingGrant(true);
+      setGrantError(null);
+      const res = await api.get('/access-grants/active');
+      if (res.data?.success && res.data?.data) {
+        const g = res.data.data.grant || res.data.data;
+        if (g && g.token) {
+          setActiveGrant({
+            id: g.id,
+            token: g.token,
+            duration_hours: g.duration_hours || g.durationHours || 12,
+            expires_at: g.expires_at || g.expiresAt,
+            status: 'ACTIVE'
+          });
+        } else {
+          setActiveGrant(null);
+        }
+      } else {
+        setActiveGrant(null);
+      }
+    } catch (err) {
+      console.error('Error fetching active grant:', err);
+      setActiveGrant(null);
+    } finally {
+      setIsLoadingGrant(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showQrModal) {
+      fetchActiveGrant();
+    }
+  }, [showQrModal]);
+
+  // Actualizar contador regresivo en tiempo real
+  useEffect(() => {
+    if (!activeGrant?.expires_at) {
+      setRemainingTimeText('');
+      return;
+    }
+
+    const updateTimer = () => {
+      const diff = new Date(activeGrant.expires_at) - new Date();
+      if (diff <= 0) {
+        setRemainingTimeText('Expirado');
+        setActiveGrant(null);
+        return;
+      }
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const secs = Math.floor((diff % (1000 * 60)) / 1000);
+      setRemainingTimeText(`${hours}h ${mins}m ${secs}s`);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [activeGrant]);
+
+  // Generar nuevo código QR con duración seleccionada
+  const handleGenerateGrant = async (duration = qrDuration) => {
+    try {
+      setIsGeneratingGrant(true);
+      setGrantError(null);
+      const res = await api.post('/access-grants/generate', {
+        durationHours: duration,
+        notes: `Generado por paciente desde Portal Web (${duration} horas)`
+      });
+      if (res.data?.success && res.data?.data) {
+        const g = res.data.data;
+        setActiveGrant({
+          id: g.id || g.grantId,
+          token: g.token,
+          duration_hours: g.durationHours || g.duration_hours,
+          expires_at: g.expiresAt || g.expires_at,
+          status: 'ACTIVE'
+        });
+      }
+    } catch (err) {
+      console.error('Error generating grant:', err);
+      setGrantError(err.response?.data?.message || 'Error al generar código QR de acceso');
+    } finally {
+      setIsGeneratingGrant(false);
+    }
+  };
+
+  // Revocar acceso inmediato
+  const handleRevokeGrant = async () => {
+    if (!activeGrant?.id) return;
+    const confirmed = window.confirm(
+      '¿Estás seguro de que deseas revocar el acceso médico de inmediato? Si el profesional está viendo tu ficha, perderá el acceso de inmediato.'
+    );
+    if (!confirmed) return;
+
+    try {
+      setIsRevokingGrant(true);
+      setGrantError(null);
+      await api.patch(`/access-grants/${activeGrant.id}/revoke`, {
+        reason: 'Revocado manualmente por el paciente desde su panel de control'
+      });
+      setActiveGrant(null);
+    } catch (err) {
+      console.error('Error revoking grant:', err);
+      setGrantError(err.response?.data?.message || 'Error al revocar el acceso');
+    } finally {
+      setIsRevokingGrant(false);
+    }
+  };
+
+  // Copiar link de acceso médico directo al portapapeles
+  const handleCopyLink = () => {
+    if (!activeGrant?.token) return;
+    const directUrl = `${window.location.origin}/doctor/qr-access?token=${encodeURIComponent(activeGrant.token)}`;
+    navigator.clipboard.writeText(directUrl).then(() => {
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
+    }).catch(() => {
+      // Fallback
+    });
+  };
+
+  // Descargar imagen del código QR en formato PNG nítido (Tarjeta Oficial de Acceso)
+  const handleDownloadQr = () => {
+    const svgElement = document.getElementById('patient-qr-svg');
+    if (!svgElement) return;
+
+    try {
+      const svgData = new XMLSerializer().serializeToString(svgElement);
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+
+      canvas.width = 700;
+      canvas.height = 880;
+
+      img.onload = () => {
+        // Fondo blanco nítido
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Borde decorativo exterior
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(12, 12, canvas.width - 24, canvas.height - 24);
+
+        // Cabecera institucional azul
+        ctx.fillStyle = '#1e3a8a';
+        ctx.fillRect(12, 12, canvas.width - 24, 110);
+
+        // Franja bicolor
+        ctx.fillStyle = '#0033a0';
+        ctx.fillRect(12, 122, (canvas.width - 24) / 2, 6);
+        ctx.fillStyle = '#d52b1e';
+        ctx.fillRect(12 + (canvas.width - 24) / 2, 122, (canvas.width - 24) / 2, 6);
+
+        // Textos del encabezado
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 32px system-ui, -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('MyMedRecord', canvas.width / 2, 62);
+
+        ctx.font = 'bold 15px system-ui, -apple-system, sans-serif';
+        ctx.fillStyle = '#99f6e4';
+        ctx.fillText('PASE DE ACCESO MÉDICO TEMPORAL • LEY N° 21.668', canvas.width / 2, 95);
+
+        // Marco y renderizado del Código QR
+        const qrSize = 460;
+        const qrX = (canvas.width - qrSize) / 2;
+        const qrY = 160;
+
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(qrX - 16, qrY - 16, qrSize + 32, qrSize + 32);
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(qrX - 16, qrY - 16, qrSize + 32, qrSize + 32);
+
+        ctx.drawImage(img, qrX, qrY, qrSize, qrSize);
+
+        // Indicador del código de acceso
+        ctx.fillStyle = '#64748b';
+        ctx.font = 'bold 13px system-ui, -apple-system, sans-serif';
+        ctx.fillText('CÓDIGO DE ACCESO / TOKEN:', canvas.width / 2, 675);
+
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 28px monospace';
+        ctx.fillText(activeGrant?.token || '---', canvas.width / 2, 715);
+
+        // Indicador de vigencia
+        ctx.fillStyle = '#047857';
+        ctx.font = 'bold 17px system-ui, -apple-system, sans-serif';
+        ctx.fillText(`Vigencia Autorizada: ${activeGrant?.duration_hours || 12} Horas`, canvas.width / 2, 765);
+
+        // Información al médico y paciente
+        ctx.fillStyle = '#64748b';
+        ctx.font = '13px system-ui, -apple-system, sans-serif';
+        ctx.fillText('El profesional médico debe ingresar su RUT y nombre para validar la consulta.', canvas.width / 2, 805);
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = 'italic 12px system-ui, -apple-system, sans-serif';
+        ctx.fillText('Acceso seguro, encriptado y trazable auditado por MyMedRecord.', canvas.width / 2, 830);
+
+        const pngUrl = canvas.toDataURL('image/png');
+        const downloadLink = document.createElement('a');
+        downloadLink.download = `Pase_Medico_MyMedRecord_${activeGrant?.token || 'acceso'}.png`;
+        downloadLink.href = pngUrl;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+      };
+
+      img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+    } catch (err) {
+      console.error('Error descargando QR:', err);
+    }
   };
 
   return (
@@ -695,9 +931,10 @@ export const PatientDashboard = () => {
                   {searchQuery && (
                     <button
                       onClick={() => setSearchQuery('')}
-                      className="absolute right-3 top-2 text-stone-400 hover:text-stone-600 text-xs font-bold"
+                      className="absolute right-3 top-2.5 text-stone-400 hover:text-stone-600 text-xs font-bold flex items-center justify-center cursor-pointer"
+                      title="Limpiar búsqueda"
                     >
-                      ✕
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>
@@ -1247,7 +1484,7 @@ export const PatientDashboard = () => {
                       02 Septiembre 2026 · 14:30
                     </span>
                     <span className="inline-block text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
-                      ✓ Acceso Cifrado Autorizado
+                      Acceso Cifrado Autorizado
                     </span>
                   </div>
                 </div>
@@ -1272,7 +1509,7 @@ export const PatientDashboard = () => {
                       28 Agosto 2026 · 10:15
                     </span>
                     <span className="inline-block text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
-                      ✓ Firma Electrónica Avanzada
+                      Firma Electrónica Avanzada
                     </span>
                   </div>
                 </div>
@@ -1297,7 +1534,7 @@ export const PatientDashboard = () => {
                       25 Agosto 2026 · 09:00
                     </span>
                     <span className="inline-block text-[10px] font-bold text-blue-700 dark:text-blue-400">
-                      ✓ Registro Sincronizado
+                      Registro Sincronizado
                     </span>
                   </div>
                 </div>
@@ -1689,36 +1926,234 @@ export const PatientDashboard = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL DE CÓDIGO QR PARA EL MÉDICO (LEY 21.668) */}
+      {/* MODAL DE CÓDIGO QR PARA EL MÉDICO (LEY N° 21.668 & 20.584) */}
       {/* ========================================================================= */}
       {showQrModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="w-full max-w-sm bg-white border border-stone-200 rounded-3xl p-6 shadow-2xl text-center space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-stone-100">
-              <span className="text-xs font-bold text-blue-950">Consentimiento de Acceso</span>
-              <button onClick={() => setShowQrModal(false)} className="text-stone-400 hover:text-stone-600 p-1">✕</button>
-            </div>
-
-            <div className="w-48 h-48 mx-auto bg-stone-100 border border-stone-300 rounded-2xl flex items-center justify-center p-4">
-              <div className="w-full h-full bg-slate-900 rounded-xl p-3 flex flex-col justify-between items-center text-white">
-                <QrCode className="w-32 h-32 text-teal-300 stroke-[1.5]" />
-                <span className="text-[10px] font-mono tracking-widest text-stone-300">TOKEN: #MMR-8492</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-stone-200 dark:border-slate-800 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-start justify-between pb-3 border-b border-stone-100 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-blue-900 text-teal-300 flex items-center justify-center font-bold shadow-xs">
+                  <QrCode className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-blue-950 dark:text-slate-100">
+                    Pase de Acceso Médico Seguro
+                  </h3>
+                  <p className="text-[11px] text-stone-500 dark:text-slate-400">
+                    Consentimiento digital según Ley N° 21.668
+                  </p>
+                </div>
               </div>
+              <button 
+                onClick={() => setShowQrModal(false)}
+                className="p-1.5 text-stone-400 hover:text-stone-600 dark:hover:text-slate-200 rounded-xl hover:bg-stone-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <div>
-              <h4 className="font-bold text-blue-950 text-sm">Muestra este QR a tu Médico</h4>
-              <p className="text-xs text-stone-500 mt-1">
-                Autoriza acceso de lectura por 24 horas. Cada consulta queda registrada en tu bitácora de auditoría inmutable (Ley N° 21.668).
-              </p>
-            </div>
+            {/* Error banner si ocurre */}
+            {grantError && (
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 rounded-2xl text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{grantError}</span>
+              </div>
+            )}
 
-            <button
-              onClick={() => setShowQrModal(false)}
-              className="w-full py-2.5 bg-blue-900 hover:bg-blue-950 text-white font-bold rounded-xl text-xs"
-            >
-              Entendido
-            </button>
+            {/* Estado de Carga */}
+            {isLoadingGrant ? (
+              <div className="py-12 text-center space-y-3">
+                <RefreshCw className="w-8 h-8 text-blue-900 animate-spin mx-auto" />
+                <p className="text-xs text-stone-500 font-medium">Verificando tokens activos...</p>
+              </div>
+            ) : activeGrant ? (
+              /* CASO A: TIENE UN PASE ACTIVO VIGENTE */
+              <div className="space-y-4">
+                {/* Banner de Vigencia Activa */}
+                <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 rounded-2xl p-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    </span>
+                    <span className="text-xs font-bold text-emerald-900 dark:text-emerald-300">
+                      Pase Activo ({activeGrant.duration_hours || 12} Horas)
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-mono font-bold text-emerald-800 dark:text-emerald-400 flex items-center gap-1">
+                    <Timer className="w-3.5 h-3.5" />
+                    {remainingTimeText || 'Calculando...'}
+                  </span>
+                </div>
+
+                {/* Código QR SVG Centrado */}
+                <div className="p-5 bg-stone-50 dark:bg-slate-800/60 rounded-2xl border border-stone-200 dark:border-slate-700 flex flex-col items-center justify-center space-y-3">
+                  <div className="bg-white p-3.5 rounded-2xl shadow-md border border-stone-200">
+                    <QRCodeSVG 
+                      id="patient-qr-svg"
+                      value={`${window.location.origin}/doctor/qr-access?token=${encodeURIComponent(activeGrant.token)}`}
+                      size={180}
+                      level="H"
+                      includeMargin={false}
+                    />
+                  </div>
+                  
+                  <div className="text-center">
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-stone-400 dark:text-slate-400 block mb-0.5">
+                      CÓDIGO DE ACCESO MÉDICO
+                    </span>
+                    <span className="text-base font-mono font-black text-blue-950 dark:text-teal-300 tracking-wider bg-white dark:bg-slate-900 px-3 py-1 rounded-lg border border-stone-200 dark:border-slate-700 inline-block">
+                      {activeGrant.token}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Acciones para Compartir y Guardar */}
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={handleCopyLink}
+                      type="button"
+                      className="py-2.5 px-3 rounded-xl border border-stone-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-stone-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                    >
+                      {copiedLink ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          <span className="text-emerald-700 dark:text-emerald-400">¡Copiado!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5 text-stone-500" />
+                          <span>Copiar Link</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={handleDownloadQr}
+                      type="button"
+                      className="py-2.5 px-3 rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-950/40 hover:bg-teal-100/80 dark:hover:bg-teal-900/60 text-teal-900 dark:text-teal-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                    >
+                      <Download className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                      <span>Guardar / Descargar QR</span>
+                    </button>
+                  </div>
+
+                  <a
+                    href={`/doctor/qr-access?token=${encodeURIComponent(activeGrant.token)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full py-2.5 px-3 rounded-xl border border-stone-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-stone-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs text-center"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5 text-stone-500" />
+                    <span>Abrir Visor de Consulta Directa</span>
+                  </a>
+                </div>
+
+                {/* Resumen Legal y Auditoría */}
+                <div className="p-3 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40 rounded-xl text-[11px] text-blue-950 dark:text-blue-200 space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold">
+                    <ShieldCheck className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
+                    <span>Auditoría de Acceso en Tiempo Real</span>
+                  </div>
+                  <p className="text-[10px] text-stone-500 dark:text-slate-400 leading-relaxed">
+                    El médico no requiere cuenta previa, pero debe validar su RUT y Nombre Profesional para ingresar. La consulta se estampará en tu registro inmutable.
+                  </p>
+                </div>
+
+                {/* Botón de Revocación Inmediata */}
+                <div className="pt-2 border-t border-stone-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={handleRevokeGrant}
+                    disabled={isRevokingGrant}
+                    className="w-full py-2.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {isRevokingGrant ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-3.5 h-3.5" />
+                    )}
+                    <span>Revocar Acceso Inmediato</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* CASO B: NO TIENE UN PASE ACTIVO -> GENERADOR CON SELECCIÓN DE HORAS */
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-2">
+                    Selecciona la duración del acceso para el médico:
+                  </label>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { hours: 2, label: '2 Horas', desc: 'Consulta Médica' },
+                      { hours: 12, label: '12 Horas', desc: 'Jornada Clínica', highlight: true },
+                      { hours: 24, label: '24 Horas', desc: 'Estadía / Control' }
+                    ].map((opt) => (
+                      <button
+                        key={opt.hours}
+                        type="button"
+                        onClick={() => setQrDuration(opt.hours)}
+                        className={`p-3 rounded-2xl border text-center transition-all cursor-pointer flex flex-col items-center justify-between ${
+                          qrDuration === opt.hours
+                            ? 'bg-blue-900 text-white border-blue-900 shadow-md ring-2 ring-teal-400/40'
+                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-stone-200 dark:border-slate-700 hover:border-blue-300'
+                        }`}
+                      >
+                        <span className="text-xs font-extrabold">{opt.label}</span>
+                        <span className={`text-[10px] mt-1 ${qrDuration === opt.hours ? 'text-teal-200' : 'text-stone-400'}`}>
+                          {opt.desc}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Explicación de Funcionamiento */}
+                <div className="p-3.5 bg-stone-50 dark:bg-slate-800/60 rounded-2xl border border-stone-200 dark:border-slate-700 space-y-2 text-stone-600 dark:text-slate-300">
+                  <span className="font-bold text-blue-950 dark:text-slate-100 text-xs block">
+                    ¿Cómo funciona este acceso?
+                  </span>
+                  <ul className="text-[11px] text-stone-500 dark:text-slate-400 space-y-1 list-disc list-inside">
+                    <li>El médico escanea tu QR desde su celular o sube una foto.</li>
+                    <li>Ingresa su RUT y Centro de Salud / Consulta para identificarse legalmente.</li>
+                    <li>Tiene acceso de solo lectura únicamente durante las {qrDuration} horas elegidas.</li>
+                    <li>Válido para cualquier médico: consultas privadas, CESFAM, clínicas u hospitales.</li>
+                    <li>Puedes anular el permiso en cualquier momento con el botón de revocar.</li>
+                  </ul>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleGenerateGrant(qrDuration)}
+                    disabled={isGeneratingGrant}
+                    className="w-full py-3 bg-blue-900 hover:bg-blue-950 active:scale-95 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all disabled:opacity-50"
+                  >
+                    {isGeneratingGrant ? (
+                      <RefreshCw className="w-4 h-4 animate-spin text-teal-300" />
+                    ) : (
+                      <QrCode className="w-4 h-4 text-teal-300" />
+                    )}
+                    <span>Generar Pase QR ({qrDuration} Horas)</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="pt-2 border-t border-stone-100 dark:border-slate-800 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowQrModal(false)}
+                className="px-4 py-2 bg-stone-100 hover:bg-stone-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-stone-700 dark:text-slate-300 font-bold rounded-xl text-xs cursor-pointer transition-colors"
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1849,7 +2284,7 @@ export const PatientDashboard = () => {
                           : 'bg-white dark:bg-slate-800 text-stone-600 dark:text-slate-300 border-stone-200 dark:border-slate-700 hover:border-rose-300'
                           }`}
                       >
-                        {editFormData.allergies.includes(item) ? `✓ ${item}` : `+ ${item}`}
+                        {editFormData.allergies.includes(item) ? item : `+ ${item}`}
                       </button>
                     ))}
                   </div>
@@ -1911,7 +2346,7 @@ export const PatientDashboard = () => {
                           onClick={() => handleToggleCondition(cond)}
                           className="hover:text-blue-950 cursor-pointer font-black"
                         >
-                          ×
+                          <X className="w-3 h-3" />
                         </button>
                       </span>
                     ))
@@ -1934,7 +2369,7 @@ export const PatientDashboard = () => {
                           : 'bg-white dark:bg-slate-800 text-stone-600 dark:text-slate-300 border-stone-200 dark:border-slate-700 hover:border-blue-300'
                           }`}
                       >
-                        {editFormData.chronicConditions.includes(item) ? `✓ ${item}` : `+ ${item}`}
+                        {editFormData.chronicConditions.includes(item) ? item : `+ ${item}`}
                       </button>
                     ))}
                   </div>

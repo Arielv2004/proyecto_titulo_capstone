@@ -24,7 +24,7 @@ class AnalyticsService {
 
     this.events.push(payload);
     if (import.meta.env.DEV) {
-      console.log(`📊 [Analytics] Vista: ${pageName} (${payload.device})`);
+      console.log(`[Analytics] Vista: ${pageName} (${payload.device})`);
     }
   }
 
@@ -43,7 +43,7 @@ class AnalyticsService {
 
     this.events.push(payload);
     if (import.meta.env.DEV) {
-      console.log(`📊 [Analytics Evento] ${category} -> ${action}`, label ? `(${label})` : '');
+      console.log(`[Analytics Evento] ${category} -> ${action}`, label ? `(${label})` : '');
     }
   }
 

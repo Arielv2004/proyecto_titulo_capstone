@@ -11,7 +11,19 @@ const COOKIE_OPTIONS = {
 class AuthController {
   static async register(req, res, next) {
     try {
-      const { rut, firstName, lastName, email, password, role } = req.body;
+      const {
+        rut,
+        firstName,
+        lastName,
+        email,
+        password,
+        role,
+        professionalRegistry,
+        specialty,
+        institutionId,
+        institutionNameOther,
+      } = req.body;
+
       const { user, token } = await AuthService.register({
         rut,
         firstName,
@@ -19,6 +31,10 @@ class AuthController {
         email,
         password,
         role,
+        professionalRegistry,
+        specialty,
+        institutionId,
+        institutionNameOther,
       });
 
       // Transmisión segura en Cookie HttpOnly
@@ -26,7 +42,10 @@ class AuthController {
 
       return res.status(201).json({
         success: true,
-        message: 'Usuario registrado exitosamente.',
+        message:
+          user.role === 'MEDICO'
+            ? 'Cuenta médica creada. El perfil profesional quedó pendiente de verificación.'
+            : 'Usuario registrado exitosamente.',
         data: { user },
       });
     } catch (error) {
@@ -37,7 +56,11 @@ class AuthController {
   static async login(req, res, next) {
     try {
       const { email, password } = req.body;
-      const { user, token } = await AuthService.login({ email, password });
+
+      const { user, token } = await AuthService.login({
+        email,
+        password,
+      });
 
       // Transmisión segura en Cookie HttpOnly
       res.cookie(config.JWT.COOKIE_NAME, token, COOKIE_OPTIONS);
@@ -54,6 +77,7 @@ class AuthController {
 
   static async logout(req, res) {
     res.clearCookie(config.JWT.COOKIE_NAME, COOKIE_OPTIONS);
+
     return res.status(200).json({
       success: true,
       message: 'Sesión cerrada exitosamente.',

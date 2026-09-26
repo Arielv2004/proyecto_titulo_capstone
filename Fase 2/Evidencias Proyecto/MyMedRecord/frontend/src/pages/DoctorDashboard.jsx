@@ -319,7 +319,9 @@ export const DoctorDashboard = () => {
 
         {activeTab === 'CLINICAL' && (
           <div className="space-y-6 animate-in fade-in duration-200">
+
             {/* BIENVENIDA */}
+
 
             <div className="bg-gradient-to-r from-blue-950 to-blue-900 text-white rounded-3xl p-6 shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -658,7 +660,7 @@ export const DoctorDashboard = () => {
 
                 <button
                   type="button"
-                  onClick={handleQrDemo}
+                  onClick={() => navigate('/doctor/qr-access')}
                   className="px-5 py-3 bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 font-bold rounded-2xl text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
                 >
                   <QrCode className="w-4 h-4" />
