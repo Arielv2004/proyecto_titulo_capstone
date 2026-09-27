@@ -932,68 +932,68 @@ export const PatientDashboard = () => {
             </section>
 
             {/* Tratamiento Activo de Hoy */}
-            <section className="bg-white border border-stone-200/90 rounded-3xl p-5 sm:p-6 shadow-xs space-y-3.5">
+            <section className="bg-white dark:bg-slate-900 border border-stone-200/90 dark:border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xs space-y-3.5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900 flex items-center justify-center">
                     <Pill className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm sm:text-base font-bold text-blue-950">
+                    <h3 className="text-sm sm:text-base font-bold text-blue-950 dark:text-slate-100">
                       Tratamiento Farmacológico Activo
                     </h3>
-                    <p className="text-[11px] text-stone-500">
+                    <p className="text-[11px] text-stone-500 dark:text-slate-400">
                       Medicamentos vigentes según tu última receta digitalizada
                     </p>
                   </div>
                 </div>
 
-                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full w-fit">
-                  <Clock className="w-3 h-3 text-emerald-600" /> Vigente hasta 09 Septiembre
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 px-2.5 py-1 rounded-full w-fit">
+                  <Clock className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> Vigente hasta 09 Septiembre
                 </span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                <div className="p-4 rounded-2xl bg-stone-50/80 border border-stone-200/80 space-y-1.5">
+                <div className="p-4 rounded-2xl bg-stone-50/80 dark:bg-slate-800/50 border border-stone-200/80 dark:border-slate-700 space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-blue-950 text-sm">Amoxicilina 500 mg</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 font-bold">Cada 8 hrs</span>
+                    <span className="font-extrabold text-blue-950 dark:text-slate-100 text-sm">Amoxicilina 500 mg</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 font-bold">Cada 8 hrs</span>
                   </div>
-                  <p className="text-xs text-stone-600">1 comprimido cada 8 horas por 7 días.</p>
-                  <p className="text-[11px] text-stone-400">Horarios: 08:00 · 16:00 · 00:00</p>
+                  <p className="text-xs text-stone-600 dark:text-slate-300">1 comprimido cada 8 horas por 7 días.</p>
+                  <p className="text-[11px] text-stone-400 dark:text-slate-500">Horarios: 08:00 · 16:00 · 00:00</p>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-stone-50/80 border border-stone-200/80 space-y-1.5">
+                <div className="p-4 rounded-2xl bg-stone-50/80 dark:bg-slate-800/50 border border-stone-200/80 dark:border-slate-700 space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-blue-950 text-sm">Paracetamol 500 mg</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-stone-200 text-stone-800 font-bold">Condicional</span>
+                    <span className="font-extrabold text-blue-950 dark:text-slate-100 text-sm">Paracetamol 500 mg</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-stone-200 dark:bg-slate-700 text-stone-800 dark:text-slate-200 font-bold">Condicional</span>
                   </div>
-                  <p className="text-xs text-stone-600">1 comprimido cada 8 horas en caso de fiebre o dolor.</p>
-                  <p className="text-[11px] text-stone-400">Duración: 3 días (SOS)</p>
+                  <p className="text-xs text-stone-600 dark:text-slate-300">1 comprimido cada 8 horas en caso de fiebre o dolor.</p>
+                  <p className="text-[11px] text-stone-400 dark:text-slate-500">Duración: 3 días (SOS)</p>
                 </div>
               </div>
             </section>
 
             {/* Gestión Rápida de Pases QR Activos (Punto 2) */}
-            <section className="bg-white border border-stone-200/90 rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
+            <section className="bg-white dark:bg-slate-900 border border-stone-200/90 dark:border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900 flex items-center justify-center">
                     <QrCode className="w-5 h-5" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="text-sm sm:text-base font-bold text-blue-950">
+                      <h3 className="text-sm sm:text-base font-bold text-blue-950 dark:text-slate-100">
                         Pases de Acceso Médico (Ley N° 21.668)
                       </h3>
                       {myGrants.some(g => g.status === 'ACTIVO') && (
-                        <span className="flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                        <span className="flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-900">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-pulse"></span>
                           Vigente
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-stone-500">
+                    <p className="text-[11px] text-stone-500 dark:text-slate-400">
                       Controla quién puede consultar tu ficha en tiempo real o revoca accesos de inmediato
                     </p>
                   </div>
@@ -1013,9 +1013,9 @@ export const PatientDashboard = () => {
                       fetchAuditLogs();
                       fetchMyGrants();
                     }}
-                    className="px-3 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
+                    className="px-3 py-2 bg-stone-100 dark:bg-slate-800 hover:bg-stone-200 dark:hover:bg-slate-700 text-stone-700 dark:text-slate-200 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
                   >
-                    <ShieldCheck className="w-4 h-4 text-teal-600" />
+                    <ShieldCheck className="w-4 h-4 text-teal-600 dark:text-teal-400" />
                     <span>Ver Trazabilidad</span>
                   </button>
                 </div>
@@ -1023,7 +1023,7 @@ export const PatientDashboard = () => {
 
               {/* Lista de Pases Activos Recientes */}
               {myGrants.length === 0 ? (
-                <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200/80 text-center text-xs text-stone-500">
+                <div className="p-4 bg-stone-50 dark:bg-slate-800/50 rounded-2xl border border-stone-200/80 dark:border-slate-700 text-center text-xs text-stone-500 dark:text-slate-400">
                   No tienes pases QR generados. Puedes crear uno para que tu médico escanee tu ficha en la consulta.
                 </div>
               ) : (
@@ -1031,35 +1031,33 @@ export const PatientDashboard = () => {
                   {myGrants.slice(0, 4).map((grant) => (
                     <div
                       key={grant.id}
-                      className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${
-                        grant.status === 'ACTIVO'
-                          ? 'bg-emerald-50/40 border-emerald-200 shadow-xs'
-                          : grant.status === 'REVOCADO'
-                          ? 'bg-rose-50/30 border-rose-200/60 opacity-80'
-                          : 'bg-stone-50/70 border-stone-200/80 opacity-70'
-                      }`}
+                      className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${grant.status === 'ACTIVO'
+                        ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900 shadow-xs'
+                        : grant.status === 'REVOCADO'
+                          ? 'bg-rose-50/30 dark:bg-rose-950/20 border-rose-200/60 dark:border-rose-900 opacity-80'
+                          : 'bg-stone-50/70 dark:bg-slate-800/50 border-stone-200/80 dark:border-slate-700 opacity-70'
+                        }`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <span className="font-mono font-bold text-xs text-blue-950">
+                            <span className="font-mono font-bold text-xs text-blue-950 dark:text-slate-100">
                               {grant.token}
                             </span>
                             <span
-                              className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                                grant.status === 'ACTIVO'
-                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                                  : grant.status === 'REVOCADO'
-                                  ? 'bg-rose-100 text-rose-800 border border-rose-300'
-                                  : 'bg-stone-200 text-stone-700'
-                              }`}
+                              className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider ${grant.status === 'ACTIVO'
+                                ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-900'
+                                : grant.status === 'REVOCADO'
+                                  ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-900'
+                                  : 'bg-stone-200 dark:bg-slate-700 text-stone-700 dark:text-slate-300'
+                                }`}
                             >
                               {grant.status}
                             </span>
                           </div>
-                          <p className="text-[11px] text-stone-500">
+                          <p className="text-[11px] text-stone-500 dark:text-slate-400">
                             {grant.doctorName ? (
-                              <span className="text-teal-900 font-semibold flex items-center gap-1">
+                              <span className="text-teal-900 dark:text-teal-300 font-semibold flex items-center gap-1">
                                 <Stethoscope className="w-3.5 h-3.5" />
                                 Escaneado por: {grant.doctorName} ({grant.doctorInstitution || 'Centro Médico'})
                               </span>
@@ -1121,8 +1119,8 @@ export const PatientDashboard = () => {
           <div className="space-y-6 animate-in fade-in duration-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h1 className="text-xl font-extrabold text-blue-950">Historial de Documentos Digitalizados</h1>
-                <p className="text-xs text-stone-500">
+                <h1 className="text-xl font-extrabold text-blue-950 dark:text-slate-100">Historial de Documentos Digitalizados</h1>
+                <p className="text-xs text-stone-500 dark:text-slate-400">
                   Repositorio completo de recetas, exámenes de sangre, informes y certificados con IA
                 </p>
               </div>
@@ -1137,7 +1135,7 @@ export const PatientDashboard = () => {
             </div>
 
             {/* Barra de Filtros y Buscador */}
-            <div className="bg-white border border-stone-200/90 rounded-3xl p-5 shadow-xs space-y-4">
+            <div className="bg-white dark:bg-slate-900 border border-stone-200/90 dark:border-slate-800 rounded-3xl p-5 shadow-xs space-y-4">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                 {/* Chips de Categorías */}
                 <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
@@ -1145,7 +1143,7 @@ export const PatientDashboard = () => {
                     onClick={() => setSelectedCategory('ALL')}
                     className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${selectedCategory === 'ALL'
                       ? 'bg-blue-900 text-white shadow-xs'
-                      : 'bg-stone-100 hover:bg-stone-200 text-stone-600'
+                      : 'bg-stone-100 dark:bg-slate-800 hover:bg-stone-200 dark:hover:bg-slate-700 text-stone-600 dark:text-slate-300'
                       }`}
                   >
                     <Layers className="w-3.5 h-3.5" />
@@ -1159,7 +1157,7 @@ export const PatientDashboard = () => {
                       onClick={() => setSelectedCategory(p.id)}
                       className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${selectedCategory === p.id
                         ? 'bg-blue-900 text-white shadow-xs'
-                        : 'bg-stone-100 hover:bg-stone-200 text-stone-600'
+                        : 'bg-stone-100 dark:bg-slate-800 hover:bg-stone-200 dark:hover:bg-slate-700 text-stone-600 dark:text-slate-300'
                         }`}
                     >
                       <span>{p.title}</span>
@@ -1176,7 +1174,7 @@ export const PatientDashboard = () => {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Buscar fármaco, doctor o clínica..."
-                    className="w-full pl-10 pr-8 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-blue-700 focus:bg-white transition-all"
+                    className="w-full pl-10 pr-8 py-2 bg-stone-50 dark:bg-slate-800 border border-stone-300 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-100 placeholder:text-stone-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-700 dark:focus:border-teal-500 focus:bg-white dark:focus:bg-slate-800 transition-all"
                   />
                   {searchQuery && (
                     <button
@@ -1193,14 +1191,14 @@ export const PatientDashboard = () => {
               {/* Listado de Documentos */}
               <div className="space-y-3 pt-2">
                 {loadingDocs ? (
-                  <div className="text-center py-12 bg-stone-50 rounded-2xl border border-dashed border-stone-300">
-                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-900 mx-auto mb-3" />
-                    <p className="text-sm font-bold text-stone-700">Cargando tus documentos...</p>
+                  <div className="text-center py-12 bg-stone-50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-stone-300 dark:border-slate-700">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-900 dark:border-teal-500 mx-auto mb-3" />
+                    <p className="text-sm font-bold text-stone-700 dark:text-slate-200">Cargando tus documentos...</p>
                   </div>
                 ) : docsError ? (
-                  <div className="text-center py-12 bg-rose-50 rounded-2xl border border-rose-200">
+                  <div className="text-center py-12 bg-rose-50 dark:bg-rose-950/30 rounded-2xl border border-rose-200 dark:border-rose-900">
                     <AlertCircle className="w-10 h-10 text-rose-500 mx-auto mb-2" />
-                    <p className="text-sm font-bold text-rose-900">{docsError}</p>
+                    <p className="text-sm font-bold text-rose-900 dark:text-rose-200">{docsError}</p>
                     <button
                       onClick={() => window.location.reload()}
                       className="mt-3 text-xs font-bold text-rose-700 underline"
@@ -1209,10 +1207,10 @@ export const PatientDashboard = () => {
                     </button>
                   </div>
                 ) : filteredDocuments.length === 0 ? (
-                  <div className="text-center py-12 bg-stone-50 rounded-2xl border border-dashed border-stone-300">
-                    <FileText className="w-10 h-10 text-stone-300 mx-auto mb-2" />
-                    <p className="text-sm font-bold text-stone-700">No se encontraron documentos en esta categoría</p>
-                    <p className="text-xs text-stone-400 mt-1">Prueba con otro filtro o toma una foto para digitalizar.</p>
+                  <div className="text-center py-12 bg-stone-50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-stone-300 dark:border-slate-700">
+                    <FileText className="w-10 h-10 text-stone-300 dark:text-slate-600 mx-auto mb-2" />
+                    <p className="text-sm font-bold text-stone-700 dark:text-slate-200">No se encontraron documentos en esta categoría</p>
+                    <p className="text-xs text-stone-400 dark:text-slate-500 mt-1">Prueba con otro filtro o toma una foto para digitalizar.</p>
                   </div>
                 ) : (
                   filteredDocuments.map((doc) => {
@@ -1224,64 +1222,64 @@ export const PatientDashboard = () => {
                     return (
                       <div
                         key={doc.id}
-                        className="p-4 sm:p-5 bg-stone-50/70 hover:bg-stone-100/70 border border-stone-200/80 rounded-2xl transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 group"
+                        className="p-4 sm:p-5 bg-stone-50/70 dark:bg-slate-800/50 hover:bg-stone-100/70 dark:hover:bg-slate-800 border border-stone-200/80 dark:border-slate-700 rounded-2xl transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 group"
                       >
                         <div className="flex items-start gap-3.5">
-                          <div className="w-12 h-12 rounded-2xl bg-white border border-stone-200 flex items-center justify-center shrink-0 shadow-2xs">
-                            {isReceta && <Pill className="w-6 h-6 text-emerald-700" />}
-                            {isExamen && <FlaskConical className="w-6 h-6 text-teal-700" />}
-                            {isConsulta && <Stethoscope className="w-6 h-6 text-blue-800" />}
-                            {isImagen && <ScanLine className="w-6 h-6 text-indigo-800" />}
+                          <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 border border-stone-200 dark:border-slate-700 flex items-center justify-center shrink-0 shadow-2xs">
+                            {isReceta && <Pill className="w-6 h-6 text-emerald-700 dark:text-emerald-400" />}
+                            {isExamen && <FlaskConical className="w-6 h-6 text-teal-700 dark:text-teal-400" />}
+                            {isConsulta && <Stethoscope className="w-6 h-6 text-blue-800 dark:text-blue-400" />}
+                            {isImagen && <ScanLine className="w-6 h-6 text-indigo-800 dark:text-indigo-400" />}
                           </div>
 
                           <div className="space-y-1">
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white border border-stone-200 text-stone-700">
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white dark:bg-slate-900 border border-stone-200 dark:border-slate-700 text-stone-700 dark:text-slate-300">
                                 {doc.category === 'RECETA' && 'Receta Médica'}
                                 {doc.category === 'EXAMEN' && 'Laboratorio'}
                                 {doc.category === 'CONSULTA' && 'Atención Clínica'}
                                 {doc.category === 'IMAGEN' && 'Imagenología'}
                               </span>
-                              <span className="text-[11px] text-stone-400 font-medium">
+                              <span className="text-[11px] text-stone-400 dark:text-slate-500 font-medium">
                                 {doc.date}
                               </span>
                               <span
                                 className={`text-[10px] font-mono px-1.5 py-0.2 rounded font-bold border ${doc.status === 'ERROR'
-                                  ? 'text-rose-700 bg-rose-50 border-rose-200'
+                                  ? 'text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900'
                                   : doc.status === 'CONFIRMADO' || doc.status === 'CONFIRMADA'
-                                    ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
-                                    : 'text-amber-700 bg-amber-50 border-amber-200'
+                                    ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900'
+                                    : 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900'
                                   }`}
                               >
                                 {doc.status}
                               </span>
                             </div>
 
-                            <h3 className="text-sm sm:text-base font-bold text-blue-950 group-hover:text-blue-900 transition-colors">
+                            <h3 className="text-sm sm:text-base font-bold text-blue-950 dark:text-slate-100 group-hover:text-blue-900 dark:group-hover:text-teal-300 transition-colors">
                               {doc.title}
                             </h3>
 
-                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-stone-500">
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-stone-500 dark:text-slate-400">
                               <span className="flex items-center gap-1">
-                                <Building2 className="w-3.5 h-3.5 text-stone-400" />
+                                <Building2 className="w-3.5 h-3.5 text-stone-400 dark:text-slate-500" />
                                 {doc.institution}
                               </span>
                               <span className="flex items-center gap-1">
-                                <User className="w-3.5 h-3.5 text-stone-400" />
+                                <User className="w-3.5 h-3.5 text-stone-400 dark:text-slate-500" />
                                 {doc.doctor}
                               </span>
                             </div>
 
                             <div className="pt-1.5 text-xs">
-                              <p className="text-[11px] text-stone-600 font-medium bg-white/80 p-2 rounded-xl border border-stone-200/60 inline-block">
-                                <span className="text-teal-700 font-bold">Extracción IA: </span>
+                              <p className="text-[11px] text-stone-600 dark:text-slate-300 font-medium bg-white/80 dark:bg-slate-900/60 p-2 rounded-xl border border-stone-200/60 dark:border-slate-700 inline-block">
+                                <span className="text-teal-700 dark:text-teal-400 font-bold">Extracción IA: </span>
                                 {doc.summary}
                               </p>
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0 border-t md:border-t-0 pt-3 md:pt-0 border-stone-200">
+                        <div className="flex items-center gap-2 shrink-0 border-t md:border-t-0 pt-3 md:pt-0 border-stone-200 dark:border-slate-700">
                           {doc.status !== 'ERROR' && (
                             <>
                               <button
@@ -1294,10 +1292,10 @@ export const PatientDashboard = () => {
 
                               <button
                                 onClick={() => alert(`Exportando copia legal con timbre digital Ley 21.668...`)}
-                                className="p-2.5 bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 rounded-xl transition-all cursor-pointer shadow-2xs"
+                                className="p-2.5 bg-white dark:bg-slate-900 hover:bg-stone-50 dark:hover:bg-slate-800 border border-stone-200 dark:border-slate-700 text-stone-700 dark:text-slate-300 rounded-xl transition-all cursor-pointer shadow-2xs"
                                 title="Descargar archivo"
                               >
-                                <Download className="w-4 h-4 text-stone-600" />
+                                <Download className="w-4 h-4 text-stone-600 dark:text-slate-400" />
                               </button>
                             </>
                           )}
@@ -2028,13 +2026,12 @@ export const PatientDashboard = () => {
                     {myGrants.map((grant) => (
                       <div
                         key={grant.id}
-                        className={`p-4 rounded-2xl border transition-all space-y-3 ${
-                          grant.status === 'ACTIVO'
-                            ? 'bg-emerald-50/50 border-emerald-300 shadow-xs'
-                            : grant.status === 'REVOCADO'
+                        className={`p-4 rounded-2xl border transition-all space-y-3 ${grant.status === 'ACTIVO'
+                          ? 'bg-emerald-50/50 border-emerald-300 shadow-xs'
+                          : grant.status === 'REVOCADO'
                             ? 'bg-rose-50/40 border-rose-200/80'
                             : 'bg-stone-50 border-stone-200'
-                        }`}
+                          }`}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div>
@@ -2043,13 +2040,12 @@ export const PatientDashboard = () => {
                                 {grant.token}
                               </span>
                               <span
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
-                                  grant.status === 'ACTIVO'
-                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                                    : grant.status === 'REVOCADO'
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${grant.status === 'ACTIVO'
+                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                  : grant.status === 'REVOCADO'
                                     ? 'bg-rose-100 text-rose-800 border border-rose-300'
                                     : 'bg-stone-200 text-stone-700'
-                                }`}
+                                  }`}
                               >
                                 {grant.status}
                               </span>
@@ -2151,13 +2147,12 @@ export const PatientDashboard = () => {
                             </td>
                             <td className="py-3 px-3">
                               <span
-                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider inline-block ${
-                                  grant.status === 'ACTIVO'
-                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                                    : grant.status === 'REVOCADO'
+                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider inline-block ${grant.status === 'ACTIVO'
+                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                  : grant.status === 'REVOCADO'
                                     ? 'bg-rose-100 text-rose-800 border border-rose-300'
                                     : 'bg-stone-200 text-stone-700'
-                                }`}
+                                  }`}
                               >
                                 {grant.status}
                               </span>
@@ -2228,15 +2223,14 @@ export const PatientDashboard = () => {
                       <div key={log.id} className="relative group">
                         {/* Nodo en la línea */}
                         <div
-                          className={`absolute -left-6 top-1.5 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center shadow-xs ${
-                            isMedicalAccess
-                              ? 'bg-emerald-600 text-white'
-                              : isRevoke
+                          className={`absolute -left-6 top-1.5 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center shadow-xs ${isMedicalAccess
+                            ? 'bg-emerald-600 text-white'
+                            : isRevoke
                               ? 'bg-rose-600 text-white'
                               : isConsent
-                              ? 'bg-amber-500 text-white'
-                              : 'bg-blue-900 text-white'
-                          }`}
+                                ? 'bg-amber-500 text-white'
+                                : 'bg-blue-900 text-white'
+                            }`}
                         >
                           <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
                         </div>
@@ -2249,15 +2243,14 @@ export const PatientDashboard = () => {
                                 {log.title}
                               </h3>
                               <span
-                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                                  isMedicalAccess
-                                    ? 'bg-emerald-100 text-emerald-900'
-                                    : isRevoke
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${isMedicalAccess
+                                  ? 'bg-emerald-100 text-emerald-900'
+                                  : isRevoke
                                     ? 'bg-rose-100 text-rose-900'
                                     : isConsent
-                                    ? 'bg-amber-100 text-amber-900'
-                                    : 'bg-stone-200 text-stone-700'
-                                }`}
+                                      ? 'bg-amber-100 text-amber-900'
+                                      : 'bg-stone-200 text-stone-700'
+                                  }`}
                               >
                                 {log.category.replace(/_/g, ' ')}
                               </span>
@@ -2550,7 +2543,7 @@ export const PatientDashboard = () => {
                   </p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setShowQrModal(false)}
                 className="p-1.5 text-stone-400 hover:text-stone-600 dark:hover:text-slate-200 rounded-xl hover:bg-stone-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
@@ -2595,7 +2588,7 @@ export const PatientDashboard = () => {
                 {/* Código QR SVG Centrado */}
                 <div className="p-5 bg-stone-50 dark:bg-slate-800/60 rounded-2xl border border-stone-200 dark:border-slate-700 flex flex-col items-center justify-center space-y-3">
                   <div className="bg-white p-3.5 rounded-2xl shadow-md border border-stone-200">
-                    <QRCodeSVG 
+                    <QRCodeSVG
                       id="patient-qr-svg"
                       value={`${window.location.origin}/doctor/qr-access?token=${encodeURIComponent(activeGrant.token)}`}
                       size={180}
@@ -2603,7 +2596,7 @@ export const PatientDashboard = () => {
                       includeMargin={false}
                     />
                   </div>
-                  
+
                   <div className="text-center">
                     <span className="text-[10px] font-mono uppercase tracking-widest text-stone-400 dark:text-slate-400 block mb-0.5">
                       CÓDIGO DE ACCESO MÉDICO
@@ -2702,11 +2695,10 @@ export const PatientDashboard = () => {
                         key={opt.hours}
                         type="button"
                         onClick={() => setQrDuration(opt.hours)}
-                        className={`p-3 rounded-2xl border text-center transition-all cursor-pointer flex flex-col items-center justify-between ${
-                          qrDuration === opt.hours
-                            ? 'bg-blue-900 text-white border-blue-900 shadow-md ring-2 ring-teal-400/40'
-                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-stone-200 dark:border-slate-700 hover:border-blue-300'
-                        }`}
+                        className={`p-3 rounded-2xl border text-center transition-all cursor-pointer flex flex-col items-center justify-between ${qrDuration === opt.hours
+                          ? 'bg-blue-900 text-white border-blue-900 shadow-md ring-2 ring-teal-400/40'
+                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-stone-200 dark:border-slate-700 hover:border-blue-300'
+                          }`}
                       >
                         <span className="text-xs font-extrabold">{opt.label}</span>
                         <span className={`text-[10px] mt-1 ${qrDuration === opt.hours ? 'text-teal-200' : 'text-stone-400'}`}>
