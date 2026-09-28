@@ -123,7 +123,6 @@ export const PatientDashboard = () => {
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDocument, setSelectedDocument] = useState(null);
-  const [showUploadModal, setShowUploadModal] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
 
   // Estado para gestión dinámica de QR de Acceso Médico (Ley N° 21.668)
@@ -222,9 +221,6 @@ export const PatientDashboard = () => {
   const [documents, setDocuments] = useState([]);
   const [loadingDocs, setLoadingDocs] = useState(true);
   const [docsError, setDocsError] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadError, setUploadError] = useState(null);
 
   // Cargar documentos del backend al montar el componente
   useEffect(() => {
@@ -251,30 +247,239 @@ export const PatientDashboard = () => {
     return () => { mounted = false; };
   }, []);
 
-  // Manejar la subida de un archivo
-  const handleUploadFile = async (file) => {
-    if (!file) return;
-    setIsUploading(true);
-    setUploadProgress(0);
+  // Estados para Modal de Subida y Pre-confirmación con IA
+  // null (cerrado) | 'idle' | 'analyzing' | 'preview' | 'confirmed'
+  const [uploadModalState, setUploadModalState] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState(null);
+  const [tempDocument, setTempDocument] = useState(null);
+  const [editedData, setEditedData] = useState({
+    document_type: 'RECETA',
+    diagnostico: '',
+    medications: [],
+  });
+  const [isSubmittingConfirm, setIsSubmittingConfirm] = useState(false);
+  const [isSubmittingDiscard, setIsSubmittingDiscard] = useState(false);
+  const [confirmedStatus, setConfirmedStatus] = useState('CONFIRMADO');
+
+  const handleOpenUploadModal = () => {
     setUploadError(null);
-    try {
-      const res = await documentsApi.upload(file, (pct) => setUploadProgress(pct));
-      const newDoc = mapDocumentFromApi({
-        ...res.data.document,
-        structured: res.data.structured,
-      });
-      setDocuments((prev) => [newDoc, ...prev]);
-      setShowUploadModal(false);
-      setSelectedDocument(newDoc);
-    } catch (err) {
-      setUploadError(
-        err.response?.data?.message || 'Error al procesar el documento'
-      );
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
+    setUploadProgress(0);
+    setTempDocument(null);
+    setEditedData({
+      document_type: 'RECETA',
+      diagnostico: '',
+      medications: [{ name: '', dosage: '', frequency: '', duration: '' }],
+    });
+    setUploadModalState('idle');
+  };
+
+  const handleCloseUploadModal = () => {
+    if (uploadModalState === 'preview' && tempDocument?.tempId) {
+      handleDiscardDocument(false);
+    } else {
+      if (tempDocument?.filePreviewUrl) {
+        URL.revokeObjectURL(tempDocument.filePreviewUrl);
+      }
+      setTempDocument(null);
+      setUploadModalState(null);
     }
   };
+
+  const handleStartAnalyze = async (file) => {
+    if (!file) return;
+    setUploadError(null);
+    setUploadProgress(0);
+    setUploadModalState('analyzing');
+
+    const previewUrl = file.type && file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
+
+    try {
+      const res = await documentsApi.analyze(file, (pct) => setUploadProgress(pct));
+      const { tempId, document: doc, analysis, isUnreadable } = res.data;
+
+      const isMedicalDoc = analysis?.is_medical_document !== false;
+
+      const initialMeds = isMedicalDoc
+        ? (analysis?.medications || []).map((m) => ({
+            name: m.name || '',
+            dosage: m.dosage || '',
+            frequency: m.frequency || '',
+            duration: m.duration || '',
+          }))
+        : [];
+
+      const initialDiag = isMedicalDoc
+        ? ((analysis?.diagnoses && analysis.diagnoses.length > 0 ? analysis.diagnoses.join(', ') : '') ||
+          analysis?.summary ||
+          '')
+        : '';
+
+      const unreadableFlag =
+        isMedicalDoc && (Boolean(isUnreadable) || (initialMeds.length === 0 && !initialDiag.trim()));
+
+      setTempDocument({
+        tempId,
+        file, // Guardado en el estado
+        filePreviewUrl: previewUrl,
+        document: doc,
+        analysis,
+        isUnreadable: unreadableFlag,
+      });
+
+      setEditedData({
+        document_type: doc?.document_type || (isMedicalDoc ? 'RECETA' : 'OTRO'),
+        diagnostico: initialDiag,
+        medications: isMedicalDoc
+          ? (initialMeds.length > 0 ? initialMeds : [{ name: '', dosage: '', frequency: '', duration: '' }])
+          : [],
+      });
+
+      setUploadModalState('preview');
+    } catch (err) {
+      setUploadError(
+        err.response?.data?.message || 'No pudimos analizar el documento. Intenta nuevamente.'
+      );
+      setUploadModalState('idle');
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    }
+  };
+
+  const handleConfirmDocument = async () => {
+    if (!tempDocument?.tempId) return;
+    setIsSubmittingConfirm(true);
+    setUploadError(null);
+
+    try {
+      const payload = {
+        document_type: editedData.document_type || 'RECETA',
+        is_medical_document: true,
+        diagnostico: editedData.diagnostico || '',
+        medications: editedData.medications
+          .filter((m) => m.name && m.name.trim().length > 0)
+          .map((m) => ({
+            name: m.name.trim(),
+            dosage: m.dosage ? m.dosage.trim() : null,
+            frequency: m.frequency ? m.frequency.trim() : null,
+            duration: m.duration ? m.duration.trim() : null,
+          })),
+      };
+
+      const res = await documentsApi.confirm(tempDocument.tempId, payload, true);
+      const returnedDoc = res.data?.document || { id: tempDocument.tempId, ...payload, status: 'CONFIRMADO' };
+      const newDoc = mapDocumentFromApi({
+        ...returnedDoc,
+        structured: res.data?.structured,
+      });
+
+      setDocuments((prev) => [newDoc, ...prev]);
+      setSelectedDocument(newDoc);
+      setConfirmedStatus(returnedDoc.status || 'CONFIRMADO');
+      setUploadModalState('confirmed');
+
+      setTimeout(() => {
+        if (tempDocument?.filePreviewUrl) {
+          URL.revokeObjectURL(tempDocument.filePreviewUrl);
+        }
+        setTempDocument(null);
+        setUploadModalState(null);
+      }, 1800);
+    } catch (err) {
+      setUploadError(err.response?.data?.message || 'Error al guardar el documento.');
+    } finally {
+      setIsSubmittingConfirm(false);
+    }
+  };
+
+  const handleSaveAnyway = async ({ isNonMedical = false } = {}) => {
+    if (!tempDocument?.tempId) return;
+    setIsSubmittingConfirm(true);
+    setUploadError(null);
+
+    try {
+      const isMedical = !isNonMedical && tempDocument?.analysis?.is_medical_document !== false;
+      const payload = {
+        document_type: isMedical ? (editedData.document_type || 'OTRO') : 'OTRO',
+        is_medical_document: isMedical,
+        diagnostico: '',
+        medications: [],
+      };
+
+      const res = await documentsApi.confirm(tempDocument.tempId, payload, false);
+      const returnedDoc = res.data?.document || { id: tempDocument.tempId, ...payload, status: 'PENDIENTE_REVISION' };
+      const newDoc = mapDocumentFromApi({
+        ...returnedDoc,
+        structured: res.data?.structured,
+      });
+
+      setDocuments((prev) => [newDoc, ...prev]);
+      setSelectedDocument(newDoc);
+      setConfirmedStatus(returnedDoc.status || 'PENDIENTE_REVISION');
+      setUploadModalState('confirmed');
+
+      setTimeout(() => {
+        if (tempDocument?.filePreviewUrl) {
+          URL.revokeObjectURL(tempDocument.filePreviewUrl);
+        }
+        setTempDocument(null);
+        setUploadModalState(null);
+      }, 1800);
+    } catch (err) {
+      setUploadError(err.response?.data?.message || 'Error al guardar el documento.');
+    } finally {
+      setIsSubmittingConfirm(false);
+    }
+  };
+
+  const handleDiscardDocument = async (retry = false) => {
+    if (tempDocument?.tempId) {
+      setIsSubmittingDiscard(true);
+      try {
+        await documentsApi.discard(tempDocument.tempId);
+      } catch (err) {
+        console.warn('Error al descartar documento temporal:', err);
+      } finally {
+        setIsSubmittingDiscard(false);
+      }
+    }
+
+    if (tempDocument?.filePreviewUrl) {
+      URL.revokeObjectURL(tempDocument.filePreviewUrl);
+    }
+    setTempDocument(null);
+    setUploadError(null);
+
+    if (retry) {
+      setUploadModalState('idle');
+    } else {
+      setUploadModalState(null);
+    }
+  };
+
+  const handleAddMedicationRow = () => {
+    setEditedData((prev) => ({
+      ...prev,
+      medications: [...prev.medications, { name: '', dosage: '', frequency: '', duration: '' }],
+    }));
+  };
+
+  const handleUpdateMedication = (index, field, value) => {
+    setEditedData((prev) => {
+      const updated = [...prev.medications];
+      updated[index] = { ...updated[index], [field]: value };
+      return { ...prev, medications: updated };
+    });
+  };
+
+  const handleRemoveMedicationRow = (index) => {
+    setEditedData((prev) => ({
+      ...prev,
+      medications: prev.medications.filter((_, i) => i !== index),
+    }));
+  };
+
+  // Compatibilidad hacia atrás
+  const handleUploadFile = handleStartAnalyze;
   // Manejar la eliminación de un documento con error
   const handleDeleteDocument = async (doc) => {
     const confirm = window.confirm(
@@ -292,53 +497,139 @@ export const PatientDashboard = () => {
       alert(err.response?.data?.message || 'Error al eliminar el documento');
     }
   };
-  // Pilares clínicos (categorías del dashboard)
-  const clinicalPillars = [
-    {
-      id: 'RECETA',
-      title: 'Recetas Médicas',
-      subtitle: 'Tratamientos y medicamentos',
-      icon: Pill,
-      count: documents.filter(d => d.category === 'RECETA').length,
-      badgeText: 'Vigentes',
-      border: 'border-emerald-200/80',
-      iconColor: 'text-emerald-700',
-      iconBg: 'bg-emerald-100/80'
-    },
-    {
-      id: 'EXAMEN',
-      title: 'Exámenes de Lab',
-      subtitle: 'Sangre, orina y perfiles',
-      icon: FlaskConical,
-      count: documents.filter(d => d.category === 'EXAMEN').length,
-      badgeText: 'Resultados',
-      border: 'border-teal-200/80',
-      iconColor: 'text-teal-700',
-      iconBg: 'bg-teal-100/80'
-    },
-    {
-      id: 'CONSULTA',
-      title: 'Consultas Médicas',
-      subtitle: 'Atenciones y diagnósticos',
-      icon: Stethoscope,
-      count: documents.filter(d => d.category === 'CONSULTA').length,
-      badgeText: 'Historial',
-      border: 'border-blue-200/80',
-      iconColor: 'text-blue-800',
-      iconBg: 'bg-blue-100/80'
-    },
-    {
-      id: 'IMAGEN',
-      title: 'Informes & Imágenes',
-      subtitle: 'Radiografías y ecografías',
-      icon: ScanLine,
-      count: documents.filter(d => d.category === 'IMAGEN').length,
-      badgeText: 'Estudios',
-      border: 'border-indigo-200/80',
-      iconColor: 'text-indigo-800',
-      iconBg: 'bg-indigo-100/80'
-    }
-  ];
+  // Pilares clínicos (categorías del dashboard con conteos y badges dinámicos)
+  const clinicalPillars = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const recetaDocs = documents.filter((d) => d.category === 'RECETA');
+    const activeRecetas = recetaDocs.filter((d) => {
+      const isStatusValid =
+        d.status === 'CONFIRMADA' ||
+        d.status === 'CONFIRMADO' ||
+        d.status === 'PENDIENTE' ||
+        d.status === 'PENDIENTE_REVISION';
+      const rawDate = d.extractedData?.validUntilRaw || d.validUntilRaw;
+      if (!isStatusValid || !rawDate) return false;
+
+      const validUntil = new Date(rawDate);
+      validUntil.setHours(23, 59, 59, 999);
+      return validUntil >= today;
+    });
+
+    const examenCount = documents.filter((d) => d.category === 'EXAMEN').length;
+    const consultaCount = documents.filter((d) => d.category === 'CONSULTA').length;
+    const imagenCount = documents.filter((d) => d.category === 'IMAGEN').length;
+
+    const recetaBadge =
+      recetaDocs.length === 0
+        ? 'Sin registros'
+        : activeRecetas.length === 0
+          ? 'Sin vigentes'
+          : activeRecetas.length === 1
+            ? '1 vigente'
+            : `${activeRecetas.length} vigentes`;
+
+    const examenBadge =
+      examenCount === 0 ? 'Sin registros' : `${examenCount} totales`;
+
+    const consultaBadge =
+      consultaCount === 0
+        ? 'Sin registros'
+        : `${consultaCount} ${consultaCount === 1 ? 'atención' : 'atenciones'}`;
+
+    const imagenBadge =
+      imagenCount === 0
+        ? 'Sin registros'
+        : `${imagenCount} ${imagenCount === 1 ? 'estudio' : 'estudios'}`;
+
+    return [
+      {
+        id: 'RECETA',
+        title: 'Recetas Médicas',
+        subtitle: 'Tratamientos y medicamentos',
+        icon: Pill,
+        count: recetaDocs.length,
+        badgeText: recetaBadge,
+        border: 'border-emerald-200/80 dark:border-emerald-900',
+        iconColor: 'text-emerald-700 dark:text-emerald-400',
+        iconBg: 'bg-emerald-100/80 dark:bg-emerald-950/40',
+      },
+      {
+        id: 'EXAMEN',
+        title: 'Exámenes de Lab',
+        subtitle: 'Sangre, orina y perfiles',
+        icon: FlaskConical,
+        count: examenCount,
+        badgeText: examenBadge,
+        border: 'border-teal-200/80 dark:border-teal-900',
+        iconColor: 'text-teal-700 dark:text-teal-400',
+        iconBg: 'bg-teal-100/80 dark:bg-teal-950/40',
+      },
+      {
+        id: 'CONSULTA',
+        title: 'Consultas Médicas',
+        subtitle: 'Atenciones y diagnósticos',
+        icon: Stethoscope,
+        count: consultaCount,
+        badgeText: consultaBadge,
+        border: 'border-blue-200/80 dark:border-blue-900',
+        iconColor: 'text-blue-800 dark:text-blue-400',
+        iconBg: 'bg-blue-100/80 dark:bg-blue-950/40',
+      },
+      {
+        id: 'IMAGEN',
+        title: 'Informes & Imágenes',
+        subtitle: 'Radiografías y ecografías',
+        icon: ScanLine,
+        count: imagenCount,
+        badgeText: imagenBadge,
+        border: 'border-indigo-200/80 dark:border-indigo-900',
+        iconColor: 'text-indigo-800 dark:text-indigo-400',
+        iconBg: 'bg-indigo-100/80 dark:bg-indigo-950/40',
+      },
+    ];
+  }, [documents]);
+
+  // Tratamientos farmacológicos activos (recetas vigentes a la fecha de hoy)
+  const activeTreatments = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return documents
+      .filter((doc) => {
+        const isReceta = doc.category === 'RECETA';
+        const isStatusValid =
+          doc.status === 'CONFIRMADA' ||
+          doc.status === 'CONFIRMADO' ||
+          doc.status === 'PENDIENTE' ||
+          doc.status === 'PENDIENTE_REVISION';
+        const rawDate = doc.extractedData?.validUntilRaw || doc.validUntilRaw;
+
+        if (!isReceta || !isStatusValid || !rawDate) return false;
+
+        const validUntil = new Date(rawDate);
+        validUntil.setHours(23, 59, 59, 999);
+        return validUntil >= today;
+      })
+      .flatMap((doc) =>
+        (doc.extractedData?.medicamentos || []).map((med) => ({
+          ...med,
+          documentId: doc.id,
+          validUntil: doc.extractedData?.vigenciaHasta || doc.validUntil,
+          validUntilRaw: doc.extractedData?.validUntilRaw || doc.validUntilRaw,
+        }))
+      );
+  }, [documents]);
+
+  // Texto de vigencia más próxima para el badge de tratamientos activos
+  const closestExpiryText = useMemo(() => {
+    if (!activeTreatments.length) return null;
+    const sorted = [...activeTreatments].sort(
+      (a, b) => new Date(a.validUntilRaw) - new Date(b.validUntilRaw)
+    );
+    return sorted[0].validUntil ? `Vigente hasta ${sorted[0].validUntil}` : 'Tratamiento vigente';
+  }, [activeTreatments]);
 
   // Documentos filtrados
   const filteredDocuments = useMemo(() => {
@@ -858,7 +1149,7 @@ export const PatientDashboard = () => {
 
                 <div className="flex flex-col sm:flex-row items-stretch gap-2.5 shrink-0">
                   <button
-                    onClick={() => setShowUploadModal(true)}
+                    onClick={handleOpenUploadModal}
                     className="px-5 py-3.5 bg-gradient-to-r from-teal-400 to-emerald-400 hover:from-teal-300 hover:to-emerald-300 active:scale-95 text-blue-950 font-black rounded-2xl transition-all text-xs flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20 cursor-pointer"
                   >
                     <Camera className="w-4 h-4 text-blue-950" />
@@ -880,10 +1171,10 @@ export const PatientDashboard = () => {
             <section className="space-y-3">
               <div className="flex items-center justify-between px-1">
                 <div>
-                  <h2 className="text-sm sm:text-base font-extrabold text-blue-950 tracking-tight">
+                  <h2 className="text-sm sm:text-base font-extrabold text-blue-950 dark:text-slate-100 tracking-tight">
                     Categorías de tu Ficha Clínica
                   </h2>
-                  <p className="text-[11px] text-stone-500">
+                  <p className="text-[11px] text-stone-500 dark:text-slate-400">
                     Toca cualquier sección para ir directamente a sus documentos
                   </p>
                 </div>
@@ -896,7 +1187,7 @@ export const PatientDashboard = () => {
                     <div
                       key={pillar.id}
                       onClick={() => handlePillarClick(pillar.id)}
-                      className="group p-5 bg-white rounded-3xl border border-stone-200/90 hover:border-blue-900 transition-all cursor-pointer shadow-xs hover:shadow-md flex flex-col justify-between"
+                      className="group p-5 bg-white dark:bg-slate-900 rounded-3xl border border-stone-200/90 dark:border-slate-800 hover:border-blue-900 dark:hover:border-teal-500 transition-all cursor-pointer shadow-xs hover:shadow-md flex flex-col justify-between"
                     >
                       <div>
                         <div className="flex items-center justify-between mb-3">
@@ -908,16 +1199,16 @@ export const PatientDashboard = () => {
                           </span>
                         </div>
 
-                        <h3 className="text-base font-bold text-blue-950 group-hover:text-blue-900 transition-colors">
+                        <h3 className="text-base font-bold text-blue-950 dark:text-slate-100 group-hover:text-blue-900 dark:group-hover:text-teal-400 transition-colors">
                           {pillar.title}
                         </h3>
-                        <p className="text-xs text-stone-500 mt-0.5">
+                        <p className="text-xs text-stone-500 dark:text-slate-400 mt-0.5">
                           {pillar.subtitle}
                         </p>
                       </div>
 
-                      <div className="mt-5 pt-3.5 border-t border-stone-100 flex items-center justify-between text-xs">
-                        <span className="font-bold text-stone-700">
+                      <div className="mt-5 pt-3.5 border-t border-stone-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                        <span className="font-bold text-stone-700 dark:text-slate-300">
                           {pillar.count} {pillar.count === 1 ? 'registro' : 'registros'}
                         </span>
                         <span className={`flex items-center gap-1 font-bold text-[11px] group-hover:translate-x-1 transition-transform ${pillar.iconColor}`}>
@@ -943,35 +1234,106 @@ export const PatientDashboard = () => {
                       Tratamiento Farmacológico Activo
                     </h3>
                     <p className="text-[11px] text-stone-500 dark:text-slate-400">
-                      Medicamentos vigentes según tu última receta digitalizada
+                      Medicamentos vigentes según tus recetas digitalizadas
                     </p>
                   </div>
                 </div>
 
-                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 px-2.5 py-1 rounded-full w-fit">
-                  <Clock className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> Vigente hasta 09 Septiembre
-                </span>
+                {activeTreatments.length > 0 ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 px-2.5 py-1 rounded-full w-fit">
+                    <Clock className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> {closestExpiryText}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-stone-500 dark:text-slate-400 bg-stone-100 dark:bg-slate-800 border border-stone-200 dark:border-slate-700 px-2.5 py-1 rounded-full w-fit">
+                    <Clock className="w-3 h-3 text-stone-400 dark:text-slate-500" /> Sin recetas vigentes
+                  </span>
+                )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                <div className="p-4 rounded-2xl bg-stone-50/80 dark:bg-slate-800/50 border border-stone-200/80 dark:border-slate-700 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-blue-950 dark:text-slate-100 text-sm">Amoxicilina 500 mg</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 font-bold">Cada 8 hrs</span>
-                  </div>
-                  <p className="text-xs text-stone-600 dark:text-slate-300">1 comprimido cada 8 horas por 7 días.</p>
-                  <p className="text-[11px] text-stone-400 dark:text-slate-500">Horarios: 08:00 · 16:00 · 00:00</p>
-                </div>
+              {activeTreatments.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                  {activeTreatments.map((med, idx) => {
+                    const medName = med.nombre || med.name || 'Medicamento';
+                    const medDosage =
+                      med.dosis && med.dosis !== '—' && med.dosis !== '-'
+                        ? ` ${med.dosis}`
+                        : med.dosage && med.dosage !== '—' && med.dosage !== '-'
+                          ? ` ${med.dosage}`
+                          : '';
+                    const title = `${medName}${medDosage}`;
+                    const badge =
+                      med.posologia && med.posologia !== '—'
+                        ? med.posologia
+                        : med.frequency && med.frequency !== '—'
+                          ? med.frequency
+                          : 'Según indicación';
+                    const instruction =
+                      med.horario && med.horario !== '—'
+                        ? med.horario
+                        : med.instructions && med.instructions !== '—'
+                          ? med.instructions
+                          : med.indicaciones && med.indicaciones !== '—'
+                            ? med.indicaciones
+                            : 'Tomar según prescripción médica.';
+                    const duration =
+                      med.duracion && med.duracion !== '—'
+                        ? `Duración: ${med.duracion}`
+                        : med.duration && med.duration !== '—'
+                          ? `Duración: ${med.duration}`
+                          : null;
 
-                <div className="p-4 rounded-2xl bg-stone-50/80 dark:bg-slate-800/50 border border-stone-200/80 dark:border-slate-700 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-blue-950 dark:text-slate-100 text-sm">Paracetamol 500 mg</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-stone-200 dark:bg-slate-700 text-stone-800 dark:text-slate-200 font-bold">Condicional</span>
-                  </div>
-                  <p className="text-xs text-stone-600 dark:text-slate-300">1 comprimido cada 8 horas en caso de fiebre o dolor.</p>
-                  <p className="text-[11px] text-stone-400 dark:text-slate-500">Duración: 3 días (SOS)</p>
+                    return (
+                      <div
+                        key={`${med.documentId || 'med'}-${idx}`}
+                        className="p-4 rounded-2xl bg-stone-50/80 dark:bg-slate-800/50 border border-stone-200/80 dark:border-slate-700 space-y-1.5"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-extrabold text-blue-950 dark:text-slate-100 text-sm truncate">
+                            {title}
+                          </span>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 font-bold shrink-0">
+                            {badge}
+                          </span>
+                        </div>
+                        <p className="text-xs text-stone-600 dark:text-slate-300">
+                          {instruction}
+                        </p>
+                        {duration && (
+                          <p className="text-[11px] text-stone-400 dark:text-slate-500">
+                            {duration}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-              </div>
+              ) : (
+                <div className="py-8 px-4 text-center flex flex-col items-center justify-center space-y-3">
+                  <div className="w-16 h-16 rounded-full bg-stone-100 dark:bg-slate-800 flex items-center justify-center">
+                    <Pill className="w-12 h-12 text-stone-300 dark:text-slate-600" />
+                  </div>
+                  <div className="max-w-sm space-y-1">
+                    <h4 className="text-sm font-bold text-blue-950 dark:text-slate-200">
+                      Sin tratamientos activos
+                    </h4>
+                    <p className="text-xs text-stone-500 dark:text-slate-400">
+                      Cuando tu médico te recete medicamentos vigentes, aparecerán acá.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCategory('RECETA');
+                      setCurrentTab('records');
+                    }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-stone-100 dark:bg-slate-800 hover:bg-stone-200 dark:hover:bg-slate-700 text-blue-950 dark:text-slate-200 transition-colors cursor-pointer mt-1"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-stone-500 dark:text-slate-400" />
+                    <span>Ver historial de recetas</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
             </section>
 
             {/* Gestión Rápida de Pases QR Activos (Punto 2) */}
@@ -1126,7 +1488,7 @@ export const PatientDashboard = () => {
               </div>
 
               <button
-                onClick={() => setShowUploadModal(true)}
+                onClick={handleOpenUploadModal}
                 className="px-4 py-2.5 bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 shadow-xs cursor-pointer w-fit"
               >
                 <Camera className="w-4 h-4 text-teal-300" />
@@ -1253,6 +1615,23 @@ export const PatientDashboard = () => {
                               >
                                 {doc.status}
                               </span>
+                              {isReceta && doc.extractedData?.validUntilRaw && (
+                                (() => {
+                                  const isExpired = new Date(String(doc.extractedData.validUntilRaw).slice(0, 10) + 'T23:59:59') < new Date();
+                                  return (
+                                    <span
+                                      className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full border ${
+                                        !isExpired
+                                          ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800'
+                                          : 'text-stone-500 dark:text-slate-400 bg-stone-100 dark:bg-slate-800 border-stone-200 dark:border-slate-700'
+                                      }`}
+                                      title={doc.extractedData?.vigenciaHasta ? `Vigencia: ${doc.extractedData.vigenciaHasta}` : undefined}
+                                    >
+                                      {!isExpired ? '● Receta Activa' : '○ Vencida'}
+                                    </span>
+                                  );
+                                })()
+                              )}
                             </div>
 
                             <h3 className="text-sm sm:text-base font-bold text-blue-950 dark:text-slate-100 group-hover:text-blue-900 dark:group-hover:text-teal-300 transition-colors">
@@ -2335,9 +2714,18 @@ export const PatientDashboard = () => {
                       </div>
                     ))}
                   </div>
-                  <div className="p-3 bg-stone-50 rounded-xl border border-stone-200">
-                    <p className="text-stone-700"><strong>Indicaciones Médicas:</strong> {selectedDocument.extractedData.indicaciones}</p>
-                    <p className="text-emerald-700 font-bold mt-1">Vigencia hasta: {selectedDocument.extractedData.vigenciaHasta}</p>
+                  <div className="p-3 bg-stone-50 dark:bg-slate-800/60 rounded-xl border border-stone-200 dark:border-slate-700 space-y-1">
+                    <p className="text-stone-700 dark:text-slate-300">
+                      <strong>Indicaciones Médicas:</strong> {selectedDocument.extractedData.indicaciones || 'Sin indicaciones adicionales'}
+                    </p>
+                    {selectedDocument.extractedData.fechaEmision && (
+                      <p className="text-stone-500 dark:text-slate-400 text-xs">
+                        <strong>Emitida el:</strong> {selectedDocument.extractedData.fechaEmision}
+                      </p>
+                    )}
+                    <p className={`text-xs ${selectedDocument.extractedData.vigenciaHasta ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-stone-400 dark:text-slate-500'}`}>
+                      <strong>Vigencia hasta:</strong> {selectedDocument.extractedData.vigenciaHasta || 'no especificada'}
+                    </p>
                   </div>
                 </div>
               )}
@@ -2429,95 +2817,448 @@ export const PatientDashboard = () => {
       {/* ========================================================================= */}
       {/* MODAL DE SUBIDA / FOTO CON IA */}
       {/* ========================================================================= */}
-      {showUploadModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-white border border-stone-200 rounded-3xl p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-stone-200">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-teal-50 text-teal-700 rounded-xl">
-                  <Camera className="w-5 h-5" />
+      {uploadModalState !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-stone-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4 max-h-[92vh] flex flex-col">
+            
+            {/* Header del Modal */}
+            <div className="flex items-center justify-between pb-3 border-b border-stone-100 dark:border-slate-800 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 rounded-2xl">
+                  {uploadModalState === 'analyzing' ? (
+                    <Sparkles className="w-5 h-5 animate-spin" />
+                  ) : uploadModalState === 'confirmed' ? (
+                    confirmedStatus === 'CONFIRMADO' ? (
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                    ) : (
+                      <CheckCircle2 className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                    )
+                  ) : uploadModalState === 'preview' && (tempDocument?.analysis?.is_medical_document === false || tempDocument?.isUnreadable) ? (
+                    <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                  ) : (
+                    <Camera className="w-5 h-5" />
+                  )}
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-blue-950">Digitalizar con IA</h3>
-                  <p className="text-xs text-stone-500">Escaneo de recetas, exámenes y consultas</p>
+                  <h3 className="text-base font-extrabold text-blue-950 dark:text-slate-100">
+                    {uploadModalState === 'idle' && 'Digitalizar Documento Médico'}
+                    {uploadModalState === 'analyzing' && 'Analizando con Inteligencia Artificial'}
+                    {uploadModalState === 'preview' && (
+                      tempDocument?.analysis?.is_medical_document === false
+                        ? 'Documento no reconocido como médico'
+                        : tempDocument?.isUnreadable
+                          ? 'Revisión del Documento'
+                          : 'Revisar y Confirmar'
+                    )}
+                    {uploadModalState === 'confirmed' && (
+                      confirmedStatus === 'CONFIRMADO' ? '¡Guardado Exitoso!' : '¡Guardado para Revisión!'
+                    )}
+                  </h3>
+                  <p className="text-xs text-stone-500 dark:text-slate-400">
+                    {uploadModalState === 'idle' && 'La IA leerá tu receta antes de guardarla en tu historial'}
+                    {uploadModalState === 'analyzing' && 'Extrayendo medicamentos, dosis y diagnóstico...'}
+                    {uploadModalState === 'preview' && (
+                      tempDocument?.analysis?.is_medical_document === false
+                        ? 'La imagen no contiene datos clínicos ni recetas médicas'
+                        : tempDocument?.isUnreadable
+                          ? 'No pudimos leer con certeza la imagen'
+                          : 'Tú tienes el control: revisa o corrige los datos'
+                    )}
+                    {uploadModalState === 'confirmed' && (
+                      confirmedStatus === 'CONFIRMADO'
+                        ? 'Tu receta ya forma parte de tu ficha clínica activa'
+                        : 'El documento quedó en tu historial pendiente de revisión'
+                    )}
+                  </p>
                 </div>
               </div>
               <button
-                onClick={() => setShowUploadModal(false)}
-                className="p-1.5 text-stone-400 hover:text-stone-600 rounded-xl hover:bg-stone-100 cursor-pointer"
+                type="button"
+                onClick={handleCloseUploadModal}
+                disabled={isSubmittingConfirm || isSubmittingDiscard || uploadModalState === 'analyzing'}
+                className="p-1.5 text-stone-400 hover:text-stone-600 dark:hover:text-slate-200 rounded-xl hover:bg-stone-100 dark:hover:bg-slate-800 cursor-pointer disabled:opacity-40 transition-colors"
+                title="Cerrar"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-3 text-xs">
-              <label className="block p-6 border-2 border-dashed border-teal-400/80 bg-teal-50/40 hover:bg-teal-50/80 rounded-2xl text-center cursor-pointer transition-all">
-                <UploadCloud className="w-10 h-10 text-teal-600 mx-auto mb-2" />
-                <span className="font-bold text-blue-950 block">Toma una foto a tu papel médico</span>
-                <span className="text-[11px] text-stone-500 block mt-0.5">Soporta recetas manuscritas, exámenes de laboratorio y PDF</span>
-                <input
-                  type="file"
-                  accept="image/*,application/pdf"
-                  capture="environment"
-                  className="hidden"
-                  disabled={isUploading}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleUploadFile(file);
-                    e.target.value = '';
-                  }}
-                />
-              </label>
+            {/* Contenido según Estado */}
+            <div className="flex-1 overflow-y-auto pr-1 space-y-4 text-xs">
+              
+              {/* ESTADO 1: IDLE (Selector de imagen) */}
+              {uploadModalState === 'idle' && (
+                <div className="space-y-4">
+                  <label className="block p-7 border-2 border-dashed border-teal-400/80 dark:border-teal-500/50 bg-teal-50/40 dark:bg-slate-800/40 hover:bg-teal-50/80 dark:hover:bg-slate-800/80 rounded-3xl text-center cursor-pointer transition-all">
+                    <UploadCloud className="w-11 h-11 text-teal-600 dark:text-teal-400 mx-auto mb-2.5 animate-bounce" />
+                    <span className="font-extrabold text-blue-950 dark:text-slate-100 text-sm block">
+                      Toma una foto o selecciona tu receta
+                    </span>
+                    <span className="text-[11px] text-stone-500 dark:text-slate-400 block mt-1">
+                      Soporta fotos claras (JPG, PNG, WEBP) o documentos PDF
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      capture="environment"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleStartAnalyze(file);
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
 
-              <div className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 space-y-1.5 text-stone-600">
-                <span className="font-bold text-blue-950 block">¿Cómo lo procesa la plataforma?</span>
-                <p className="text-[11px] text-stone-500 leading-relaxed">
-                  1. <strong>OCR Multimodal:</strong> Lee texto impreso o manuscrito del médico.<br />
-                  2. <strong>Clasificación automática:</strong> Identifica si es Receta, Examen de sangre o Informe.<br />
-                  3. <strong>Cifrado y archivo:</strong> Almacena con AES-256 en tu ficha personal.
-                </p>
-              </div>
-            </div>
-            {isUploading && (
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-blue-950 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-teal-600 animate-pulse" />
-                    Analizando con IA...
-                  </span>
-                  <span className="font-mono text-blue-900">{uploadProgress}%</span>
+                  <div className="p-4 bg-stone-50 dark:bg-slate-800/60 rounded-2xl border border-stone-200 dark:border-slate-700/80 space-y-2">
+                    <span className="font-bold text-blue-950 dark:text-slate-200 flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                      ¿Cómo funciona la confirmación previa?
+                    </span>
+                    <p className="text-[11px] text-stone-600 dark:text-slate-300 leading-relaxed">
+                      1. <strong>Lectura Inteligente:</strong> Nuestro motor OCR lee el texto del médico.<br />
+                      2. <strong>Tu Validación:</strong> Podrás ver y corregir los medicamentos antes de guardarlos.<br />
+                      3. <strong>Seguridad Ley 21.668:</strong> Si cancelas, el archivo temporal se borra de inmediato.
+                    </p>
+                  </div>
+
+                  {uploadError && (
+                    <div className="p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-2xl flex items-start gap-2.5">
+                      <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                      <p className="text-xs text-rose-800 dark:text-rose-300">{uploadError}</p>
+                    </div>
+                  )}
                 </div>
-                <div className="w-full h-2 bg-blue-100 rounded-full overflow-hidden">
+              )}
+
+              {/* ESTADO 2: ANALYZING (Progreso con IA) */}
+              {uploadModalState === 'analyzing' && (
+                <div className="py-8 px-2 text-center space-y-4">
+                  <div className="w-16 h-16 rounded-3xl bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-300 flex items-center justify-center mx-auto shadow-sm">
+                    <Sparkles className="w-8 h-8 animate-pulse text-teal-500" />
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="font-extrabold text-blue-950 dark:text-slate-100 text-sm block">
+                      Analizando tu receta con IA...
+                    </span>
+                    <p className="text-[11px] text-stone-500 dark:text-slate-400 max-w-xs mx-auto">
+                      Identificando medicamentos, dosis y diagnóstico. Tomará solo unos segundos.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 max-w-sm mx-auto">
+                    <div className="flex items-center justify-between text-[11px] font-mono text-stone-500 dark:text-slate-400">
+                      <span>Procesando OCR + LLM</span>
+                      <span className="font-bold text-teal-600 dark:text-teal-400">{uploadProgress}%</span>
+                    </div>
+                    <div className="w-full h-2.5 bg-stone-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5">
+                      <div
+                        className="h-full bg-gradient-to-r from-blue-900 via-teal-500 to-emerald-400 rounded-full transition-all duration-300"
+                        style={{ width: `${Math.max(uploadProgress, 12)}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ESTADO 3: PREVIEW (Revisión editable) */}
+              {uploadModalState === 'preview' && (
+                <div className="space-y-4">
+                  {/* CASO A0: DOCUMENTO NO MÉDICO */}
+                  {tempDocument?.analysis?.is_medical_document === false ? (
+                    <div className="space-y-4 py-2">
+                      <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-2xl flex items-start gap-3">
+                        <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                          <h4 className="font-extrabold text-amber-950 dark:text-amber-200 text-xs">
+                            No parece ser un documento médico
+                          </h4>
+                          <p className="text-[11px] text-amber-800 dark:text-amber-300/90 leading-relaxed">
+                            No detectamos recetas, diagnósticos ni exámenes clínicos en esta imagen. Puede ser una captura de pantalla, comprobante o foto no médica.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 pt-1">
+                        <span className="text-[11px] font-bold text-stone-600 dark:text-slate-300 block">
+                          ¿Qué te gustaría hacer?
+                        </span>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleDiscardDocument(true)}
+                            disabled={isSubmittingDiscard}
+                            className="p-3 bg-white dark:bg-slate-800 border border-stone-200 dark:border-slate-700 hover:border-teal-400 dark:hover:border-teal-500 rounded-2xl text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-1 group"
+                          >
+                            <RefreshCw className="w-4 h-4 text-teal-600 group-hover:rotate-180 transition-transform duration-500" />
+                            <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">Reintentar</span>
+                            <span className="text-[10px] text-stone-400">Subir otra foto</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDiscardDocument(false)}
+                            disabled={isSubmittingDiscard}
+                            className="p-3 bg-white dark:bg-slate-800 border border-stone-200 dark:border-slate-700 hover:border-rose-400 dark:hover:border-rose-500 rounded-2xl text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-1"
+                          >
+                            <X className="w-4 h-4 text-rose-500" />
+                            <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">Cancelar</span>
+                            <span className="text-[10px] text-stone-400">Descartar archivo</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleSaveAnyway({ isNonMedical: true })}
+                            disabled={isSubmittingConfirm}
+                            className="p-3 bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800/80 hover:bg-teal-100/80 dark:hover:bg-teal-900/60 rounded-2xl text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-1"
+                          >
+                            <FileText className="w-4 h-4 text-teal-700 dark:text-teal-300" />
+                            <span className="font-bold text-teal-950 dark:text-teal-200 text-xs">Guardar igual</span>
+                            <span className="text-[10px] text-teal-700 dark:text-teal-400">Sin extraer recetas</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : tempDocument?.isUnreadable ? (
+                    <div className="space-y-4 py-2">
+                      <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-2xl flex items-start gap-3">
+                        <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                          <h4 className="font-extrabold text-amber-950 dark:text-amber-200 text-xs">
+                            No pudimos leer bien esta imagen
+                          </h4>
+                          <p className="text-[11px] text-amber-800 dark:text-amber-300/90 leading-relaxed">
+                            La foto puede estar borrosa, con poca luz o la letra es difícil de reconocer automáticamente.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 pt-1">
+                        <span className="text-[11px] font-bold text-stone-600 dark:text-slate-300 block">
+                          ¿Qué te gustaría hacer?
+                        </span>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleDiscardDocument(true)}
+                            disabled={isSubmittingDiscard}
+                            className="p-3 bg-white dark:bg-slate-800 border border-stone-200 dark:border-slate-700 hover:border-teal-400 dark:hover:border-teal-500 rounded-2xl text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-1 group"
+                          >
+                            <RefreshCw className="w-4 h-4 text-teal-600 group-hover:rotate-180 transition-transform duration-500" />
+                            <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">Reintentar</span>
+                            <span className="text-[10px] text-stone-400">Tomar otra foto</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDiscardDocument(false)}
+                            disabled={isSubmittingDiscard}
+                            className="p-3 bg-white dark:bg-slate-800 border border-stone-200 dark:border-slate-700 hover:border-rose-400 dark:hover:border-rose-500 rounded-2xl text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-1"
+                          >
+                            <X className="w-4 h-4 text-rose-500" />
+                            <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">Cancelar</span>
+                            <span className="text-[10px] text-stone-400">Descartar archivo</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleSaveAnyway()}
+                            disabled={isSubmittingConfirm}
+                            className="p-3 bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800/80 hover:bg-teal-100/80 dark:hover:bg-teal-900/60 rounded-2xl text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-1"
+                          >
+                            <FileText className="w-4 h-4 text-teal-700 dark:text-teal-300" />
+                            <span className="font-bold text-teal-950 dark:text-teal-200 text-xs">Guardar igual</span>
+                            <span className="text-[10px] text-teal-700 dark:text-teal-400">Revisar después</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* CASO B: LECTURA EXITOSA CON CAMPOS EDITABLES */
+                    <div className="space-y-4">
+                      {/* Diagnóstico editable */}
+                      <div className="p-3.5 bg-stone-50 dark:bg-slate-800/50 rounded-2xl border border-stone-200 dark:border-slate-700/80 space-y-1.5">
+                        <label className="font-bold text-slate-700 dark:text-slate-300 text-xs flex items-center justify-between">
+                          <span>Diagnóstico médico detectado</span>
+                          <span className="text-[10px] text-teal-700 dark:text-teal-400 font-mono">Editable</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={editedData.diagnostico}
+                          onChange={(e) => setEditedData({ ...editedData, diagnostico: e.target.value })}
+                          placeholder="Ej: Faringoamigdalitis aguda, Control de rutina..."
+                          className="w-full px-3 py-2 rounded-xl border border-stone-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 text-xs focus:outline-none focus:ring-2 focus:ring-teal-400/50"
+                        />
+                      </div>
+
+                      {/* Lista editable de Medicamentos */}
+                      <div className="space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-blue-950 dark:text-slate-200 text-xs flex items-center gap-1.5">
+                            <Pill className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                            Medicamentos extraídos ({editedData.medications.length})
+                          </span>
+                          <button
+                            type="button"
+                            onClick={handleAddMedicationRow}
+                            className="px-2.5 py-1 bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300 hover:bg-teal-100 font-bold rounded-lg text-[11px] flex items-center gap-1 transition-all cursor-pointer"
+                          >
+                            <Plus className="w-3 h-3" />
+                            <span>Agregar fármaco</span>
+                          </button>
+                        </div>
+
+                        {editedData.medications.length === 0 ? (
+                          <div className="p-4 text-center border border-dashed border-stone-200 dark:border-slate-700 rounded-2xl text-stone-400 dark:text-slate-500">
+                            <span>No hay medicamentos cargados. Presiona "+ Agregar fármaco" para añadir uno.</span>
+                          </div>
+                        ) : (
+                          <div className="space-y-2.5">
+                            {editedData.medications.map((med, idx) => (
+                              <div
+                                key={idx}
+                                className="p-3 bg-white dark:bg-slate-800/80 rounded-2xl border border-stone-200 dark:border-slate-700 space-y-2 shadow-xs"
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex-1">
+                                    <input
+                                      type="text"
+                                      value={med.name}
+                                      onChange={(e) => handleUpdateMedication(idx, 'name', e.target.value)}
+                                      placeholder="Nombre del medicamento (ej: Paracetamol)"
+                                      className="w-full px-2.5 py-1.5 rounded-lg border border-stone-200 dark:border-slate-700 bg-stone-50/50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-bold text-xs focus:ring-1 focus:ring-teal-400"
+                                    />
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveMedicationRow(idx)}
+                                    className="p-1.5 text-stone-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                                    title="Quitar medicamento"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-1.5">
+                                  <div>
+                                    <label className="text-[10px] text-stone-500 dark:text-slate-400 block mb-0.5">Dosis</label>
+                                    <input
+                                      type="text"
+                                      value={med.dosage}
+                                      onChange={(e) => handleUpdateMedication(idx, 'dosage', e.target.value)}
+                                      placeholder="ej: 500 mg"
+                                      className="w-full px-2 py-1 rounded-md border border-stone-200 dark:border-slate-700 bg-stone-50/50 dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-[11px]"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] text-stone-500 dark:text-slate-400 block mb-0.5">Frecuencia</label>
+                                    <input
+                                      type="text"
+                                      value={med.frequency}
+                                      onChange={(e) => handleUpdateMedication(idx, 'frequency', e.target.value)}
+                                      placeholder="ej: c/ 8 hrs"
+                                      className="w-full px-2 py-1 rounded-md border border-stone-200 dark:border-slate-700 bg-stone-50/50 dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-[11px]"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] text-stone-500 dark:text-slate-400 block mb-0.5">Duración</label>
+                                    <input
+                                      type="text"
+                                      value={med.duration}
+                                      onChange={(e) => handleUpdateMedication(idx, 'duration', e.target.value)}
+                                      placeholder="ej: 7 días"
+                                      className="w-full px-2 py-1 rounded-md border border-stone-200 dark:border-slate-700 bg-stone-50/50 dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-[11px]"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {uploadError && (
+                    <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-xl text-rose-700 dark:text-rose-300 text-xs">
+                      {uploadError}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ESTADO 4: CONFIRMED (Éxito y cierre) */}
+              {uploadModalState === 'confirmed' && (
+                <div className="py-8 text-center space-y-3">
                   <div
-                    className="h-full bg-gradient-to-r from-blue-900 to-teal-500 transition-all duration-300"
-                    style={{ width: `${uploadProgress}%` }}
-                  />
+                    className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto shadow-sm ${
+                      confirmedStatus === 'CONFIRMADO'
+                        ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
+                        : 'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
+                    }`}
+                  >
+                    <CheckCircle2 className="w-8 h-8" />
+                  </div>
+                  <h4 className="text-base font-extrabold text-blue-950 dark:text-slate-100">
+                    {confirmedStatus === 'CONFIRMADO'
+                      ? '¡Receta confirmada con éxito!'
+                      : '¡Documento guardado para revisión!'}
+                  </h4>
+                  <p className="text-xs text-stone-500 dark:text-slate-400 max-w-xs mx-auto">
+                    {confirmedStatus === 'CONFIRMADO'
+                      ? 'El documento y tus medicamentos ya están registrados y validados en tu ficha clínica.'
+                      : 'El documento quedó guardado en tu historial como pendiente para que puedas revisarlo más adelante.'}
+                  </p>
+                  <span
+                    className={`inline-block px-3 py-1 rounded-full text-[10px] font-mono ${
+                      confirmedStatus === 'CONFIRMADO'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300'
+                        : 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300'
+                    }`}
+                  >
+                    Cerrando automáticamente...
+                  </span>
                 </div>
-                <p className="text-[11px] text-stone-600">
-                  OCR + clasificación con Gemini. Esto puede tardar hasta 30 segundos.
-                </p>
-              </div>
-            )}
-
-            {uploadError && (
-              <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <span className="text-xs font-bold text-rose-950 block">Error al procesar</span>
-                  <p className="text-[11px] text-rose-800 mt-0.5">{uploadError}</p>
-                </div>
-              </div>
-            )}
-
-            <div className="pt-2 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowUploadModal(false)}
-                className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl text-xs cursor-pointer"
-              >
-                Cerrar
-              </button>
+              )}
             </div>
+
+            {/* Footer con Botones de Acción (solo en preview legible y médico) */}
+            {uploadModalState === 'preview' &&
+              tempDocument?.analysis?.is_medical_document !== false &&
+              !tempDocument?.isUnreadable && (
+              <div className="pt-3 border-t border-stone-100 dark:border-slate-800 flex items-center justify-end gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleDiscardDocument(false)}
+                  disabled={isSubmittingConfirm || isSubmittingDiscard}
+                  className="px-4 py-2.5 rounded-xl border border-stone-200 dark:border-slate-700 hover:bg-stone-100 dark:hover:bg-slate-800 text-stone-600 dark:text-slate-300 font-bold text-xs cursor-pointer transition-colors disabled:opacity-50"
+                >
+                  {isSubmittingDiscard ? 'Descartando...' : 'Descartar'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleConfirmDocument()}
+                  disabled={isSubmittingConfirm || isSubmittingDiscard}
+                  className="px-5 py-2.5 bg-gradient-to-r from-blue-900 to-teal-700 hover:from-blue-950 hover:to-teal-800 active:scale-95 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs cursor-pointer transition-all disabled:opacity-50"
+                >
+                  {isSubmittingConfirm ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Guardando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-teal-300" />
+                      <span>Confirmar y Guardar</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -3077,10 +3818,10 @@ export const PatientDashboard = () => {
       <BottomNav
         activeTab={currentTab}
         onTabChange={(tab) => setCurrentTab(tab)}
-        onOpenUploadModal={() => setShowUploadModal(true)}
+        onOpenUploadModal={handleOpenUploadModal}
         onOpenQrModal={() => setShowQrModal(true)}
         onFileSelected={handleUploadFile}
-        isUploading={isUploading}
+        isUploading={uploadModalState === 'analyzing'}
         hasActiveGrants={myGrants.some(g => g.status === 'ACTIVO')}
       />
 

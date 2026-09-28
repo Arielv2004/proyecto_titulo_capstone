@@ -255,6 +255,7 @@ CREATE TABLE documents (
         CHECK (
             status IN (
                 'PROCESANDO',
+                'TEMP',
                 'PENDIENTE_REVISION',
                 'CONFIRMADO',
                 'ERROR',

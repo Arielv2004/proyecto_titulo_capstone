@@ -60,16 +60,88 @@ class DocumentRepository {
     return result.rows[0] || null;
   }
 
+  static async findTempById(documentId) {
+    const query = `
+      SELECT
+        d.*,
+        p.rut AS patient_rut,
+        p.first_name AS patient_first_name,
+        p.last_name AS patient_last_name
+      FROM documents d
+      INNER JOIN users p ON p.id = d.patient_id
+      WHERE d.id = $1 AND d.status = 'TEMP';
+    `;
+    const result = await db.query(query, [documentId]);
+    return result.rows[0] || null;
+  }
+
   static async findByPatient(patientId, { document_type = null } = {}) {
     let query = `
       SELECT
         d.id, d.patient_id, d.uploaded_by, d.document_type, d.title,
         d.file_name, d.file_path, d.mime_type, d.file_size_bytes,
         d.document_date, d.issuing_doctor, d.issuing_institution,
-        d.status, d.created_at, d.updated_at
+        d.status, d.created_at, d.updated_at,
+        CASE
+          WHEN d.document_type = 'RECETA' THEN (
+            SELECT json_build_object(
+              'id', rx.id,
+              'document_id', rx.document_id,
+              'doctor_name', rx.doctor_name,
+              'diagnosis_text', rx.diagnosis_text,
+              'issue_date', rx.issue_date,
+              'valid_until', rx.valid_until,
+              'is_chronic', rx.is_chronic,
+              'status', rx.status,
+              'items', COALESCE((
+                SELECT json_agg(json_build_object(
+                  'id', ri.id,
+                  'prescription_id', ri.prescription_id,
+                  'medication_name', ri.medication_name,
+                  'dosage', ri.dosage,
+                  'frequency', ri.frequency,
+                  'duration', ri.duration,
+                  'instructions', ri.instructions
+                ))
+                FROM prescription_items ri
+                WHERE ri.prescription_id = rx.id
+              ), '[]'::json)
+            )
+            FROM prescriptions rx
+            WHERE rx.document_id = d.id
+            LIMIT 1
+          )
+          WHEN d.document_type = 'EXAMEN_LAB' THEN (
+            SELECT json_build_object(
+              'id', lr.id,
+              'document_id', lr.document_id,
+              'laboratory_name', lr.laboratory_name,
+              'sample_date', lr.sample_date,
+              'observations', lr.observations,
+              'items', COALESCE((
+                SELECT json_agg(json_build_object(
+                  'id', li.id,
+                  'lab_report_id', li.lab_report_id,
+                  'test_name', li.test_name,
+                  'result_value', li.result_value,
+                  'unit', li.unit,
+                  'reference_range', li.reference_range,
+                  'is_abnormal', li.is_abnormal
+                ))
+                FROM lab_test_items li
+                WHERE li.lab_report_id = lr.id
+              ), '[]'::json)
+            )
+            FROM lab_reports lr
+            WHERE lr.document_id = d.id
+            LIMIT 1
+          )
+          ELSE NULL
+        END AS structured
       FROM documents d
       WHERE d.patient_id = $1
         AND d.status <> 'ELIMINADO'
+        AND d.status <> 'TEMP'
     `;
     const values = [patientId];
 
@@ -255,6 +327,63 @@ class DocumentRepository {
     `;
     const result = await db.query(query, [documentId]);
     return result.rows[0] || null;
+  }
+
+  static async updateDocumentOnConfirm(documentId, {
+    status = 'PENDIENTE_REVISION',
+    title = null,
+    document_type = null,
+    issuing_doctor = null,
+    issuing_institution = null,
+    document_date = null,
+  } = {}) {
+    const query = `
+      UPDATE documents
+      SET status = $1,
+          title = COALESCE($2, title),
+          document_type = COALESCE($3, document_type),
+          issuing_doctor = COALESCE($4, issuing_doctor),
+          issuing_institution = COALESCE($5, issuing_institution),
+          document_date = COALESCE($6, document_date),
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $7
+      RETURNING *;
+    `;
+    const values = [
+      status,
+      title,
+      document_type,
+      issuing_doctor,
+      issuing_institution,
+      document_date,
+      documentId,
+    ];
+    const result = await db.query(query, values);
+    return result.rows[0] || null;
+  }
+
+  static async findExpiredTemps(hours = 24) {
+    const query = `
+      SELECT id, file_path, patient_id, status, created_at
+      FROM documents
+      WHERE status = 'TEMP'
+        AND created_at < NOW() - ($1 || ' hours')::INTERVAL;
+    `;
+    const result = await db.query(query, [hours]);
+    return result.rows;
+  }
+
+  static async markManyAsEliminado(documentIds) {
+    if (!documentIds || !documentIds.length) return [];
+    const query = `
+      UPDATE documents
+      SET status = 'ELIMINADO',
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ANY($1::uuid[])
+      RETURNING *;
+    `;
+    const result = await db.query(query, [documentIds]);
+    return result.rows;
   }
 }
 module.exports = DocumentRepository;

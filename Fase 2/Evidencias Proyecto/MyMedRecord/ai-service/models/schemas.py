@@ -7,6 +7,7 @@ class MedicationEntity(BaseModel):
     dosage: Optional[str] = Field(None, description="Dosis prescrita")
     frequency: Optional[str] = Field(None, description="Frecuencia de administración")
     duration: Optional[str] = Field(None, description="Duración del tratamiento")
+    duration_days: Optional[int] = Field(None, description="Duración en días (numérico, ej: 4 para '4 días', 7 para '1 semana')")
 
 class LabMetricEntity(BaseModel):
     test_name: str = Field(..., description="Nombre del examen (ej. Glucosa, Colesterol)")
@@ -17,7 +18,12 @@ class LabMetricEntity(BaseModel):
 
 class ClinicalExtractionData(BaseModel):
     """Schema estructurado para la respuesta del LLM (sin campos de transporte como raw_text)."""
+    is_medical_document: bool = Field(
+        True,
+        description="Indica si el texto corresponde a un documento médico clínico (receta, examen, informe). False para errores de sistema, código, texto genérico o contenido no clínico."
+    )
     document_type: str = Field(..., description="RECETA, EXAMEN_LAB, INFORME_MEDICO, OTRO")
+    document_date: Optional[str] = Field(None, description="Fecha de emisión del documento en formato YYYY-MM-DD")
     diagnoses: List[str] = Field(default_factory=list, description="Lista de diagnósticos identificados")
     medications: List[MedicationEntity] = Field(default_factory=list, description="Lista de medicamentos prescritos")
     lab_metrics: List[LabMetricEntity] = Field(default_factory=list, description="Métricas o resultados de laboratorio")

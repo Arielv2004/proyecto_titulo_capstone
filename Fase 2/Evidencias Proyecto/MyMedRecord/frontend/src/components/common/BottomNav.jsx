@@ -31,28 +31,16 @@ export const BottomNav = ({
   const location = useLocation();
   const [showActionSheet, setShowActionSheet] = useState(false);
   const [showFaqModal, setShowFaqModal] = useState(false);
-  const [showUploadPreview, setShowUploadPreview] = useState(null);
 
   const cameraInputRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const handleFileSelected = (e, source) => {
+  const handleFileSelected = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    // Si hay un callback del padre, subimos directamente
     if (onFileSelected) {
       onFileSelected(file);
-      setShowActionSheet(false);
-      e.target.value = '';
-      return;
     }
-    // Fallback: mostrar preview local (compatibilidad)
-    setShowUploadPreview({
-      name: file.name,
-      size: (file.size / 1024).toFixed(1) + ' KB',
-      type: file.type.includes('pdf') ? 'PDF' : 'IMAGEN',
-      source,
-    });
     setShowActionSheet(false);
     e.target.value = '';
   };
@@ -326,53 +314,6 @@ export const BottomNav = ({
                 className="px-5 py-2.5 bg-blue-900 hover:bg-blue-950 text-white font-bold rounded-xl text-xs transition-all cursor-pointer"
               >
                 Cerrar Ayuda
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL DE CONFIRMACIÓN DE ARCHIVO CAPTURADO */}
-      {/* ========================================================================= */}
-      {showUploadPreview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="w-full max-w-sm bg-white border border-stone-200 rounded-3xl p-6 shadow-2xl text-center">
-            <div className="w-14 h-14 bg-teal-50 border border-teal-200 text-teal-700 rounded-2xl flex items-center justify-center mx-auto mb-3">
-              <FileText className="w-7 h-7" />
-            </div>
-            <h3 className="text-base font-bold text-blue-950">Documento Capturado</h3>
-            <p className="text-xs text-stone-500 mt-1 mb-4 font-mono truncate px-4">
-              {showUploadPreview.name} ({showUploadPreview.size})
-            </p>
-
-            <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 text-left text-xs mb-4">
-              <div className="flex justify-between text-stone-600 mb-1">
-                <span>Origen:</span>
-                <span className="font-bold text-blue-950">{showUploadPreview.source}</span>
-              </div>
-              <div className="flex justify-between text-stone-600">
-                <span>Formato:</span>
-                <span className="font-bold text-teal-800">{showUploadPreview.type}</span>
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowUploadPreview(null)}
-                className="flex-1 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl text-xs transition-all cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => {
-                  alert('¡Documento enviado con éxito al servicio de IA para OCR y extracción!');
-                  setShowUploadPreview(null);
-                }}
-                className="flex-1 py-2.5 bg-blue-900 hover:bg-blue-950 text-white font-bold rounded-xl text-xs transition-all cursor-pointer flex items-center justify-center gap-1"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-teal-300" />
-                <span>Procesar IA</span>
               </button>
             </div>
           </div>

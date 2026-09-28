@@ -45,6 +45,10 @@ router.use(authMiddleware);
 
 // ─── Rutas ────────────────────────────────────────────────────────────────
 router.post('/upload', upload.single('file'), DocumentController.upload);
+router.post('/analyze', upload.single('file'), DocumentController.analyze);
+router.post('/confirm', DocumentController.confirm);
+router.post('/discard', DocumentController.discard);
+router.post('/cleanup-temps', DocumentController.cleanupTemps);
 router.get('/', DocumentController.list);
 router.delete('/:id', DocumentController.remove);
 router.get('/:id', DocumentController.getById);
