@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { useAuthStore } from '../store/useAuthStore';
+import api from '../services/api';
 import {
   getTodayAppointments,
   checkPatientAccess,
@@ -57,6 +58,35 @@ export const DoctorDashboard = () => {
   const [patientAccessError, setPatientAccessError] = useState('');
 
   // ============================================================
+  // FICHAS COMPARTIDAS DIRECTAMENTE CON ESTE MÉDICO
+  // ============================================================
+
+  const [directShares, setDirectShares] = useState([]);
+  const [isLoadingDirectShares, setIsLoadingDirectShares] = useState(true);
+  const [directSharesError, setDirectSharesError] = useState('');
+
+  const loadDirectShares = async () => {
+    try {
+      setIsLoadingDirectShares(true);
+      setDirectSharesError('');
+
+      const response = await api.get('/access-grants/shared-with-me');
+      const data = response.data?.data ?? response.data ?? [];
+
+      setDirectShares(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error cargando accesos directos:', error);
+      setDirectSharesError(
+        error.response?.data?.message ||
+          'No fue posible cargar las fichas compartidas directamente contigo.'
+      );
+      setDirectShares([]);
+    } finally {
+      setIsLoadingDirectShares(false);
+    }
+  };
+
+  // ============================================================
   // AUDITORÍA DEMO
   // ============================================================
 
@@ -98,6 +128,7 @@ export const DoctorDashboard = () => {
 
   useEffect(() => {
     loadTodayAppointments();
+    loadDirectShares();
   }, []);
 
   // ============================================================
@@ -148,6 +179,21 @@ export const DoctorDashboard = () => {
   };
 
   // ============================================================
+  // ABRIR FICHA COMPARTIDA DIRECTAMENTE
+  // ============================================================
+
+  const handleOpenDirectShare = (grant) => {
+    if (grant.status !== 'ACTIVO' || grant.isRevoked) return;
+
+    if (!grant.token) {
+      setDirectSharesError('Este acceso no tiene un token válido.');
+      return;
+    }
+
+    navigate(`/shared-record/${grant.token}`);
+  };
+
+  // ============================================================
   // FORMATO DE FECHAS
   // ============================================================
 
@@ -176,9 +222,8 @@ export const DoctorDashboard = () => {
   // RESUMEN DEL DÍA
   // ============================================================
 
-  const activeAccessCount = appointments.filter(
-    (appointment) =>
-      appointment.access_status === 'ACTIVO'
+  const activeAccessCount = directShares.filter(
+    (grant) => grant.status === 'ACTIVO' && !grant.isRevoked
   ).length;
 
   const pendingAccessCount = appointments.filter(
@@ -358,243 +403,99 @@ export const DoctorDashboard = () => {
               <div className="p-5 sm:p-6 border-b border-stone-200/80 dark:border-slate-800">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-start gap-3">
-                    <div className="w-11 h-11 rounded-2xl bg-blue-900 text-white flex items-center justify-center shrink-0">
-                      <CalendarDays className="w-5 h-5 text-teal-300" />
+                    <div className="w-11 h-11 rounded-2xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 flex items-center justify-center shrink-0">
+                      <UserCheck className="w-5 h-5 text-teal-700 dark:text-teal-300" />
                     </div>
-
                     <div>
                       <h2 className="text-xl font-extrabold text-blue-950 dark:text-slate-100">
                         Fichas compartidas para hoy
                       </h2>
-
-                      <p className="text-xs text-stone-500 dark:text-slate-400 mt-1 capitalize">
-                        {appointments.length > 0
-                          ? formatAppointmentDate(
-                              appointments[0].scheduled_at
-                            )
-                          : 'Pacientes que autorizaron acceso a su ficha'}
+                      <p className="text-xs text-stone-500 dark:text-slate-400 mt-1">
+                        Pacientes que autorizaron acceso a su ficha.
                       </p>
                     </div>
                   </div>
 
                   <button
                     type="button"
-                    onClick={loadTodayAppointments}
-                    disabled={isLoadingAppointments}
+                    onClick={loadDirectShares}
+                    disabled={isLoadingDirectShares}
                     className="px-3.5 py-2.5 bg-stone-100 dark:bg-slate-800 hover:bg-stone-200 dark:hover:bg-slate-700 text-stone-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                   >
-                    <RefreshCw
-                      className={`w-3.5 h-3.5 ${
-                        isLoadingAppointments
-                          ? 'animate-spin'
-                          : ''
-                      }`}
-                    />
-
-                    {isLoadingAppointments
-                      ? 'Actualizando...'
-                      : 'Actualizar'}
+                    <RefreshCw className={`w-3.5 h-3.5 ${isLoadingDirectShares ? 'animate-spin' : ''}`} />
+                    {isLoadingDirectShares ? 'Actualizando...' : 'Actualizar'}
                   </button>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 mt-4">
-                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200 border border-blue-200 dark:border-blue-800">
-                    {appointments.length}{' '}
-                    {appointments.length === 1
-                      ? 'paciente'
-                      : 'pacientes'}{' '}
-                    hoy
-                  </span>
-
-                  <span className="text-[11px] text-stone-500 dark:text-slate-400 flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5" />
-                    Acceso temporal autorizado por el paciente
-                  </span>
                 </div>
               </div>
 
-              {/* ERRORES */}
-
-              {appointmentsError && (
+              {directSharesError && (
                 <div className="m-5 sm:m-6 p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-2xl text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{appointmentsError}</span>
+                  <span>{directSharesError}</span>
                 </div>
               )}
 
-              {patientAccessError && (
-                <div className="mx-5 sm:mx-6 mt-5 p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-2xl text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center gap-2">
-                  <Lock className="w-4 h-4 shrink-0" />
-                  <span>{patientAccessError}</span>
-                </div>
-              )}
-
-              {/* CARGANDO */}
-
-              {isLoadingAppointments ? (
+              {isLoadingDirectShares ? (
                 <div className="p-6 space-y-3">
-                  {[1, 2, 3].map((item) => (
-                    <div
-                      key={item}
-                      className="h-24 rounded-2xl bg-stone-100 dark:bg-slate-800 animate-pulse"
-                    />
+                  {[1, 2].map((item) => (
+                    <div key={item} className="h-24 rounded-2xl bg-stone-100 dark:bg-slate-800 animate-pulse" />
                   ))}
                 </div>
-              ) : appointments.length === 0 ? (
-                /* SIN PACIENTES */
-
+              ) : directShares.filter((grant) => grant.status === 'ACTIVO' && !grant.isRevoked).length === 0 ? (
                 <div className="p-10 text-center">
                   <div className="w-14 h-14 mx-auto rounded-2xl bg-stone-100 dark:bg-slate-800 flex items-center justify-center">
-                    <CalendarDays className="w-6 h-6 text-stone-400 dark:text-slate-500" />
+                    <Users className="w-6 h-6 text-stone-400 dark:text-slate-500" />
                   </div>
-
                   <h3 className="text-sm font-bold text-blue-950 dark:text-slate-100 mt-3">
                     No tienes fichas compartidas para hoy
                   </h3>
-
                   <p className="text-xs text-stone-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
-                    Cuando un paciente comparta su ficha para una
-                    atención, aparecerá en esta sección.
+                    Cuando un paciente comparta su ficha contigo, aparecerá aquí mientras el acceso esté vigente.
                   </p>
                 </div>
               ) : (
-                /* LISTADO */
-
                 <div className="divide-y divide-stone-100 dark:divide-slate-800">
-                  {appointments.map((appointment) => {
-                    const isActive =
-                      appointment.access_status === 'ACTIVO';
-
-                    const isPending =
-                      appointment.access_status === 'PENDIENTE';
-
-                    const isExpired =
-                      appointment.access_status === 'EXPIRADO';
-
-                    const isOpening =
-                      openingAppointmentId === appointment.id;
-
-                    const patientName =
-                      `${appointment.patient_first_name || ''} ${
-                        appointment.patient_last_name || ''
-                      }`.trim();
+                  {directShares.filter((grant) => grant.status === 'ACTIVO' && !grant.isRevoked).map((grant) => {
+                    const isActive = grant.status === 'ACTIVO' && !grant.isRevoked;
+                    const patientName = `${grant.patient?.firstName || ''} ${grant.patient?.lastName || ''}`.trim();
 
                     return (
-                      <div
-                        key={appointment.id}
-                        className={`p-5 sm:p-6 transition-colors ${
-                          selectedAppointment?.id === appointment.id
-                            ? 'bg-blue-50/60 dark:bg-blue-950/20'
-                            : 'hover:bg-stone-50/80 dark:hover:bg-slate-800/30'
-                        }`}
-                      >
+                      <div key={grant.id} className="p-5 sm:p-6 hover:bg-stone-50/80 dark:hover:bg-slate-800/30 transition-colors">
                         <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-                          {/* HORA */}
-
-                          <div className="lg:w-24 shrink-0">
-                            <div className="text-2xl font-black text-blue-950 dark:text-slate-100">
-                              {formatAppointmentTime(
-                                appointment.scheduled_at
-                              )}
-                            </div>
-
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 dark:text-slate-500">
-                              Atención
-                            </span>
-                          </div>
-
-                          {/* PACIENTE */}
-
                           <div className="flex items-center gap-3 flex-1 min-w-0">
                             <div className="w-11 h-11 rounded-2xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 flex items-center justify-center text-teal-800 dark:text-teal-300 font-black text-sm shrink-0">
-                              {(
-                                appointment
-                                  .patient_first_name?.[0] || 'P'
-                              ).toUpperCase()}
-
-                              {(
-                                appointment
-                                  .patient_last_name?.[0] || ''
-                              ).toUpperCase()}
+                              {(grant.patient?.firstName?.[0] || 'P').toUpperCase()}
+                              {(grant.patient?.lastName?.[0] || '').toUpperCase()}
                             </div>
-
                             <div className="min-w-0">
                               <h3 className="text-sm font-bold text-blue-950 dark:text-slate-100 truncate">
                                 {patientName || 'Paciente'}
                               </h3>
-
                               <p className="text-xs font-mono font-semibold text-stone-500 dark:text-slate-400 mt-0.5">
-                                RUT: {appointment.patient_rut}
+                                RUT: {grant.patient?.rut || 'No disponible'}
                               </p>
-
                               <p className="text-[11px] text-stone-400 dark:text-slate-500 mt-1">
-                                {appointment.reason ||
-                                  'Consulta médica'}
+                                Acceso directo · {grant.minutesRemaining ?? 0} min restantes
                               </p>
                             </div>
                           </div>
 
-                          {/* ESTADO */}
-
                           <div className="lg:w-48">
-                            {isActive && (
-                              <div>
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[10px] font-bold">
-                                  <CheckCircle2 className="w-3.5 h-3.5" />
-                                  ACCESO ACTIVO
-                                </span>
-
-                                <p className="text-[10px] text-stone-400 dark:text-slate-500 mt-1.5">
-                                  Disponible hasta las{' '}
-                                  {formatAppointmentTime(
-                                    appointment.access_expires_at
-                                  )}
-                                </p>
-                              </div>
-                            )}
-
-                            {isPending && (
-                              <div>
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[10px] font-bold">
-                                  <Clock className="w-3.5 h-3.5" />
-                                  PENDIENTE
-                                </span>
-
-                                <p className="text-[10px] text-stone-400 dark:text-slate-500 mt-1.5">
-                                  Disponible desde las{' '}
-                                  {formatAppointmentTime(
-                                    appointment.scheduled_at
-                                  )}
-                                </p>
-                              </div>
-                            )}
-
-                            {isExpired && (
-                              <div>
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-stone-100 dark:bg-slate-800 text-stone-600 dark:text-slate-400 border border-stone-200 dark:border-slate-700 text-[10px] font-bold">
-                                  <Lock className="w-3.5 h-3.5" />
-                                  ACCESO EXPIRADO
-                                </span>
-
-                                <p className="text-[10px] text-stone-400 dark:text-slate-500 mt-1.5">
-                                  Finalizó a las{' '}
-                                  {formatAppointmentTime(
-                                    appointment.access_expires_at
-                                  )}
-                                </p>
-                              </div>
-                            )}
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold ${
+                              isActive
+                                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                                : 'bg-stone-100 dark:bg-slate-800 text-stone-600 dark:text-slate-400 border-stone-200 dark:border-slate-700'
+                            }`}>
+                              {isActive ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                              {grant.status || 'EXPIRADO'}
+                            </span>
                           </div>
-
-                          {/* BOTÓN */}
 
                           <div className="lg:w-32">
                             <button
                               type="button"
-                              disabled={!isActive || isOpening}
-                              onClick={() =>
-                                handleOpenPatient(appointment)
-                              }
+                              disabled={!isActive}
+                              onClick={() => handleOpenDirectShare(grant)}
                               className={`w-full px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                                 isActive
                                   ? 'bg-blue-900 hover:bg-blue-950 text-white cursor-pointer shadow-xs'
@@ -603,15 +504,8 @@ export const DoctorDashboard = () => {
                             >
                               {isActive ? (
                                 <>
-                                  <span>
-                                    {isOpening
-                                      ? 'Validando...'
-                                      : 'Ver ficha'}
-                                  </span>
-
-                                  {!isOpening && (
-                                    <ArrowRight className="w-3.5 h-3.5 text-teal-300" />
-                                  )}
+                                  <span>Ver ficha</span>
+                                  <ArrowRight className="w-3.5 h-3.5 text-teal-300" />
                                 </>
                               ) : (
                                 <>

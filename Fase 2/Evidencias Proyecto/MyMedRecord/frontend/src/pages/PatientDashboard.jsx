@@ -124,6 +124,15 @@ export const PatientDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [showQrModal, setShowQrModal] = useState(false);
+  // Compartir ficha directamente con un médico registrado
+  const [showDirectShareModal, setShowDirectShareModal] = useState(false);
+  const [doctors, setDoctors] = useState([]);
+  const [loadingDoctors, setLoadingDoctors] = useState(false);
+  const [selectedDoctorId, setSelectedDoctorId] = useState('');
+  const [directShareDuration, setDirectShareDuration] = useState(12);
+  const [isSharingDirect, setIsSharingDirect] = useState(false);
+  const [directShareError, setDirectShareError] = useState(null);
+  const [directShareSuccess, setDirectShareSuccess] = useState(null);
 
   // Estado para gestión dinámica de QR de Acceso Médico (Ley N° 21.668)
   const [qrDuration, setQrDuration] = useState(12); // 2, 12, 24 horas
@@ -733,6 +742,72 @@ export const PatientDashboard = () => {
     setCustomCondition('');
   };
 
+  // Cargar médicos registrados para compartir la ficha directamente
+  const fetchDoctors = async () => {
+    try {
+      setLoadingDoctors(true);
+      setDirectShareError(null);
+      const res = await api.get('/doctors');
+      const payload = res.data?.data ?? res.data ?? [];
+      const list = Array.isArray(payload) ? payload : (payload.doctors || []);
+      setDoctors(list);
+    } catch (err) {
+      console.error('Error cargando médicos:', err);
+      setDoctors([]);
+      setDirectShareError(err.response?.data?.message || 'No fue posible cargar la lista de médicos.');
+    } finally {
+      setLoadingDoctors(false);
+    }
+  };
+
+  const handleOpenDirectShare = () => {
+    setSelectedDoctorId('');
+    setDirectShareDuration(12);
+    setDirectShareError(null);
+    setDirectShareSuccess(null);
+    setShowDirectShareModal(true);
+    fetchDoctors();
+  };
+
+  const handleShareDirect = async () => {
+    if (!selectedDoctorId) {
+      setDirectShareError('Selecciona un médico antes de compartir tu ficha.');
+      return;
+    }
+
+    try {
+      setIsSharingDirect(true);
+      setDirectShareError(null);
+      setDirectShareSuccess(null);
+
+      const res = await api.post('/access-grants/share', {
+        doctorId: selectedDoctorId,
+        durationHours: directShareDuration,
+        notes: `Acceso directo autorizado por el paciente (${directShareDuration} horas)`
+      });
+
+      if (res.data?.success === false) {
+        throw new Error(res.data?.message || 'No fue posible compartir la ficha.');
+      }
+
+      const doctor = doctors.find((d) => String(d.id) === String(selectedDoctorId));
+      const doctorName = doctor
+        ? `${doctor.first_name || doctor.firstName || doctor.name || ''} ${doctor.last_name || doctor.lastName || ''}`.trim()
+        : 'el médico seleccionado';
+
+      setDirectShareSuccess(`Ficha compartida correctamente con ${doctorName || 'el médico seleccionado'} por ${directShareDuration} horas.`);
+      await fetchMyGrants();
+      fetchAuditLogs();
+    } catch (err) {
+      console.error('Error compartiendo ficha directamente:', err);
+      setDirectShareError(
+        err.response?.data?.message || err.message || 'No fue posible compartir la ficha con el médico.'
+      );
+    } finally {
+      setIsSharingDirect(false);
+    }
+  };
+
   // Cargar token QR activo al abrir el modal
   const fetchActiveGrant = async () => {
     try {
@@ -1157,11 +1232,20 @@ export const PatientDashboard = () => {
                   </button>
 
                   <button
-                    onClick={() => setShowQrModal(true)}
+                    onClick={handleOpenDirectShare}
                     className="px-4 py-3.5 bg-white/10 hover:bg-white/20 active:scale-95 border border-white/20 text-white font-bold rounded-2xl transition-all text-xs flex items-center justify-center gap-2 cursor-pointer backdrop-blur-xs"
                   >
+                    <Share2 className="w-4 h-4 text-teal-300" />
+                    <span>Compartir Ficha</span>
+                  </button>
+
+                  <button
+                    onClick={() => setShowQrModal(true)}
+                    className="px-4 py-3.5 bg-white/5 hover:bg-white/15 active:scale-95 border border-white/15 text-white font-bold rounded-2xl transition-all text-xs flex items-center justify-center gap-2 cursor-pointer backdrop-blur-xs"
+                    title="Acceso alternativo mediante QR"
+                  >
                     <QrCode className="w-4 h-4 text-teal-300" />
-                    <span>QR para Médico</span>
+                    <span>QR</span>
                   </button>
                 </div>
               </div>
@@ -3272,6 +3356,141 @@ export const PatientDashboard = () => {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: COMPARTIR FICHA DIRECTAMENTE CON MÉDICO REGISTRADO */}
+      {/* ========================================================================= */}
+      {showDirectShareModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-stone-200 dark:border-slate-800 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto">
+            <div className="flex items-start justify-between pb-3 border-b border-stone-100 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-blue-900 text-teal-300 flex items-center justify-center shadow-xs">
+                  <Share2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-blue-950 dark:text-slate-100">Compartir Ficha Médica</h3>
+                  <p className="text-[11px] text-stone-500 dark:text-slate-400">Autoriza temporalmente a un médico registrado</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => setShowDirectShareModal(false)} className="p-1.5 text-stone-400 hover:text-stone-600 dark:hover:text-slate-200 rounded-xl hover:bg-stone-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {directShareError && (
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 rounded-2xl text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{directShareError}</span>
+              </div>
+            )}
+
+            {directShareSuccess && (
+              <div className="p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 rounded-2xl text-xs flex items-start gap-2">
+                <CheckCircle2 className="w-5 h-5 shrink-0" />
+                <div>
+                  <p className="font-extrabold">Acceso autorizado</p>
+                  <p className="mt-1 leading-relaxed">{directShareSuccess}</p>
+                  <p className="mt-1 text-[10px] opacity-80">El acceso aparecerá directamente en el portal del médico y podrás revocarlo desde Auditoría y Accesos.</p>
+                </div>
+              </div>
+            )}
+
+            {!directShareSuccess && (
+              <>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">1. Selecciona el médico</label>
+                  {loadingDoctors ? (
+                    <div className="py-8 text-center border border-stone-200 dark:border-slate-700 rounded-2xl">
+                      <RefreshCw className="w-6 h-6 text-blue-900 dark:text-teal-400 animate-spin mx-auto" />
+                      <p className="mt-2 text-xs text-stone-500">Cargando médicos registrados...</p>
+                    </div>
+                  ) : doctors.length === 0 ? (
+                    <div className="p-4 bg-stone-50 dark:bg-slate-800 rounded-2xl border border-stone-200 dark:border-slate-700 text-xs text-stone-500 dark:text-slate-400">
+                      No hay médicos registrados disponibles para compartir directamente. Puedes utilizar el acceso por QR.
+                    </div>
+                  ) : (
+                    <select
+                      value={selectedDoctorId}
+                      onChange={(e) => setSelectedDoctorId(e.target.value)}
+                      className="w-full px-4 py-3 rounded-2xl border border-stone-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-blue-900"
+                    >
+                      <option value="">Seleccionar médico...</option>
+                      {doctors.map((doctor) => {
+                        const name = `${doctor.first_name || doctor.firstName || doctor.name || 'Médico'} ${doctor.last_name || doctor.lastName || ''}`.trim();
+                        const specialty = doctor.specialty || doctor.speciality || doctor.especialidad || '';
+                        const rut = doctor.rut || doctor.run || '';
+                        return (
+                          <option key={doctor.id} value={doctor.id}>
+                            {name}{specialty ? ` · ${specialty}` : ''}{rut ? ` · ${rut}` : ''}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">2. Duración del acceso</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { hours: 2, label: '2 Horas', desc: 'Consulta' },
+                      { hours: 12, label: '12 Horas', desc: 'Jornada' },
+                      { hours: 24, label: '24 Horas', desc: 'Control' }
+                    ].map((opt) => (
+                      <button
+                        key={opt.hours}
+                        type="button"
+                        onClick={() => setDirectShareDuration(opt.hours)}
+                        className={`p-3 rounded-2xl border text-center transition-all cursor-pointer ${directShareDuration === opt.hours
+                          ? 'bg-blue-900 text-white border-blue-900 shadow-md ring-2 ring-teal-400/40'
+                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-stone-200 dark:border-slate-700 hover:border-blue-300'
+                        }`}
+                      >
+                        <span className="text-xs font-extrabold block">{opt.label}</span>
+                        <span className={`text-[10px] mt-1 block ${directShareDuration === opt.hours ? 'text-teal-200' : 'text-stone-400'}`}>{opt.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="p-3.5 bg-blue-50/60 dark:bg-blue-950/20 rounded-2xl border border-blue-100 dark:border-blue-900/40">
+                  <div className="flex gap-2">
+                    <ShieldCheck className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-bold text-blue-950 dark:text-blue-200">Acceso temporal y revocable</p>
+                      <p className="text-[11px] text-stone-500 dark:text-slate-400 mt-1 leading-relaxed">El médico seleccionado podrá consultar tu ficha desde su propio portal durante el tiempo autorizado. El permiso puede revocarse antes de su vencimiento.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleShareDirect}
+                  disabled={isSharingDirect || loadingDoctors || !selectedDoctorId}
+                  className="w-full py-3 bg-blue-900 hover:bg-blue-950 active:scale-95 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSharingDirect ? <RefreshCw className="w-4 h-4 animate-spin text-teal-300" /> : <Share2 className="w-4 h-4 text-teal-300" />}
+                  <span>{isSharingDirect ? 'Compartiendo...' : `Compartir por ${directShareDuration} Horas`}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setShowDirectShareModal(false); setShowQrModal(true); }}
+                  className="w-full py-2.5 border border-stone-200 dark:border-slate-700 text-stone-600 dark:text-slate-300 font-bold rounded-xl text-xs flex items-center justify-center gap-2 hover:bg-stone-50 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  <QrCode className="w-4 h-4" />
+                  Usar QR en su lugar
+                </button>
+              </>
+            )}
+
+            <div className="pt-2 border-t border-stone-100 dark:border-slate-800 flex justify-end">
+              <button type="button" onClick={() => setShowDirectShareModal(false)} className="px-4 py-2 bg-stone-100 hover:bg-stone-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-stone-700 dark:text-slate-300 font-bold rounded-xl text-xs cursor-pointer transition-colors">Cerrar</button>
+            </div>
           </div>
         </div>
       )}

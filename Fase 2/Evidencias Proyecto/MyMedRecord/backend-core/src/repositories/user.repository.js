@@ -268,6 +268,42 @@ class UserRepository {
       client.release();
     }
   }
+  // =====================================================
+// LISTAR MÉDICOS DISPONIBLES PARA COMPARTIR FICHA
+// =====================================================
+
+static async findAvailableDoctors() {
+  const result = await db.query(
+    `SELECT
+        u.id,
+        u.rut,
+        u.first_name,
+        u.last_name,
+        u.email,
+        dp.professional_registry,
+        dp.specialty,
+        dp.professional_title,
+        dp.verification_status,
+        dp.is_available_for_sharing,
+        COALESCE(
+          hi.name,
+          dp.institution_name_other,
+          'Institución no especificada'
+        ) AS institution_name
+     FROM users u
+     INNER JOIN doctor_profiles dp
+       ON dp.user_id = u.id
+     LEFT JOIN health_institutions hi
+       ON hi.id = dp.institution_id
+     WHERE u.role = 'MEDICO'
+       AND u.is_active = TRUE
+       AND dp.is_available_for_sharing = TRUE
+     ORDER BY u.first_name, u.last_name`
+  );
+
+  return result.rows;
 }
+}
+
 
 module.exports = UserRepository;
