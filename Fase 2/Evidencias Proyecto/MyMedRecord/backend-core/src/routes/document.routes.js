@@ -7,18 +7,8 @@ const router = express.Router();
 const DocumentController = require('../controllers/document.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
 
-// ─── Configuración de multer ─────────────────────────────────────────────
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const dir = path.join(__dirname, '..', '..', 'uploads');
-        cb(null, dir);
-    },
-    filename: (req, file, cb) => {
-        const ext = path.extname(file.originalname).toLowerCase();
-        const uniqueName = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${ext}`;
-        cb(null, uniqueName);
-    },
-});
+// ─── Configuración de multer (Almacenamiento en memoria RAM) ──────────────
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
     const allowed = [
@@ -37,7 +27,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
     storage,
     fileFilter,
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB estricto contra memory exhaustion
 });
 
 // ─── Middleware de autenticación ──────────────────────────────────────────

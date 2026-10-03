@@ -2795,13 +2795,26 @@ export const PatientDashboard = () => {
             </div>
 
             <div className="pt-3 border-t border-stone-200 flex justify-between items-center">
-              <button
-                onClick={() => alert('Descargando copia legal certificada en PDF con timbre institucional...')}
-                className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
-              >
-                <Download className="w-4 h-4" />
-                <span>Descargar PDF</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => alert('Descargando copia legal certificada en PDF con timbre institucional...')}
+                  className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Descargar PDF</span>
+                </button>
+                {selectedDocument.filePath && (selectedDocument.filePath.startsWith('http://') || selectedDocument.filePath.startsWith('https://')) && (
+                  <a
+                    href={selectedDocument.filePath}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-teal-50 hover:bg-teal-100 text-teal-800 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 border border-teal-200"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>Ver Original</span>
+                  </a>
+                )}
+              </div>
 
               <button
                 onClick={() => setSelectedDocument(null)}

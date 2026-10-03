@@ -1,14 +1,16 @@
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const axios = require('axios');
 const FormData = require('form-data');
 const DocumentRepository = require('../repositories/document.repository');
+const SupabaseService = require('./supabase.service');
 const config = require('../config/env');
 
 const AI_SERVICE_URL = config.AI_SERVICE_URL;
 const UPLOAD_DIR = path.join(__dirname, '..', '..', 'uploads');
 
-// Asegurar que la carpeta uploads exista
+// Asegurar que la carpeta uploads exista (para fallback local)
 if (!fs.existsSync(UPLOAD_DIR)) {
     fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
@@ -27,9 +29,8 @@ class DocumentService {
         // Paciente sube su propio documento; médico puede subir a un paciente si lo indica
         const patient_id = patientId || user.id;
 
-        // 1. Datos del archivo (multer ya lo guardó en disco)
-        const fileName = file.filename;
-        const filePath = file.path;
+        // 1. Guardar archivo en Supabase Storage (con fallback local)
+        const { filePath, fileName } = await this._storeFile(file);
         const mimeType = file.mimetype;
         const fileSize = file.size;
 
@@ -50,10 +51,11 @@ class DocumentService {
         });
 
 
-        // 3. Enviar al ai-service
+        // 3. Enviar al ai-service (buffer en memoria o filePath de fallback)
         let aiResult;
+        const aiInput = file.buffer || filePath;
         try {
-            aiResult = await this._sendToAiService(filePath, fileName, mimeType);
+            aiResult = await this._sendToAiService(aiInput, fileName, mimeType);
         } catch (err) {
             // Si la IA falla, dejamos el documento pendiente para revisión manual
             await DocumentRepository.updateDocumentStatus(
@@ -147,13 +149,14 @@ class DocumentService {
         }
 
         const patient_id = patientId || user.id;
-        const fileName = file.filename;
-        const filePath = file.path;
         const mimeType = file.mimetype;
         const fileSize = file.size;
         const title = this._buildTitle(file.originalname);
 
-        // 1. Crear documento en estado TEMP
+        // 1. Guardar archivo en Supabase Storage (con fallback local)
+        const { filePath, fileName } = await this._storeFile(file);
+
+        // 2. Crear documento en estado TEMP
         const doc = await DocumentRepository.createDocument({
             patient_id,
             uploaded_by: user.id,
@@ -167,12 +170,13 @@ class DocumentService {
             status: 'TEMP',
         });
 
-        // 2. Enviar a ai-service con manejo de errores no fatales (ej. imagen borrosa)
+        // 3. Enviar a ai-service con manejo de errores no fatales (ej. imagen borrosa)
         let aiResult = null;
         let isUnreadable = false;
+        const aiInput = file.buffer || filePath;
 
         try {
-            aiResult = await this._sendToAiService(filePath, fileName, mimeType);
+            aiResult = await this._sendToAiService(aiInput, fileName, mimeType);
         } catch (err) {
             console.warn('[analyzeDocument] IA no pudo extraer datos del archivo:', err.message);
             isUnreadable = true;
@@ -405,16 +409,8 @@ class DocumentService {
         // 1. Soft delete en base de datos
         await DocumentRepository.softDelete(tempId);
 
-        // 2. ELIMINAR SIEMPRE el archivo físico del disco
-        let fileDeleted = false;
-        if (doc.file_path && fs.existsSync(doc.file_path)) {
-            try {
-                fs.unlinkSync(doc.file_path);
-                fileDeleted = true;
-            } catch (unlinkErr) {
-                console.error('[discardDocument] Error eliminando archivo físico:', unlinkErr.message);
-            }
-        }
+        // 2. ELIMINAR el archivo físico (Supabase Storage o local)
+        const fileDeleted = await this._removeStoredFile(doc.file_path);
 
         // 3. Auditoría
         await DocumentRepository.logAudit({
@@ -443,13 +439,9 @@ class DocumentService {
 
         for (const doc of expiredDocs) {
             deletedIds.push(doc.id);
-            if (doc.file_path && fs.existsSync(doc.file_path)) {
-                try {
-                    fs.unlinkSync(doc.file_path);
-                    filesRemovedCount++;
-                } catch (err) {
-                    console.error(`[cleanupTempDocuments] No se pudo borrar archivo ${doc.file_path}:`, err.message);
-                }
+            if (doc.file_path) {
+                const removed = await this._removeStoredFile(doc.file_path);
+                if (removed) filesRemovedCount++;
             }
         }
 
@@ -551,9 +543,10 @@ class DocumentService {
 
     // ─── PRIVADOS ───────────────────────────────────────────────────────────
 
-    static async _sendToAiService(filePath, fileName, mimeType) {
+    static async _sendToAiService(fileInput, fileName, mimeType) {
         const form = new FormData();
-        form.append('file', fs.createReadStream(filePath), {
+        const fileContent = Buffer.isBuffer(fileInput) ? fileInput : fs.createReadStream(fileInput);
+        form.append('file', fileContent, {
             filename: fileName,
             contentType: mimeType,
         });
@@ -570,6 +563,65 @@ class DocumentService {
         );
 
         return response.data;
+    }
+
+    /**
+     * Guarda el archivo en Supabase Storage o en disco local como fallback.
+     */
+    static async _storeFile(file) {
+        const fileBuffer = file.buffer || (file.path && fs.existsSync(file.path) ? fs.readFileSync(file.path) : null);
+        const originalName = file.originalname || 'documento';
+        const mimeType = file.mimetype || 'application/octet-stream';
+        const ext = path.extname(originalName).toLowerCase() || '.png';
+        const uniqueName = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${ext}`;
+
+        // 1. Intentar almacenar en Supabase Storage
+        if (SupabaseService.isConfigured() && fileBuffer) {
+            try {
+                const uploadRes = await SupabaseService.uploadFile(fileBuffer, originalName, mimeType);
+                return {
+                    filePath: uploadRes.publicUrl,
+                    fileName: uploadRes.fileName,
+                    isRemote: true,
+                };
+            } catch (err) {
+                console.warn('[DocumentService] Fallo al subir a Supabase Storage, activando fallback local:', err.message);
+            }
+        }
+
+        // 2. Fallback local en carpeta uploads/
+        const localPath = path.join(UPLOAD_DIR, uniqueName);
+        if (fileBuffer) {
+            fs.writeFileSync(localPath, fileBuffer);
+        }
+        return {
+            filePath: localPath,
+            fileName: uniqueName,
+            isRemote: false,
+        };
+    }
+
+    /**
+     * Elimina el archivo físico de Supabase Storage o del disco local según corresponda.
+     */
+    static async _removeStoredFile(filePath) {
+        if (!filePath) return false;
+
+        if (SupabaseService.isSupabaseUrl(filePath)) {
+            await SupabaseService.deleteFile(filePath);
+            return true;
+        }
+
+        if (fs.existsSync(filePath)) {
+            try {
+                fs.unlinkSync(filePath);
+                return true;
+            } catch (err) {
+                console.error('[DocumentService] Error eliminando archivo físico local:', err.message);
+            }
+        }
+
+        return false;
     }
 
     /**

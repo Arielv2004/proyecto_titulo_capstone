@@ -20,4 +20,9 @@ module.exports = {
   },
   AI_SERVICE_URL: process.env.AI_SERVICE_URL || 'http://localhost:8000',
   CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  SUPABASE: {
+    URL: process.env.SUPABASE_URL || '',
+    SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+    BUCKET: process.env.SUPABASE_BUCKET || 'medical-documents',
+  },
 };

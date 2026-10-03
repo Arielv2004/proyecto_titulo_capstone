@@ -197,5 +197,8 @@ export const mapDocumentFromApi = (doc) => {
     },
     encryption: 'AES-256-GCM',
     confidence: doc.ocr_confidence ? `${doc.ocr_confidence}%` : '—',
+    filePath: doc.file_path || null,
+    fileName: doc.file_name || null,
+    mimeType: doc.mime_type || null,
   };
 };
