@@ -54,8 +54,6 @@ export const LoginPage = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-stone-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors">
-      {/* Franja superior institucional bicolor */}
-      <div className="h-1.5 w-full chile-banner" />
 
       {/* Encabezado Superior */}
       <header className="border-b border-stone-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-6 py-3.5 flex items-center justify-between shadow-xs">

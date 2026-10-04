@@ -18,8 +18,6 @@ export const NotFoundPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-stone-50 text-slate-800">
-      {/* Franja institucional */}
-      <div className="h-1.5 w-full chile-banner" />
 
       {/* Header simple */}
       <header className="border-b border-stone-200/80 bg-white px-6 py-3.5 flex items-center justify-between">

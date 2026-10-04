@@ -10,7 +10,6 @@ export const TermsPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-stone-50 text-slate-800">
-      <div className="h-1.5 w-full chile-banner" />
 
       <header className="border-b border-stone-200/80 bg-white px-6 py-3.5 flex items-center justify-between sticky top-0 z-30 shadow-xs">
         <div className="flex items-center gap-3">

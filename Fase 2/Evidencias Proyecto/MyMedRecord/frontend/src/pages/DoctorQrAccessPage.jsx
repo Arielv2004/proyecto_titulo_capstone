@@ -326,8 +326,6 @@ export const DoctorQrAccessPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-stone-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors">
-      {/* Franja Institucional Bicolor */}
-      <div className="h-1.5 w-full chile-banner" />
 
       {/* Header */}
       <header className="border-b border-stone-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-4 sm:px-8 py-3.5 flex items-center justify-between sticky top-0 z-30 shadow-xs">
