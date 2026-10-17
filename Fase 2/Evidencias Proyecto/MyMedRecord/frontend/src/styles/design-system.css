@@ -261,79 +261,120 @@ html.dark {
   gap: 1.5rem;
   min-width: 0;
 }
-.mm-overview-grid {
-  display: grid;
-  grid-template-columns: 1.25fr 1fr;
-  gap: 1.5rem;
-  margin-block: 1.5rem;
-}
 .mm-content-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr);
+  align-items: start;
   gap: 1.5rem;
 }
-.mm-health-card {
-  color: #fff;
-  background: #173d4b;
-  border-radius: 1.15rem;
-  padding: 1.75rem;
-  position: relative;
-  overflow: hidden;
-}
-.mm-health-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.mm-health-card .mm-eyebrow {
-  color: #b3ddd5;
-}
-.mm-health-card h2 {
-  font-size: 1.8rem;
-  font-weight: 500;
-  line-height: 1.25;
-  letter-spacing: -0.03em;
-  margin-top: 1rem;
-}
-.mm-health-card > p {
-  color: #cfdfdf;
-  max-width: 29rem;
-  font-size: 0.875rem;
-  margin-top: 0.65rem;
-}
-.mm-health-facts {
+.mm-onboarding-hero {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.2rem;
-  border-top: 1px solid #ffffff30;
-  margin-block: 1.5rem;
-  padding-top: 1.2rem;
+  grid-template-columns: minmax(0, 1.3fr) minmax(17rem, 0.8fr);
+  gap: clamp(1.5rem, 4vw, 4rem);
+  background: #17324d;
+  color: #fff;
+  border-radius: 1.15rem;
+  padding: clamp(1.5rem, 4vw, 3rem);
 }
-.mm-health-facts dt {
-  color: #bdd8d6;
-  font-size: 0.8125rem;
+.mm-onboarding-intro {
+  align-self: center;
 }
-.mm-health-facts dd {
-  font-size: 1.05rem;
-  font-weight: 600;
-  margin-top: 0.2rem;
+.mm-onboarding-intro .mm-eyebrow {
+  color: #9de5d9;
 }
-.mm-health-footnote {
-  display: block;
+.mm-onboarding-intro h1 {
+  max-width: 16ch;
   margin-top: 0.85rem;
-  color: #bdd8d6;
-  font-size: 0.75rem;
+  font-size: clamp(2rem, 4.5vw, 3rem);
+  font-weight: 650;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+}
+.mm-onboarding-intro > p:not(.mm-eyebrow) {
+  max-width: 37rem;
+  margin-top: 1rem;
+  color: #e3edf0;
+  font-size: 1rem;
+}
+.mm-onboarding-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+}
+.mm-button--hero-outline {
+  border-color: #b9d2dd;
+  color: #fff;
+  background: transparent;
+}
+.mm-button--hero-outline:hover {
+  background: #ffffff1c;
+}
+.mm-onboarding-records {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  margin-top: 1rem;
+  color: #b6e7de;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.25rem;
+}
+.mm-onboarding-steps {
+  align-self: stretch;
+  padding: 1.5rem;
+  border: 1px solid #ffffff2e;
+  border-radius: 1rem;
+  background: #ffffff0d;
+}
+.mm-onboarding-steps-title {
+  color: #b6e7de;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.mm-onboarding-steps ol {
+  display: grid;
+  gap: 1.1rem;
+  margin-top: 1.35rem;
+}
+.mm-onboarding-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+}
+.mm-onboarding-steps li > span {
+  display: inline-flex;
+  flex: 0 0 1.7rem;
+  align-items: center;
+  justify-content: center;
+  height: 1.7rem;
+  border-radius: 50%;
+  background: #d7f3eb;
+  color: #17324d;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+.mm-onboarding-steps strong {
+  display: block;
+  line-height: 1.35;
+}
+.mm-onboarding-steps li p {
+  color: #d8e7eb;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  margin-top: 0.2rem;
 }
 .mm-share-card {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
 }
-.mm-share-card > .mm-icon {
-  margin-bottom: 1.5rem;
-}
 .mm-share-actions {
-  margin-top: auto;
+  margin-top: 0.3rem;
 }
 .mm-icon {
   color: var(--accent);
@@ -413,35 +454,6 @@ html.dark {
   color: var(--muted);
   font-size: 0.8125rem;
 }
-.mm-document-copy .mm-badge {
-  margin-top: 0.25rem;
-}
-.mm-medication {
-  display: flex;
-  gap: 0.8rem;
-  padding: 1.1rem 0;
-  border-top: 1px solid var(--line);
-}
-.mm-medication > svg {
-  flex-shrink: 0;
-  margin-top: 0.2rem;
-}
-.mm-medication > div {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.3rem;
-}
-.mm-medication strong {
-  color: var(--ink);
-  font-weight: 600;
-  font-size: 0.9375rem;
-}
-.mm-medication p {
-  font-size: 0.875rem;
-}
 .mm-category-list button {
   display: flex;
   width: 100%;
@@ -482,14 +494,6 @@ html.dark {
 }
 .mm-summary-list + .mm-button {
   margin-top: 1rem;
-}
-.mm-review-card {
-  border-color: color-mix(in srgb, var(--warning) 30%, var(--line));
-}
-.mm-review-card > p {
-  font-size: 0.875rem;
-  color: var(--muted);
-  margin-block: 1rem;
 }
 .mm-empty {
   display: flex;
@@ -878,19 +882,25 @@ textarea {
   .mm-page-header .mm-actions > .mm-button {
     width: 100%;
   }
-  .mm-overview-grid,
   .mm-content-grid {
     grid-template-columns: 1fr;
     gap: 1rem;
+  }
+  .mm-onboarding-hero {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  .mm-onboarding-actions > .mm-button {
+    flex: 1 1 12rem;
+  }
+  .mm-onboarding-steps {
+    padding: 1.15rem;
   }
   .mm-card {
     padding: 1.15rem;
   }
   .mm-stack {
     gap: 1rem;
-  }
-  .mm-health-card {
-    padding: 1.5rem;
   }
   .mm-notice {
     flex-wrap: wrap;

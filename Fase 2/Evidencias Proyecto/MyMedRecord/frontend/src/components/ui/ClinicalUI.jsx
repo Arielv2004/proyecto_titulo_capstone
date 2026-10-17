@@ -1,5 +1,5 @@
 import React, { useId } from 'react';
-import { AlertCircle, Check, Clock, FileText, LoaderCircle } from 'lucide-react';
+import { AlertCircle, Clock, FileText, LoaderCircle } from 'lucide-react';
 
 export function Button({ variant = 'primary', className = '', children, ...props }) {
   return (
@@ -52,14 +52,14 @@ export function StatusBadge({ tone = 'neutral', children, icon: Icon }) {
 export function DocumentStatus({ status }) {
   if (['CONFIRMADO', 'CONFIRMADA'].includes(status))
     return (
-      <StatusBadge tone="success" icon={Check}>
-        Confirmado al guardar
+      <StatusBadge icon={FileText}>
+        Documento guardado
       </StatusBadge>
     );
   if (['PENDIENTE', 'PENDIENTE_REVISION'].includes(status))
     return (
       <StatusBadge tone="warning" icon={Clock}>
-        Pendiente de revisión
+        Extracción pendiente
       </StatusBadge>
     );
   if (status === 'PROCESANDO')
@@ -70,7 +70,7 @@ export function DocumentStatus({ status }) {
         No se pudo procesar
       </StatusBadge>
     );
-  return <StatusBadge>Revisión no informada</StatusBadge>;
+  return <StatusBadge>Estado de carga no informado</StatusBadge>;
 }
 
 export function EmptyState({ icon: Icon = FileText, title, description, action }) {

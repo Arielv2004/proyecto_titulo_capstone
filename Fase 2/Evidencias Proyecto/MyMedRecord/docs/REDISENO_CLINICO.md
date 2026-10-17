@@ -12,9 +12,9 @@ No se modifican servicios backend, endpoints, esquema de PostgreSQL ni reglas de
 
 | Vista | Datos existentes | Jerarquía y estados |
 | --- | --- | --- |
-| Inicio paciente | Sesión, perfil, documentos, recetas con vigencia, permisos emitidos | Estado de ficha → resumen personal y compartir → actividad → medicamentos documentados y categorías. Carga, error, ficha incompleta y ausencia de documentos. |
-| Documentos | Lista de documentos y detalle estructurado | Búsqueda y categorías → título completo → institución, profesional y fechas → estado de confirmación → abrir/eliminar errores. |
-| Mi ficha | Identidad, grupo sanguíneo, previsión, alergias, condiciones, medicamentos/cirugías declarados y contacto de emergencia | Datos de identificación → salud y contacto → antecedentes. Edición conserva el contacto y la declaración de donación existentes. |
+| Inicio paciente | Documentos subidos y permisos emitidos | Propuesta de valor → subir y compartir → pasos para comenzar → acceso a Mi ficha → documentos recientes, permisos y categorías. Carga, error y ausencia de documentos. Los antecedentes personales permanecen en Mi perfil. |
+| Mi ficha | Lista de documentos y detalle estructurado | Búsqueda y categorías → título completo → institución, profesional y fechas → estado técnico de carga → abrir/eliminar errores. El visor muestra datos extraídos sin clasificar los resultados de laboratorio como normales o anormales. |
+| Mi perfil | Identidad, grupo sanguíneo, previsión, alergias, condiciones, medicamentos/cirugías declarados y contacto de emergencia | Datos de identificación → salud y contacto → antecedentes. Edición conserva el contacto y la declaración de donación existentes. |
 | Compartir y accesos | Pases QR/directos y bitácora del paciente | Permisos emitidos → vigencia/revocación → actividad. Carga y errores diferenciados de una lista vacía. |
 | Portal médico | Permisos directos recibidos | Resumen de permisos → búsqueda por nombre/RUT dentro de pacientes autorizados → estado del consentimiento → abrir ficha/QR. |
 | Ficha compartida directa y QR | Perfil declarado y recetas con medicamentos | Paciente y consentimiento → antecedentes relevantes y contacto → recetas, fecha de emisión, vigencia, profesional y procedencia. |
@@ -40,7 +40,8 @@ No se modifican servicios backend, endpoints, esquema de PostgreSQL ni reglas de
 
 ## Precisión de la información
 
-- `CONFIRMADO` significa confirmación al guardar. La interfaz no lo presenta como validación de un médico.
+- `CONFIRMADO` significa que el documento se guardó. En la ficha aparece como estado técnico de carga, sin sugerir validación médica.
+- El visor de exámenes presenta el valor extraído y el rango de referencia del documento, sin emitir una clasificación clínica. La interpretación corresponde al profesional de salud.
 - Una fecha de vigencia no acredita que el paciente siga usando un medicamento.
 - La confianza OCR no se presenta como exactitud clínica.
 - Antecedentes vacíos se muestran como información no registrada; no equivalen a ausencia de una enfermedad.
@@ -61,6 +62,7 @@ Revisión en Chrome con Playwright, a 360, 390, 768 y 1440 px, temas claro/oscur
 - Carga, ausencia de datos y errores de consultas con respuestas interceptadas en el navegador.
 - Error de guardado de perfil: conserva los campos ingresados y no anuncia éxito. Se verificó que no se borraran el contacto ni la declaración de donación al preparar el envío.
 - Análisis, revisión y confirmación de un documento con respuestas simuladas. Un solo diálogo permanece visible al terminar. No se guardaron documentos de prueba en PostgreSQL.
+- Tras la revisión del equipo se comprobó el nuevo Inicio en escritorio y móvil, temas claro y oscuro; los botones de subida y acceso abren los diálogos existentes, Mi ficha abre documentos, Mi perfil conserva los antecedentes y el visor de examen no clasifica resultados como normales o anormales.
 - Sin desbordamiento horizontal de página en los tamaños revisados. Las tablas clínicas mantienen su propio desplazamiento.
 - Build de producción con Vite correcto. Permanece el aviso por tamaño del paquete principal, que incluye el lector QR.
 - Oxlint sin errores; conserva advertencias en código previo de efectos/escáner y variables no usadas. También se comprobó `no-undef` con entorno de navegador en una configuración temporal.
@@ -72,7 +74,7 @@ La revisión automática complementa la visual; no constituye una certificación
 1. Trabajar desde este checkout, no desde las copias independientes del proyecto.
 2. Iniciar PostgreSQL/pgAdmin con el Compose existente; luego backend y frontend con sus comandos de desarrollo habituales.
 3. Abrir `http://localhost:5173`, iniciar sesión con cuentas locales y revisar ambos roles.
-4. En paciente: probar Inicio → Documentos → Mi ficha → Accesos; abrir/cerrar los diálogos con teclado, alternar tema y cambiar ancho.
+4. En paciente: probar Inicio → Mi ficha (documentos) → Mi perfil (datos personales) → Accesos; abrir/cerrar los diálogos con teclado, alternar tema y cambiar ancho.
 5. En médico: buscar por nombre/RUT, abrir un permiso vigente, comprobar fechas/procedencia y finalizar la consulta.
 6. Ejecutar `npm run build` y `npm run lint` dentro de `frontend` antes de integrar.
 

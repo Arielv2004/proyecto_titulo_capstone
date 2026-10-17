@@ -14,7 +14,7 @@ import { Navbar } from '../components/common/Navbar';
 import { BottomNav } from '../components/common/BottomNav';
 import { PatientProfile } from '../components/patient/PatientProfile';
 import { PatientHome } from '../components/patient/PatientHome';
-import { SectionNav, DocumentStatus, Notice, PageHeader, Button, LoadingState } from '../components/ui/ClinicalUI';
+import { SectionNav, Notice, PageHeader, Button, LoadingState } from '../components/ui/ClinicalUI';
 
 
 export const PatientDashboard = () => {
@@ -639,37 +639,6 @@ export const PatientDashboard = () => {
     ];
   }, [documents]);
 
-  // Tratamientos farmacológicos activos (recetas vigentes a la fecha de hoy)
-  const activeTreatments = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    return documents
-      .filter((doc) => {
-        const isReceta = doc.category === 'RECETA';
-        const isStatusValid =
-          doc.status === 'CONFIRMADA' ||
-          doc.status === 'CONFIRMADO' ||
-          doc.status === 'PENDIENTE' ||
-          doc.status === 'PENDIENTE_REVISION';
-        const rawDate = doc.extractedData?.validUntilRaw || doc.validUntilRaw;
-
-        if (!isReceta || !isStatusValid || !rawDate) return false;
-
-        const validUntil = new Date(rawDate);
-        validUntil.setHours(23, 59, 59, 999);
-        return validUntil >= today;
-      })
-      .flatMap((doc) =>
-        (doc.extractedData?.medicamentos || []).map((med) => ({
-          ...med,
-          documentId: doc.id,
-          validUntil: doc.extractedData?.vigenciaHasta || doc.validUntil,
-          validUntilRaw: doc.extractedData?.validUntilRaw || doc.validUntilRaw,
-        }))
-      );
-  }, [documents]);
-
   // Documentos filtrados
   const filteredDocuments = useMemo(() => {
     return documents.filter((doc) => {
@@ -1143,8 +1112,8 @@ export const PatientDashboard = () => {
       />
 
       <div className="hidden md:block mm-desktop-nav"><SectionNav value={currentTab} onChange={setCurrentTab} items={[
-        {id:'home',label:'Inicio',icon:Home}, {id:'records',label:'Documentos',icon:FileText},
-        {id:'audit',label:'Accesos',icon:ShieldCheck}, {id:'profile',label:'Mi ficha',icon:User}, {id:'help',label:'Ayuda',icon:HelpCircle}
+        {id:'home',label:'Inicio',icon:Home}, {id:'records',label:'Mi ficha',icon:FileText},
+        {id:'audit',label:'Accesos',icon:ShieldCheck}, {id:'profile',label:'Mi perfil',icon:User}, {id:'help',label:'Ayuda',icon:HelpCircle}
       ]} /></div>
 
       <main id="main-content" tabIndex={-1} className="mm-shell mm-patient-shell space-y-6">
@@ -1152,11 +1121,10 @@ export const PatientDashboard = () => {
         {/* PESTAÑA 1: INICIO (HOME PRINCIPAL) */}
         {/* ========================================================================= */}
         {currentTab === 'home' && <PatientHome
-          user={user} profile={patientProfile} profileLoading={profileLoading} profileError={profileError}
-          documents={documents} loading={loadingDocs} error={docsError} treatments={activeTreatments}
-          grants={myGrants} loadingGrants={loadingGrants} grantsError={grantsError} categories={clinicalPillars} saved={showSuccessAlert}
+          documents={documents} loading={loadingDocs} error={docsError}
+          grants={myGrants} loadingGrants={loadingGrants} grantsError={grantsError} categories={clinicalPillars}
           onUpload={handleOpenUploadModal} onShare={handleOpenDirectShare} onQr={() => setShowQrModal(true)}
-          onProfile={() => setCurrentTab('profile')} onRecords={() => { setSelectedCategory('ALL'); setCurrentTab('records'); }}
+          onRecords={() => { setSelectedCategory('ALL'); setCurrentTab('records'); }}
           onAccess={() => setCurrentTab('audit')} onDocument={setSelectedDocument} onCategory={handlePillarClick}
         />}
 
@@ -1577,8 +1545,10 @@ export const PatientDashboard = () => {
               </button>
             </div>
 
-            <DocumentStatus status={selectedDocument.status} />
-            <Notice title="Comprueba la información extraída">La confirmación al guardar no acredita una revisión médica. Contrasta los datos con el documento original.</Notice>
+            <Notice title="Información extraída del documento">
+              Estos datos se detectaron automáticamente. Compruébalos con el documento original;
+              su interpretación corresponde al profesional de salud.
+            </Notice>
 
             {/* Contenido según categoría */}
             <div className="space-y-3 text-xs">
@@ -1623,7 +1593,6 @@ export const PatientDashboard = () => {
                           <th className="py-2">Parámetro</th>
                           <th className="py-2">Resultado</th>
                           <th className="py-2">Rango Referencia</th>
-                          <th className="py-2">Estado</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-stone-100">
@@ -1632,11 +1601,6 @@ export const PatientDashboard = () => {
                             <td className="py-2.5 font-bold text-ink">{p.nombre}</td>
                             <td className="py-2.5 font-mono text-teal-800 font-bold">{p.valor}</td>
                             <td className="py-2.5 text-muted">{p.rangoRef}</td>
-                            <td className="py-2.5">
-                              <span className="px-2 py-0.5 rounded text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                                {p.estado}
-                              </span>
-                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -1744,11 +1708,9 @@ export const PatientDashboard = () => {
                         ? 'Documento no reconocido como médico'
                         : tempDocument?.isUnreadable
                           ? 'Revisión del Documento'
-                          : 'Revisar y Confirmar'
+                          : 'Revisar datos antes de guardar'
                     )}
-                    {uploadModalState === 'confirmed' && (
-                      confirmedStatus === 'CONFIRMADO' ? '¡Guardado Exitoso!' : '¡Guardado para Revisión!'
-                    )}
+                    {uploadModalState === 'confirmed' && 'Documento guardado'}
                   </h3>
                   <p className="text-xs text-muted dark:text-muted">
                     {uploadModalState === 'idle' && 'La IA leerá tu receta antes de guardarla en tu historial'}
@@ -1762,8 +1724,8 @@ export const PatientDashboard = () => {
                     )}
                     {uploadModalState === 'confirmed' && (
                       confirmedStatus === 'CONFIRMADO'
-                        ? 'Tu receta ya forma parte de tu ficha clínica activa'
-                        : 'El documento quedó en tu historial pendiente de revisión'
+                        ? 'Tu documento ya está disponible en Mi ficha'
+                        : 'Tu documento quedó en Mi ficha; la extracción sigue pendiente'
                     )}
                   </p>
                 </div>
@@ -1809,11 +1771,11 @@ export const PatientDashboard = () => {
                   <div className="p-4 bg-canvas dark:bg-surface-muted/60 rounded-2xl border border-line dark:border-line/80 space-y-2">
                     <span className="font-bold text-ink dark:text-body flex items-center gap-1.5">
                       <Sparkles className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                      ¿Cómo funciona la confirmación previa?
+                      ¿Cómo funciona la carga?
                     </span>
                     <p className="text-xs text-muted dark:text-body leading-relaxed">
                       1. <strong>Lectura Inteligente:</strong> Nuestro motor OCR lee el texto del médico.<br />
-                      2. <strong>Tu Validación:</strong> Podrás ver y corregir los medicamentos antes de guardarlos.<br />
+                      2. <strong>Revisión de datos:</strong> Podrás ver y corregir los datos extraídos antes de guardarlos. Esto no sustituye la interpretación médica.<br />
                       3. <strong>Seguridad Ley 21.668:</strong> Si cancelas, el archivo temporal se borra de inmediato.
                     </p>
                   </div>
@@ -2099,14 +2061,12 @@ export const PatientDashboard = () => {
                     <CheckCircle2 className="w-8 h-8" />
                   </div>
                   <h4 className="text-base font-extrabold text-ink dark:text-ink">
-                    {confirmedStatus === 'CONFIRMADO'
-                      ? '¡Receta confirmada con éxito!'
-                      : '¡Documento guardado para revisión!'}
+                    Documento guardado en Mi ficha
                   </h4>
                   <p className="text-xs text-muted dark:text-muted max-w-xs mx-auto">
                     {confirmedStatus === 'CONFIRMADO'
-                      ? 'El documento y tus medicamentos ya están registrados y validados en tu ficha clínica.'
-                      : 'El documento quedó guardado en tu historial como pendiente para que puedas revisarlo más adelante.'}
+                      ? 'Los datos extraídos quedan disponibles para consultar y compartir con tu médico.'
+                      : 'El documento quedó guardado; sus datos extraídos siguen pendientes de completar.'}
                   </p>
                   <span
                     className={`inline-block px-3 py-1 rounded-full text-xs font-mono ${
@@ -2149,7 +2109,7 @@ export const PatientDashboard = () => {
                   ) : (
                     <>
                       <Check className="w-3.5 h-3.5 text-teal-300" />
-                      <span>Confirmar y Guardar</span>
+                      <span>Guardar en Mi ficha</span>
                     </>
                   )}
                 </button>
@@ -2530,7 +2490,7 @@ export const PatientDashboard = () => {
       {/* MODAL: EDITAR / COMPLETAR ANTECEDENTES DE SALUD (ONBOARDING) */}
       {/* ========================================================================= */}
       {showProfileEditModal && (
-        <DialogFrame label="Editar ficha de salud" onClose={savingProfile ? undefined : () => setShowProfileEditModal(false)} className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+        <DialogFrame label="Editar perfil de salud" onClose={savingProfile ? undefined : () => setShowProfileEditModal(false)} className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="w-full max-w-xl bg-surface dark:bg-surface border border-line dark:border-line rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-start justify-between pb-3 border-b border-stone-100 dark:border-line">
               <div className="flex items-center gap-3">

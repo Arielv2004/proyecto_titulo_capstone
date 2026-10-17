@@ -28,8 +28,8 @@ export function PatientRecords({
     <div className="mm-stack">
       <PageHeader
         eyebrow="TU HISTORIAL"
-        title="Documentos de salud"
-        description="Encuentra tus recetas, exámenes y atenciones. Revisa su procedencia y estado antes de compartirlos."
+        title="Mi ficha"
+        description="Encuentra los documentos que has subido y consulta su fecha y procedencia antes de compartirlos."
         actions={
           <Button onClick={onUpload}>
             <Upload size={18} />

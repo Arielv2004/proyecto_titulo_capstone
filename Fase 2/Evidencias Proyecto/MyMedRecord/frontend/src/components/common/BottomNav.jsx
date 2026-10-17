@@ -71,7 +71,7 @@ export const BottomNav = ({
       {/* BARRA DE NAVEGACIÓN INFERIOR FIJA (ESTILO APP NATIVA MÓVIL) */}
       {/* ========================================================================= */}
       <nav className="mm-mobile-nav" aria-label="Secciones del portal móvil">
-        {[{id:'home',label:'Inicio',icon:Home},{id:'records',label:'Documentos',icon:FileText},{id:'upload',label:'Subir',icon:Plus},{id:'audit',label:'Accesos',icon:ShieldCheck},{id:'profile',label:'Mi ficha',icon:User}].map(({id,label,icon:Icon}) => <button key={id} type="button" aria-current={activeTab === id ? 'page' : undefined} className={id === 'upload' ? 'mm-add' : ''} onClick={() => id === 'upload' ? setShowActionSheet(true) : onTabChange ? onTabChange(id) : navigate('/patient')}><Icon size={21} aria-hidden="true" /><span>{label}</span></button>)}
+        {[{id:'home',label:'Inicio',icon:Home},{id:'records',label:'Mi ficha',icon:FileText},{id:'upload',label:'Subir',icon:Plus},{id:'audit',label:'Accesos',icon:ShieldCheck},{id:'profile',label:'Mi perfil',icon:User}].map(({id,label,icon:Icon}) => <button key={id} type="button" aria-current={activeTab === id ? 'page' : undefined} className={id === 'upload' ? 'mm-add' : ''} onClick={() => id === 'upload' ? setShowActionSheet(true) : onTabChange ? onTabChange(id) : navigate('/patient')}><Icon size={21} aria-hidden="true" /><span>{label}</span></button>)}
       </nav>
 
       {/* ========================================================================= */}

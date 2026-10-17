@@ -16,24 +16,24 @@ export function PatientProfile({ user, profile, loading, error, onEdit, saved })
     <div className="mm-stack">
       <PageHeader
         eyebrow="ANTECEDENTES PERSONALES"
-        title="Mi ficha de salud"
-        description="Mantén tus datos al día para compartirlos en tu próxima consulta."
+        title="Mi perfil de salud"
+        description="Mantén tus datos personales y antecedentes al día para compartirlos en tu próxima consulta."
         actions={
           <Button onClick={onEdit} disabled={loading || !!error}>
             <Edit3 size={18} />
-            Editar ficha
+            Editar perfil
           </Button>
         }
       />
       {saved && (
-        <Notice title="Ficha actualizada" tone="success">
+        <Notice title="Perfil actualizado" tone="success">
           Tus antecedentes se guardaron correctamente.
         </Notice>
       )}
       {loading ? (
-        <LoadingState label="Cargando ficha de salud" />
+        <LoadingState label="Cargando perfil de salud" />
       ) : error ? (
-        <Notice tone="danger" title="No pudimos cargar tu ficha">
+        <Notice tone="danger" title="No pudimos cargar tu perfil">
           {error}
         </Notice>
       ) : (

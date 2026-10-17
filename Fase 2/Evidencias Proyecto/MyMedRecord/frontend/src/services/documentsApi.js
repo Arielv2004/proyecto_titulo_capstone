@@ -51,7 +51,7 @@ export const documentsApi = {
   },
 
   /**
-   * Confirma un documento temporal y crea las recetas o exámenes con los datos validados por el paciente.
+   * Guarda un documento temporal con los datos extraídos que el paciente revisó.
    * @param {string} tempId
    * @param {object} editedData
    * @param {boolean} [wasReviewed=true]
@@ -186,7 +186,6 @@ export const mapDocumentFromApi = (doc) => {
         nombre: it.test_name || it.medication_name,
         valor: it.result_value || it.dosage,
         rangoRef: it.reference_range || '—',
-        estado: it.is_abnormal ? 'ANORMAL' : 'NORMAL',
       })),
       diagnostico: isOther ? 'Sin diagnóstico clínico' : (structured.diagnosis_text || 'Sin diagnóstico registrado'),
       indicaciones: structured.observations || '—',
