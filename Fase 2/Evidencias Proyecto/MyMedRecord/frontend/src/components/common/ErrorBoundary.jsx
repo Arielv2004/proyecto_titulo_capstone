@@ -18,13 +18,13 @@ export class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-stone-50 text-slate-800 flex flex-col items-center justify-center p-6 text-center">
-          <div className="w-full max-w-md bg-white border border-stone-200 rounded-3xl p-6 shadow-xl space-y-4">
+        <div className="min-h-screen bg-canvas text-body flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-full max-w-md bg-surface border border-line rounded-3xl p-6 shadow-xl space-y-4">
             <div className="w-14 h-14 bg-rose-50 border border-rose-200 text-rose-600 rounded-2xl flex items-center justify-center mx-auto">
               <AlertTriangle className="w-7 h-7" />
             </div>
-            <h2 className="text-lg font-bold text-blue-950">Se produjo un error visual</h2>
-            <p className="text-xs text-stone-500">
+            <h2 className="text-lg font-bold text-ink">Se produjo un error visual</h2>
+            <p className="text-xs text-muted">
               Ocurrió un problema al cargar esta vista. Puedes recargar la aplicación para continuar.
             </p>
             <button

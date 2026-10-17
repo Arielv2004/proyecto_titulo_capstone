@@ -1,0 +1,306 @@
+{
+  "date": "2026-10-17",
+  "browser": "Chrome via Playwright",
+  "baseCommit": "8983274",
+  "viewports": [
+    360,
+    390,
+    768,
+    1440
+  ],
+  "themes": [
+    "light",
+    "dark"
+  ],
+  "review": [
+    {
+      "name": "patient-desktop-final",
+      "geometry": {
+        "width": 1440,
+        "scroll": 1440
+      },
+      "axe": []
+    },
+    {
+      "name": "records-desktop",
+      "geometry": {
+        "width": 1440,
+        "scroll": 1440
+      },
+      "axe": []
+    },
+    {
+      "name": "records-mobile",
+      "geometry": {
+        "width": 390,
+        "scroll": 390
+      },
+      "axe": []
+    },
+    {
+      "name": "profile-desktop",
+      "geometry": {
+        "width": 1440,
+        "scroll": 1440
+      },
+      "axe": []
+    },
+    {
+      "name": "profile-mobile",
+      "geometry": {
+        "width": 390,
+        "scroll": 390
+      },
+      "axe": []
+    },
+    {
+      "name": "access-desktop",
+      "geometry": {
+        "width": 1440,
+        "scroll": 1440
+      },
+      "axe": []
+    },
+    {
+      "name": "access-mobile",
+      "geometry": {
+        "width": 390,
+        "scroll": 390
+      },
+      "axe": []
+    },
+    {
+      "name": "help-desktop",
+      "geometry": {
+        "width": 1440,
+        "scroll": 1440
+      },
+      "axe": []
+    },
+    {
+      "name": "help-mobile",
+      "geometry": {
+        "width": 390,
+        "scroll": 390
+      },
+      "axe": []
+    },
+    {
+      "name": "profile-dialog",
+      "geometry": {
+        "width": 1440,
+        "scroll": 1440
+      },
+      "axe": []
+    },
+    {
+      "name": "dialog-focus",
+      "inside": true
+    },
+    {
+      "name": "dialog-escape",
+      "closed": true,
+      "restored": true
+    },
+    {
+      "name": "upload-dialog",
+      "geometry": {
+        "width": 1440,
+        "scroll": 1440
+      },
+      "axe": []
+    },
+    {
+      "name": "share-dialog",
+      "geometry": {
+        "width": 1440,
+        "scroll": 1440
+      },
+      "axe": []
+    },
+    {
+      "name": "qr-dialog",
+      "geometry": {
+        "width": 1440,
+        "scroll": 1440
+      },
+      "axe": []
+    },
+    {
+      "name": "document-dialog",
+      "geometry": {
+        "width": 1440,
+        "scroll": 1440
+      },
+      "axe": []
+    },
+    {
+      "name": "patient-dark-final",
+      "geometry": {
+        "width": 1440,
+        "scroll": 1440
+      },
+      "axe": []
+    },
+    {
+      "name": "patient-tablet-dark",
+      "geometry": {
+        "width": 768,
+        "scroll": 768
+      },
+      "axe": []
+    },
+    {
+      "name": "patient-small-dark",
+      "geometry": {
+        "width": 360,
+        "scroll": 360
+      },
+      "axe": []
+    },
+    {
+      "name": "mobile-upload-sheet",
+      "geometry": {
+        "width": 360,
+        "scroll": 360
+      },
+      "axe": []
+    },
+    {
+      "name": "records-small-dark",
+      "geometry": {
+        "width": 360,
+        "scroll": 360
+      },
+      "axe": []
+    },
+    {
+      "name": "access-small-dark",
+      "geometry": {
+        "width": 360,
+        "scroll": 360
+      },
+      "axe": []
+    },
+    {
+      "name": "doctor-desktop",
+      "geometry": {
+        "width": 1440,
+        "scroll": 1440
+      },
+      "axe": []
+    },
+    {
+      "name": "doctor-search-empty",
+      "geometry": {
+        "width": 1440,
+        "scroll": 1440
+      },
+      "axe": []
+    },
+    {
+      "name": "doctor-mobile",
+      "geometry": {
+        "width": 390,
+        "scroll": 390
+      },
+      "axe": []
+    },
+    {
+      "name": "doctor-mobile-dark",
+      "geometry": {
+        "width": 390,
+        "scroll": 390
+      },
+      "axe": []
+    },
+    {
+      "name": "shared-denied",
+      "geometry": {
+        "width": 390,
+        "scroll": 390
+      },
+      "axe": []
+    },
+    {
+      "name": "qr-access-mobile",
+      "geometry": {
+        "width": 390,
+        "scroll": 390
+      },
+      "axe": []
+    }
+  ],
+  "states": [
+    {
+      "name": "patient-empty",
+      "violations": []
+    },
+    {
+      "name": "patient-errors",
+      "violations": []
+    },
+    {
+      "name": "patient-loading",
+      "violations": []
+    },
+    {
+      "name": "profile-save-error",
+      "violations": []
+    },
+    {
+      "name": "upload-review",
+      "violations": []
+    },
+    {
+      "name": "upload-confirmed",
+      "violations": []
+    },
+    {
+      "name": "shared-record-mobile",
+      "violations": []
+    },
+    {
+      "name": "shared-record-mobile-dark",
+      "violations": []
+    },
+    {
+      "name": "shared-record-desktop-dark",
+      "violations": []
+    },
+    {
+      "name": "doctor-error",
+      "violations": []
+    },
+    {
+      "name": "doctor-empty",
+      "violations": []
+    }
+  ],
+  "extra": [
+    {
+      "name": "expiry-clears-clinical-data",
+      "pass": true
+    },
+    {
+      "name": "qr-manual-shared-print-and-finish",
+      "pass": true
+    },
+    {
+      "name": "login",
+      "violations": []
+    },
+    {
+      "name": "register",
+      "violations": []
+    }
+  ],
+  "productionBuild": "passed",
+  "lintErrors": 0,
+  "lintWarnings": 14,
+  "limitations": [
+    "Physical camera and real OCR/Gemini not exercised",
+    "Write operations intercepted in browser; no test clinical records persisted",
+    "Automated accessibility checks are not a certification"
+  ]
+}

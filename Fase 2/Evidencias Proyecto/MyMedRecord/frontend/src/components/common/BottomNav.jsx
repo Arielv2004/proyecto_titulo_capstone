@@ -1,35 +1,15 @@
+import { DialogFrame } from '../ui/DialogFrame';
 import React, { useState, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import {
-  Home,
-  Clock,
-  Plus,
-  HelpCircle,
-  User,
-  Camera,
-  Upload,
-  HeartPulse,
-  X,
-  ChevronRight,
-  ShieldCheck,
-  FileText,
-  Sparkles,
-  Info,
-  MapPin,
-  QrCode
-} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Home, Plus, HelpCircle, User, Camera, Upload, X, ChevronRight, ShieldCheck, FileText, Sparkles } from 'lucide-react';
 
 export const BottomNav = ({
   activeTab = 'home',
   onTabChange,
-  onOpenUploadModal,
-  onOpenQrModal,
   onFileSelected,
   isUploading = false,
-  hasActiveGrants = false,
 }) => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [showActionSheet, setShowActionSheet] = useState(false);
   const [showFaqModal, setShowFaqModal] = useState(false);
 
@@ -90,92 +70,35 @@ export const BottomNav = ({
       {/* ========================================================================= */}
       {/* BARRA DE NAVEGACIÓN INFERIOR FIJA (ESTILO APP NATIVA MÓVIL) */}
       {/* ========================================================================= */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-stone-200/90 dark:border-slate-800 px-3 py-2 sm:hidden shadow-lg pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-        <div className="flex items-center justify-around relative">
-          {/* Tab 1: Inicio */}
-          <button
-            onClick={() => onTabChange ? onTabChange('home') : navigate('/patient')}
-            className={`flex flex-col items-center gap-1 py-1 px-2.5 transition-all cursor-pointer ${activeTab === 'home' ? 'text-blue-900 dark:text-teal-400 font-extrabold' : 'text-stone-400 dark:text-slate-400 hover:text-stone-600 dark:hover:text-slate-200'
-              }`}
-          >
-            <Home className="w-5 h-5" />
-            <span className="text-[10px]">Inicio</span>
-          </button>
-
-          {/* Tab 2: Historial / Documentos */}
-          <button
-            onClick={() => onTabChange ? onTabChange('records') : navigate('/patient')}
-            className={`flex flex-col items-center gap-1 py-1 px-2.5 transition-all cursor-pointer ${activeTab === 'records' ? 'text-blue-900 dark:text-teal-400 font-extrabold' : 'text-stone-400 dark:text-slate-400 hover:text-stone-600 dark:hover:text-slate-200'
-              }`}
-          >
-            <Clock className="w-5 h-5" />
-            <span className="text-[10px]">Historial</span>
-          </button>
-
-          {/* Botón Central Elevado (+) */}
-          <div className="relative -top-5 z-20">
-            <button
-              type="button"
-              onClick={() => setShowActionSheet(true)}
-              className="w-13 h-13 rounded-full bg-gradient-to-tr from-blue-900 via-blue-950 to-teal-800 text-teal-300 flex items-center justify-center shadow-lg shadow-blue-900/30 active:scale-95 transition-all border-4 border-stone-50 dark:border-slate-900 cursor-pointer"
-              aria-label="Acción Rápida"
-            >
-              <Plus className="w-7 h-7 text-teal-300 stroke-[2.5]" />
-            </button>
-          </div>
-
-          {/* Tab 4: Accesos & Auditoría (Ley N° 21.668) */}
-          <button
-            onClick={() => onTabChange ? onTabChange('audit') : navigate('/patient')}
-            className={`flex flex-col items-center gap-1 py-1 px-2.5 transition-all cursor-pointer relative ${
-              activeTab === 'audit' ? 'text-teal-700 dark:text-teal-300 font-extrabold' : 'text-stone-400 dark:text-slate-400 hover:text-stone-600 dark:hover:text-slate-200'
-            }`}
-          >
-            <div className="relative">
-              <ShieldCheck className="w-5 h-5" />
-              {hasActiveGrants && (
-                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900 animate-pulse" />
-              )}
-            </div>
-            <span className="text-[10px]">Accesos</span>
-          </button>
-
-          {/* Tab 5: Mi Perfil */}
-          <button
-            onClick={() => onTabChange ? onTabChange('profile') : navigate('/patient')}
-            className={`flex flex-col items-center gap-1 py-1 px-2.5 transition-all cursor-pointer ${activeTab === 'profile' ? 'text-blue-900 dark:text-teal-400 font-extrabold' : 'text-stone-400 dark:text-slate-400 hover:text-stone-600 dark:hover:text-slate-200'
-              }`}
-          >
-            <User className="w-5 h-5" />
-            <span className="text-[10px]">Mi Perfil</span>
-          </button>
-        </div>
+      <nav className="mm-mobile-nav" aria-label="Secciones del portal móvil">
+        {[{id:'home',label:'Inicio',icon:Home},{id:'records',label:'Documentos',icon:FileText},{id:'upload',label:'Subir',icon:Plus},{id:'audit',label:'Accesos',icon:ShieldCheck},{id:'profile',label:'Mi ficha',icon:User}].map(({id,label,icon:Icon}) => <button key={id} type="button" aria-current={activeTab === id ? 'page' : undefined} className={id === 'upload' ? 'mm-add' : ''} onClick={() => id === 'upload' ? setShowActionSheet(true) : onTabChange ? onTabChange(id) : navigate('/patient')}><Icon size={21} aria-hidden="true" /><span>{label}</span></button>)}
       </nav>
 
       {/* ========================================================================= */}
       {/* ACTION SHEET INFERIOR (DESPLEGABLE AL TOCAR EL BOTÓN +) */}
       {/* ========================================================================= */}
       {showActionSheet && (
-        <div
+        <DialogFrame label="Subir documento" onClose={() => setShowActionSheet(false)}
           onClick={() => setShowActionSheet(false)}
           className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md bg-white dark:bg-slate-900 border-t border-transparent dark:border-slate-800 rounded-t-3xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-200 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+            className="w-full max-w-md bg-surface dark:bg-surface border-t border-transparent dark:border-line rounded-t-3xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-200 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
           >
             {/* Manilla superior decorativa */}
-            <div className="w-12 h-1.5 bg-stone-300 dark:bg-slate-700 rounded-full mx-auto mb-4" />
+            <div className="w-12 h-1.5 bg-stone-300 dark:bg-surface-muted rounded-full mx-auto mb-4" />
 
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-base font-bold text-blue-950 dark:text-slate-100">Acciones Rápidas</h3>
-                <p className="text-xs text-stone-500 dark:text-slate-400">Digitaliza o registra información de salud</p>
+                <h3 className="text-base font-bold text-ink dark:text-ink">Acciones Rápidas</h3>
+                <p className="text-xs text-muted dark:text-muted">Digitaliza o registra información de salud</p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowActionSheet(false)}
-                className="p-1.5 text-stone-400 hover:text-stone-600 dark:hover:text-slate-200 rounded-full bg-stone-100 dark:bg-slate-800 cursor-pointer"
+                aria-label="Cerrar acciones"
+                className="p-1.5 text-muted hover:text-muted dark:hover:text-slate-200 rounded-full bg-surface-muted dark:bg-surface-muted cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -196,7 +119,7 @@ export const BottomNav = ({
                   <span className="text-xs font-bold text-teal-950 dark:text-teal-200 flex items-center gap-1.5">
                     Tomar Foto con la Cámara <Sparkles className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
                   </span>
-                  <span className="text-[11px] text-teal-800/80 dark:text-teal-300/80 block mt-0.5">
+                  <span className="text-xs text-teal-800/80 dark:text-teal-300/80 block mt-0.5">
                     Fotografía recetas o exámenes en papel para digitalizarlos con IA.
                   </span>
                 </div>
@@ -208,16 +131,16 @@ export const BottomNav = ({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
-                className="w-full p-4 bg-blue-50/70 hover:bg-blue-100/70 dark:bg-slate-800/80 dark:hover:bg-slate-800 border border-blue-200 dark:border-slate-700/80 rounded-2xl flex items-center gap-3.5 transition-all text-left cursor-pointer group"
+                className="w-full p-4 bg-blue-50/70 hover:bg-blue-100/70 dark:bg-surface-muted/80 dark:hover:bg-slate-800 border border-blue-200 dark:border-line/80 rounded-2xl flex items-center gap-3.5 transition-all text-left cursor-pointer group"
               >
                 <div className="w-11 h-11 rounded-xl bg-blue-900 text-white flex items-center justify-center shadow-xs shrink-0">
                   <Upload className="w-5 h-5" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="text-xs font-bold text-blue-950 dark:text-slate-100 block">
+                  <span className="text-xs font-bold text-ink dark:text-ink block">
                     Cargar Archivo PDF o Galería
                   </span>
-                  <span className="text-[11px] text-blue-800/80 dark:text-slate-300/80 block mt-0.5">
+                  <span className="text-xs text-blue-800/80 dark:text-body/80 block mt-0.5">
                     Selecciona informes médicos digitales en PDF o imágenes de tu dispositivo.
                   </span>
                 </div>
@@ -225,7 +148,7 @@ export const BottomNav = ({
               </button>
             </div>
           </div>
-        </div>
+        </DialogFrame>
       )}
 
       {/* ========================================================================= */}
@@ -233,20 +156,20 @@ export const BottomNav = ({
       {/* ========================================================================= */}
       {showFaqModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-stone-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-stone-200 dark:border-slate-800">
+          <div className="w-full max-w-lg bg-surface dark:bg-surface border border-line dark:border-line rounded-3xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-line dark:border-line">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 bg-blue-50 dark:bg-blue-950/60 text-blue-900 dark:text-teal-300 rounded-xl">
                   <HelpCircle className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-blue-950 dark:text-slate-100">Centro de Ayuda & FAQ</h3>
-                  <p className="text-xs text-stone-500 dark:text-slate-400">Preguntas frecuentes y soporte MyMedRecord</p>
+                  <h3 className="text-base font-bold text-ink dark:text-ink">Centro de Ayuda & FAQ</h3>
+                  <p className="text-xs text-muted dark:text-muted">Preguntas frecuentes y soporte MyMedRecord</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowFaqModal(false)}
-                className="p-1.5 text-stone-400 hover:text-stone-600 dark:hover:text-slate-200 rounded-xl hover:bg-stone-100 dark:hover:bg-slate-800 cursor-pointer"
+                className="p-1.5 text-muted hover:text-muted dark:hover:text-slate-200 rounded-xl hover:bg-surface-muted dark:hover:bg-slate-800 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -256,17 +179,17 @@ export const BottomNav = ({
               {FAQS.map((faq, idx) => (
                 <div
                   key={idx}
-                  className="border border-stone-200/90 dark:border-slate-800 rounded-2xl overflow-hidden transition-all"
+                  className="border border-line/90 dark:border-line rounded-2xl overflow-hidden transition-all"
                 >
                   <button
                     onClick={() => setOpenFaqIndex(openFaqIndex === idx ? -1 : idx)}
-                    className="w-full p-3.5 bg-stone-50/80 dark:bg-slate-850 text-left font-bold text-blue-950 dark:text-slate-200 flex items-center justify-between gap-2 cursor-pointer"
+                    className="w-full p-3.5 bg-canvas/80 dark:bg-slate-850 text-left font-bold text-ink dark:text-body flex items-center justify-between gap-2 cursor-pointer"
                   >
                     <span>{faq.q}</span>
-                    <ChevronRight className={`w-4 h-4 text-stone-400 dark:text-slate-400 transition-transform ${openFaqIndex === idx ? 'rotate-90 text-blue-900 dark:text-teal-400' : ''}`} />
+                    <ChevronRight className={`w-4 h-4 text-muted dark:text-muted transition-transform ${openFaqIndex === idx ? 'rotate-90 text-blue-900 dark:text-teal-400' : ''}`} />
                   </button>
                   {openFaqIndex === idx && (
-                    <div className="p-3.5 bg-white dark:bg-slate-900 text-stone-600 dark:text-slate-300 text-[11px] leading-relaxed border-t border-stone-200/60 dark:border-slate-800">
+                    <div className="p-3.5 bg-surface dark:bg-surface text-muted dark:text-body text-xs leading-relaxed border-t border-line/60 dark:border-line">
                       {faq.a}
                     </div>
                   )}
@@ -274,7 +197,7 @@ export const BottomNav = ({
               ))}
             </div>
 
-            <div className="pt-3 border-t border-stone-200 dark:border-slate-800 flex justify-end">
+            <div className="pt-3 border-t border-line dark:border-line flex justify-end">
               <button
                 onClick={() => setShowFaqModal(false)}
                 className="px-5 py-2.5 bg-blue-900 hover:bg-blue-950 text-white font-bold rounded-xl text-xs transition-all cursor-pointer shadow-xs"

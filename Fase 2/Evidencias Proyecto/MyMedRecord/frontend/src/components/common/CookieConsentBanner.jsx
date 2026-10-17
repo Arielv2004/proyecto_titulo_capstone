@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldCheck, Cookie, X, Check } from 'lucide-react';
+import { Cookie, X, Check } from 'lucide-react';
 
 export const CookieConsentBanner = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -36,26 +36,26 @@ export const CookieConsentBanner = () => {
             </div>
             <div>
               <h2 className="text-xs font-bold text-white">Privacidad y Cookies de Seguridad</h2>
-              <span className="text-[10px] text-teal-300 font-medium">Ley N° 21.668 & N° 19.628</span>
+              <span className="text-xs text-teal-300 font-medium">Ley N° 21.668 & N° 19.628</span>
             </div>
           </div>
           <button
             onClick={handleDecline}
-            className="text-stone-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-all cursor-pointer"
+            className="text-muted hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-all cursor-pointer"
             aria-label="Cerrar aviso"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <p className="text-[11px] text-stone-300 leading-relaxed">
+        <p className="text-xs text-stone-300 leading-relaxed">
           Utilizamos cookies esenciales y seguras (<strong>HttpOnly y SameSite=Strict</strong>) para autenticar tu sesión médica y proteger tu ficha clínica contra accesos no autorizados. No utilizamos cookies de rastreo publicitario.
         </p>
 
         <div className="pt-1 flex items-center justify-between gap-2">
           <Link
             to="/privacy"
-            className="text-[10px] text-teal-300 hover:underline font-bold"
+            className="text-xs text-teal-300 hover:underline font-bold"
           >
             Ver Política de Privacidad
           </Link>
@@ -63,13 +63,13 @@ export const CookieConsentBanner = () => {
           <div className="flex gap-2">
             <button
               onClick={handleDecline}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-stone-300 text-[11px] font-bold rounded-xl transition-all cursor-pointer"
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-stone-300 text-xs font-bold rounded-xl transition-all cursor-pointer"
             >
               Solo Esenciales
             </button>
             <button
               onClick={handleAccept}
-              className="px-3.5 py-1.5 bg-teal-500 hover:bg-teal-400 text-blue-950 text-[11px] font-extrabold rounded-xl transition-all shadow-xs flex items-center gap-1 cursor-pointer active:scale-95"
+              className="px-3.5 py-1.5 bg-teal-500 hover:bg-teal-400 text-ink text-xs font-extrabold rounded-xl transition-all shadow-xs flex items-center gap-1 cursor-pointer active:scale-95"
             >
               <Check className="w-3.5 h-3.5" />
               <span>Aceptar</span>

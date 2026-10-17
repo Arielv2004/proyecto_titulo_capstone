@@ -2,19 +2,7 @@ import React, { useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useMetaTags } from '../hooks/useMetaTags';
 import { TableRowSkeleton } from '../components/common/SkeletonLoader';
-import { 
-  ShieldCheck, 
-  Users, 
-  FileText, 
-  Database, 
-  CheckCircle2, 
-  Lock, 
-  RefreshCw, 
-  Activity, 
-  ShieldAlert, 
-  Filter,
-  Download
-} from 'lucide-react';
+import { Users, FileText, Database, CheckCircle2, RefreshCw, Download } from 'lucide-react';
 
 import { Navbar } from '../components/common/Navbar';
 import { BottomNav } from '../components/common/BottomNav';
@@ -45,7 +33,7 @@ export const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-stone-50 text-slate-800">
+    <div className="min-h-screen flex flex-col bg-canvas text-body">
       <Navbar roleTitle="Portal Administrador" />
 
       {/* Contenido Principal */}
@@ -53,8 +41,8 @@ export const AdminDashboard = () => {
         {/* Encabezado y Acciones */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl font-extrabold text-blue-950">Panel de Auditoría y Trazabilidad</h1>
-            <p className="text-xs text-stone-500">
+            <h1 className="text-xl font-extrabold text-ink">Panel de Auditoría y Trazabilidad</h1>
+            <p className="text-xs text-muted">
               Cumplimiento normativo de seguridad de la información y Ley N° 21.668.
             </p>
           </div>
@@ -63,7 +51,7 @@ export const AdminDashboard = () => {
             <button
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="px-3.5 py-2 bg-white border border-stone-200 hover:bg-stone-50 text-stone-700 text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="px-3.5 py-2 bg-surface border border-line hover:bg-canvas text-body text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 text-blue-900 ${isRefreshing ? 'animate-spin' : ''}`} />
               <span>{isRefreshing ? 'Sincronizando...' : 'Actualizar'}</span>
@@ -81,21 +69,21 @@ export const AdminDashboard = () => {
 
         {/* Métricas Principales */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white border border-stone-200/90 rounded-3xl p-5 shadow-xs">
-            <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block flex items-center gap-1.5">
+          <div className="bg-surface border border-line/90 rounded-3xl p-5 shadow-xs">
+            <span className="text-xs font-bold text-muted uppercase tracking-wider block flex items-center gap-1.5">
               <Users className="w-4 h-4 text-blue-800" /> Usuarios en PostgreSQL
             </span>
             <div className="flex items-baseline gap-2 mt-2">
-              <span className="text-3xl font-black text-blue-950">3</span>
+              <span className="text-3xl font-black text-ink">3</span>
               <span className="text-xs font-bold text-blue-800 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
                 1 Paciente · 1 Médico · 1 Admin
               </span>
             </div>
-            <p className="text-[11px] text-stone-400 mt-2">Roles verificados bajo RBAC</p>
+            <p className="text-xs text-muted mt-2">Roles verificados bajo RBAC</p>
           </div>
 
-          <div className="bg-white border border-stone-200/90 rounded-3xl p-5 shadow-xs">
-            <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block flex items-center gap-1.5">
+          <div className="bg-surface border border-line/90 rounded-3xl p-5 shadow-xs">
+            <span className="text-xs font-bold text-muted uppercase tracking-wider block flex items-center gap-1.5">
               <FileText className="w-4 h-4 text-teal-700" /> Trazabilidad de Accesos
             </span>
             <div className="flex items-baseline gap-2 mt-2">
@@ -104,11 +92,11 @@ export const AdminDashboard = () => {
                 Activa
               </span>
             </div>
-            <p className="text-[11px] text-stone-400 mt-2">Tabla audit_logs registrando lecturas y escrituras</p>
+            <p className="text-xs text-muted mt-2">Tabla audit_logs registrando lecturas y escrituras</p>
           </div>
 
-          <div className="bg-white border border-stone-200/90 rounded-3xl p-5 shadow-xs">
-            <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block flex items-center gap-1.5">
+          <div className="bg-surface border border-line/90 rounded-3xl p-5 shadow-xs">
+            <span className="text-xs font-bold text-muted uppercase tracking-wider block flex items-center gap-1.5">
               <Database className="w-4 h-4 text-indigo-700" /> Infraestructura Docker
             </span>
             <div className="flex items-baseline gap-2 mt-2">
@@ -116,12 +104,12 @@ export const AdminDashboard = () => {
                 <CheckCircle2 className="w-3.5 h-3.5" /> PostgreSQL 15 & pgAdmin (OK)
               </span>
             </div>
-            <p className="text-[11px] text-stone-400 mt-2">Puerto 5432 y 5050 operativos</p>
+            <p className="text-xs text-muted mt-2">Puerto 5432 y 5050 operativos</p>
           </div>
         </div>
 
         {/* Tabla de Auditoría / Gestión de Usuarios */}
-        <div className="bg-white border border-stone-200/90 rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
+        <div className="bg-surface border border-line/90 rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
           <div className="flex items-center justify-between border-b border-stone-100 pb-3">
             <div className="flex gap-2">
               <button
@@ -129,7 +117,7 @@ export const AdminDashboard = () => {
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'AUDIT'
                     ? 'bg-blue-900 text-white shadow-xs'
-                    : 'bg-stone-100 hover:bg-stone-200 text-stone-600'
+                    : 'bg-surface-muted hover:bg-surface-muted text-muted'
                 }`}
               >
                 Bitácora de Auditoría (Audit Logs)
@@ -139,7 +127,7 @@ export const AdminDashboard = () => {
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'USERS'
                     ? 'bg-blue-900 text-white shadow-xs'
-                    : 'bg-stone-100 hover:bg-stone-200 text-stone-600'
+                    : 'bg-surface-muted hover:bg-surface-muted text-muted'
                 }`}
               >
                 Usuarios Registrados ({sampleUsers.length})
@@ -151,7 +139,7 @@ export const AdminDashboard = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-stone-200 text-stone-400 font-bold uppercase tracking-wider text-[10px]">
+                  <tr className="border-b border-line text-muted font-bold uppercase tracking-wider text-xs">
                     <th className="py-2.5 px-3">Acción Registrada</th>
                     <th className="py-2.5 px-3">Usuario</th>
                     <th className="py-2.5 px-3">Objetivo / Ficha</th>
@@ -169,16 +157,16 @@ export const AdminDashboard = () => {
                     </>
                   ) : (
                     sampleAuditLogs.map((log) => (
-                      <tr key={log.id} className="hover:bg-stone-50/80 transition-colors">
-                        <td className="py-3 px-3 font-mono font-bold text-blue-950">{log.action}</td>
-                        <td className="py-3 px-3 font-medium text-slate-800">
-                          {log.user} <span className="text-[10px] text-stone-400 font-bold">({log.role})</span>
+                      <tr key={log.id} className="hover:bg-canvas/80 transition-colors">
+                        <td className="py-3 px-3 font-mono font-bold text-ink">{log.action}</td>
+                        <td className="py-3 px-3 font-medium text-body">
+                          {log.user} <span className="text-xs text-muted font-bold">({log.role})</span>
                         </td>
-                        <td className="py-3 px-3 text-stone-600">{log.target}</td>
-                        <td className="py-3 px-3 font-mono text-stone-500 text-[11px]">{log.ip}</td>
-                        <td className="py-3 px-3 text-stone-500">{log.time}</td>
+                        <td className="py-3 px-3 text-muted">{log.target}</td>
+                        <td className="py-3 px-3 font-mono text-muted text-xs">{log.ip}</td>
+                        <td className="py-3 px-3 text-muted">{log.time}</td>
                         <td className="py-3 px-3">
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
                             {log.status}
                           </span>
                         </td>
@@ -192,7 +180,7 @@ export const AdminDashboard = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-stone-200 text-stone-400 font-bold uppercase tracking-wider text-[10px]">
+                  <tr className="border-b border-line text-muted font-bold uppercase tracking-wider text-xs">
                     <th className="py-2.5 px-3">Nombre</th>
                     <th className="py-2.5 px-3">RUT Oficial</th>
                     <th className="py-2.5 px-3">Correo</th>
@@ -203,18 +191,18 @@ export const AdminDashboard = () => {
                 </thead>
                 <tbody className="divide-y divide-stone-100">
                   {sampleUsers.map((u) => (
-                    <tr key={u.id} className="hover:bg-stone-50/80 transition-colors">
-                      <td className="py-3 px-3 font-bold text-blue-950">{u.name}</td>
-                      <td className="py-3 px-3 font-mono text-stone-700">{u.rut}</td>
-                      <td className="py-3 px-3 text-stone-600">{u.email}</td>
+                    <tr key={u.id} className="hover:bg-canvas/80 transition-colors">
+                      <td className="py-3 px-3 font-bold text-ink">{u.name}</td>
+                      <td className="py-3 px-3 font-mono text-body">{u.rut}</td>
+                      <td className="py-3 px-3 text-muted">{u.email}</td>
                       <td className="py-3 px-3">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-900 border border-blue-200">
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-900 border border-blue-200">
                           {u.role}
                         </span>
                       </td>
-                      <td className="py-3 px-3 text-stone-500">{u.created}</td>
+                      <td className="py-3 px-3 text-muted">{u.created}</td>
                       <td className="py-3 px-3">
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                        <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                           {u.status}
                         </span>
                       </td>
@@ -230,7 +218,7 @@ export const AdminDashboard = () => {
       {/* Barra de Navegación Rápida Móvil (PWA) */}
       <BottomNav />
 
-      <footer className="py-4 text-center text-[11px] text-stone-400 border-t border-stone-200 bg-white">
+      <footer className="py-4 text-center text-xs text-muted border-t border-line bg-surface">
         MyMedRecord · República de Chile · Plataforma de Salud Digital Interoperable
       </footer>
     </div>

@@ -335,32 +335,32 @@ export const RegisterPage = () => {
     Boolean(formData.institutionNameOther.trim());
 
   return (
-    <div className="flex min-h-screen flex-col bg-stone-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors">
+    <div className="flex min-h-screen flex-col bg-canvas dark:bg-canvas text-body dark:text-ink transition-colors">
 
       {/* Header */}
-      <header className="border-b border-stone-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-6 py-3.5 flex items-center justify-between shadow-xs">
+      <header className="border-b border-line/80 dark:border-line bg-surface/90 dark:bg-surface/90 backdrop-blur-md px-6 py-3.5 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-900 text-white shadow-xs">
             <HeartHandshake className="w-6 h-6 text-teal-300" />
           </div>
 
           <div>
-            <span className="text-base font-extrabold text-blue-950 dark:text-slate-100 tracking-tight flex items-center gap-1.5">
+            <span className="text-base font-extrabold text-ink dark:text-ink tracking-tight flex items-center gap-1.5">
               MyMedRecord
 
-              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-teal-300 rounded border border-blue-200/60 dark:border-blue-800">
+              <span className="text-xs uppercase font-bold tracking-wider px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-teal-300 rounded border border-blue-200/60 dark:border-blue-800">
                 Chile
               </span>
             </span>
 
-            <p className="text-[11px] text-stone-500 dark:text-slate-400 font-medium">
+            <p className="text-xs text-muted dark:text-muted font-medium">
               Plataforma de Salud Digital Interoperable (Ley N° 21.668)
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2.5">
-          <div className="hidden sm:flex items-center gap-2 text-[11px] text-stone-600 dark:text-slate-300 bg-stone-100 dark:bg-slate-800 px-3 py-1 rounded-full border border-stone-200 dark:border-slate-700">
+          <div className="hidden sm:flex items-center gap-2 text-xs text-muted dark:text-body bg-surface-muted dark:bg-surface-muted px-3 py-1 rounded-full border border-line dark:border-line">
             <ShieldCheck className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
             <span>Ley N° 21.668 & N° 20.584</span>
           </div>
@@ -371,13 +371,13 @@ export const RegisterPage = () => {
 
       {/* Main */}
       <main className="flex-1 flex items-center justify-center p-4 sm:p-6">
-        <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-stone-200/90 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm">
+        <div className="w-full max-w-lg bg-surface dark:bg-surface border border-line/90 dark:border-line rounded-3xl p-6 sm:p-8 shadow-sm">
 
           {/* Selector Login / Registro */}
-          <div className="flex p-1 mb-6 bg-stone-100 dark:bg-slate-800/80 rounded-2xl border border-stone-200 dark:border-slate-700/80">
+          <div className="flex p-1 mb-6 bg-surface-muted dark:bg-surface-muted/80 rounded-2xl border border-line dark:border-line/80">
             <Link
               to="/login"
-              className="flex-1 py-2 text-center text-xs font-bold text-stone-600 dark:text-slate-400 hover:text-blue-950 dark:hover:text-white rounded-xl transition-all flex items-center justify-center gap-1.5"
+              className="flex-1 py-2 text-center text-xs font-bold text-muted dark:text-muted hover:text-ink dark:hover:text-white rounded-xl transition-all flex items-center justify-center gap-1.5"
             >
               <LogIn className="w-3.5 h-3.5" />
               <span>Iniciar Sesión</span>
@@ -391,13 +391,13 @@ export const RegisterPage = () => {
 
           {/* Título */}
           <div className="text-center mb-5">
-            <h1 className="text-2xl font-black text-blue-950 dark:text-slate-100 tracking-tight">
+            <h1 className="text-2xl font-black text-ink dark:text-ink tracking-tight">
               {isDoctor
                 ? 'Crear Cuenta Profesional'
                 : 'Crear Ficha Médica'}
             </h1>
 
-            <p className="text-xs text-stone-500 dark:text-slate-400 mt-1">
+            <p className="text-xs text-muted dark:text-muted mt-1">
               {isDoctor ? (
                 <>
                   Registro de cuenta para{' '}
@@ -414,7 +414,7 @@ export const RegisterPage = () => {
 
           {/* Selector de tipo de cuenta */}
           <div className="mb-5">
-            <p className="text-xs font-bold text-stone-700 dark:text-slate-300 mb-2">
+            <p className="text-xs font-bold text-body dark:text-body mb-2">
               Selecciona el tipo de cuenta
             </p>
 
@@ -426,7 +426,7 @@ export const RegisterPage = () => {
                 className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
                   formData.role === 'PACIENTE'
                     ? 'border-blue-700 bg-blue-50 dark:bg-blue-950/40 ring-2 ring-blue-100 dark:ring-blue-950'
-                    : 'border-stone-200 dark:border-slate-700 bg-stone-50 dark:bg-slate-800/60 hover:border-blue-300 dark:hover:border-slate-600'
+                    : 'border-line dark:border-line bg-canvas dark:bg-surface-muted/60 hover:border-blue-300 dark:hover:border-slate-600'
                 }`}
               >
                 <div className="flex items-center gap-2 mb-1">
@@ -434,18 +434,18 @@ export const RegisterPage = () => {
                     className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                       formData.role === 'PACIENTE'
                         ? 'bg-blue-900 text-white'
-                        : 'bg-white dark:bg-slate-700 text-stone-500 dark:text-slate-300'
+                        : 'bg-surface dark:bg-surface-muted text-muted dark:text-body'
                     }`}
                   >
                     <UserRound className="w-4 h-4" />
                   </div>
 
-                  <span className="text-sm font-extrabold text-blue-950 dark:text-slate-100">
+                  <span className="text-sm font-extrabold text-ink dark:text-ink">
                     Paciente
                   </span>
                 </div>
 
-                <p className="text-[10px] leading-relaxed text-stone-500 dark:text-slate-400">
+                <p className="text-xs leading-relaxed text-muted dark:text-muted">
                   Gestiona tu historial y documentos médicos.
                 </p>
               </button>
@@ -457,7 +457,7 @@ export const RegisterPage = () => {
                 className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
                   formData.role === 'MEDICO'
                     ? 'border-teal-600 bg-teal-50 dark:bg-teal-950/40 ring-2 ring-teal-100 dark:ring-teal-950'
-                    : 'border-stone-200 dark:border-slate-700 bg-stone-50 dark:bg-slate-800/60 hover:border-teal-300 dark:hover:border-slate-600'
+                    : 'border-line dark:border-line bg-canvas dark:bg-surface-muted/60 hover:border-teal-300 dark:hover:border-slate-600'
                 }`}
               >
                 <div className="flex items-center gap-2 mb-1">
@@ -465,18 +465,18 @@ export const RegisterPage = () => {
                     className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                       formData.role === 'MEDICO'
                         ? 'bg-teal-700 text-white'
-                        : 'bg-white dark:bg-slate-700 text-stone-500 dark:text-slate-300'
+                        : 'bg-surface dark:bg-surface-muted text-muted dark:text-body'
                     }`}
                   >
                     <Stethoscope className="w-4 h-4" />
                   </div>
 
-                  <span className="text-sm font-extrabold text-blue-950 dark:text-slate-100">
+                  <span className="text-sm font-extrabold text-ink dark:text-ink">
                     Médico
                   </span>
                 </div>
 
-                <p className="text-[10px] leading-relaxed text-stone-500 dark:text-slate-400">
+                <p className="text-xs leading-relaxed text-muted dark:text-muted">
                   Accede a fichas autorizadas por pacientes.
                 </p>
               </button>
@@ -508,7 +508,7 @@ export const RegisterPage = () => {
             {/* Nombre y apellido */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-stone-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-body dark:text-body mb-1">
                   Nombre
                 </label>
 
@@ -519,12 +519,12 @@ export const RegisterPage = () => {
                   value={formData.firstName}
                   onChange={handleChange}
                   placeholder="Ignacio"
-                  className="w-full px-3.5 py-2.5 bg-stone-50/80 dark:bg-slate-800/80 border border-stone-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:border-blue-700 dark:focus:border-teal-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-teal-950/40 transition-all"
+                  className="w-full px-3.5 py-2.5 bg-canvas/80 dark:bg-surface-muted/80 border border-line dark:border-line rounded-xl text-body dark:text-ink text-sm focus:outline-none focus:border-blue-700 dark:focus:border-teal-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-teal-950/40 transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-stone-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-body dark:text-body mb-1">
                   Apellido
                 </label>
 
@@ -535,7 +535,7 @@ export const RegisterPage = () => {
                   value={formData.lastName}
                   onChange={handleChange}
                   placeholder="Pérez"
-                  className="w-full px-3.5 py-2.5 bg-stone-50/80 dark:bg-slate-800/80 border border-stone-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:border-blue-700 dark:focus:border-teal-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-teal-950/40 transition-all"
+                  className="w-full px-3.5 py-2.5 bg-canvas/80 dark:bg-surface-muted/80 border border-line dark:border-line rounded-xl text-body dark:text-ink text-sm focus:outline-none focus:border-blue-700 dark:focus:border-teal-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-teal-950/40 transition-all"
                 />
               </div>
             </div>
@@ -543,13 +543,13 @@ export const RegisterPage = () => {
             {/* RUT */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-bold text-stone-700 dark:text-slate-300">
+                <label className="block text-xs font-bold text-body dark:text-body">
                   RUT Chileno
                 </label>
 
                 {rutTouched && formData.rut && (
                   <span
-                    className={`text-[10px] font-bold flex items-center gap-1 ${
+                    className={`text-xs font-bold flex items-center gap-1 ${
                       isRutValid
                         ? 'text-emerald-700 dark:text-emerald-400'
                         : 'text-rose-600 dark:text-rose-400'
@@ -577,19 +577,19 @@ export const RegisterPage = () => {
                 value={formData.rut}
                 onChange={handleRutChange}
                 placeholder="12.345.678-9"
-                className={`w-full px-3.5 py-2.5 bg-stone-50/80 dark:bg-slate-800/80 border rounded-xl text-slate-800 dark:text-slate-100 text-sm focus:outline-none transition-all font-mono ${
+                className={`w-full px-3.5 py-2.5 bg-canvas/80 dark:bg-surface-muted/80 border rounded-xl text-body dark:text-ink text-sm focus:outline-none transition-all font-mono ${
                   rutTouched && formData.rut
                     ? isRutValid
                       ? 'border-emerald-500 bg-emerald-50/30 dark:bg-emerald-950/20 focus:ring-2 focus:ring-emerald-100'
                       : 'border-rose-400 bg-rose-50/30 dark:bg-rose-950/20 focus:ring-2 focus:ring-rose-100'
-                    : 'border-stone-300 dark:border-slate-700 focus:border-blue-700 dark:focus:border-teal-400 focus:ring-2 focus:ring-blue-100'
+                    : 'border-line dark:border-line focus:border-blue-700 dark:focus:border-teal-400 focus:ring-2 focus:ring-blue-100'
                 }`}
               />
             </div>
 
             {/* Email */}
             <div>
-              <label className="block text-xs font-bold text-stone-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-bold text-body dark:text-body mb-1">
                 Correo Electrónico
               </label>
 
@@ -604,13 +604,13 @@ export const RegisterPage = () => {
                     ? 'medico@salud.cl'
                     : 'correo@ejemplo.cl'
                 }
-                className="w-full px-3.5 py-2.5 bg-stone-50/80 dark:bg-slate-800/80 border border-stone-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:border-blue-700 dark:focus:border-teal-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-teal-950/40 transition-all"
+                className="w-full px-3.5 py-2.5 bg-canvas/80 dark:bg-surface-muted/80 border border-line dark:border-line rounded-xl text-body dark:text-ink text-sm focus:outline-none focus:border-blue-700 dark:focus:border-teal-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-teal-950/40 transition-all"
               />
             </div>
 
             {/* Contraseña */}
             <div>
-              <label className="block text-xs font-bold text-stone-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-bold text-body dark:text-body mb-1">
                 Contraseña
               </label>
 
@@ -623,13 +623,13 @@ export const RegisterPage = () => {
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="Mínimo 8 caracteres"
-                  className="w-full pl-3.5 pr-11 py-2.5 bg-stone-50/80 dark:bg-slate-800/80 border border-stone-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:border-blue-700 dark:focus:border-teal-400 focus:ring-2 focus:ring-blue-100 transition-all"
+                  className="w-full pl-3.5 pr-11 py-2.5 bg-canvas/80 dark:bg-surface-muted/80 border border-line dark:border-line rounded-xl text-body dark:text-ink text-sm focus:outline-none focus:border-blue-700 dark:focus:border-teal-400 focus:ring-2 focus:ring-blue-100 transition-all"
                 />
 
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-2.5 p-1 text-stone-400 hover:text-blue-900 dark:hover:text-teal-300 rounded-lg transition-all cursor-pointer"
+                  className="absolute right-3 top-2.5 p-1 text-muted hover:text-blue-900 dark:hover:text-teal-300 rounded-lg transition-all cursor-pointer"
                   title={
                     showPassword
                       ? 'Ocultar contraseña'
@@ -644,7 +644,7 @@ export const RegisterPage = () => {
                   {showPassword ? (
                     <EyeOff className="w-4 h-4 text-blue-900 dark:text-teal-300" />
                   ) : (
-                    <Eye className="w-4 h-4 text-stone-400" />
+                    <Eye className="w-4 h-4 text-muted" />
                   )}
                 </button>
               </div>
@@ -654,12 +654,12 @@ export const RegisterPage = () => {
             {isDoctor && (
               <div className="space-y-3.5 rounded-2xl border border-teal-200 dark:border-teal-900 bg-teal-50/40 dark:bg-teal-950/20 p-4">
                 <div>
-                  <h2 className="text-sm font-extrabold text-blue-950 dark:text-slate-100 flex items-center gap-2">
+                  <h2 className="text-sm font-extrabold text-ink dark:text-ink flex items-center gap-2">
                     <Stethoscope className="w-4 h-4 text-teal-700 dark:text-teal-300" />
                     Información profesional
                   </h2>
 
-                  <p className="text-[10px] text-stone-500 dark:text-slate-400 mt-1">
+                  <p className="text-xs text-muted dark:text-muted mt-1">
                     Estos antecedentes permiten asociar la cuenta a un perfil médico.
                     La cuenta quedará pendiente de verificación profesional.
                   </p>
@@ -667,7 +667,7 @@ export const RegisterPage = () => {
 
                 {/* Registro profesional */}
                 <div>
-                  <label className="block text-xs font-bold text-stone-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-body dark:text-body mb-1">
                     Registro profesional
                   </label>
 
@@ -678,13 +678,13 @@ export const RegisterPage = () => {
                     value={formData.professionalRegistry}
                     onChange={handleChange}
                     placeholder="Ej: RNPI-123456"
-                    className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800/80 border border-stone-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100 dark:focus:ring-teal-950/40 transition-all"
+                    className="w-full px-3.5 py-2.5 bg-surface dark:bg-surface-muted/80 border border-line dark:border-line rounded-xl text-body dark:text-ink text-sm focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100 dark:focus:ring-teal-950/40 transition-all"
                   />
                 </div>
 
                 {/* Especialidad */}
                 <div>
-                  <label className="block text-xs font-bold text-stone-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-body dark:text-body mb-1">
                     Especialidad
                   </label>
 
@@ -695,13 +695,13 @@ export const RegisterPage = () => {
                     value={formData.specialty}
                     onChange={handleChange}
                     placeholder="Ej: Medicina General"
-                    className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800/80 border border-stone-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100 dark:focus:ring-teal-950/40 transition-all"
+                    className="w-full px-3.5 py-2.5 bg-surface dark:bg-surface-muted/80 border border-line dark:border-line rounded-xl text-body dark:text-ink text-sm focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100 dark:focus:ring-teal-950/40 transition-all"
                   />
                 </div>
 
                 {/* Institución */}
                 <div>
-                  <label className="block text-xs font-bold text-stone-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-body dark:text-body mb-1">
                     Institución de salud
                   </label>
 
@@ -721,7 +721,7 @@ export const RegisterPage = () => {
                                   {selectedInstitution.name}
                                 </p>
 
-                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-[10px] text-emerald-700 dark:text-emerald-300">
+                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-xs text-emerald-700 dark:text-emerald-300">
                                   {selectedInstitution.institution_type && (
                                     <span>
                                       {selectedInstitution.institution_type}
@@ -754,7 +754,7 @@ export const RegisterPage = () => {
                         <>
                           {/* Buscador */}
                           <div className="relative">
-                            <Search className="absolute left-3.5 top-3 w-4 h-4 text-stone-400" />
+                            <Search className="absolute left-3.5 top-3 w-4 h-4 text-muted" />
 
                             <input
                               type="text"
@@ -770,13 +770,13 @@ export const RegisterPage = () => {
                               }
                               disabled={loadingInstitutions}
                               autoComplete="off"
-                              className="w-full pl-10 pr-3.5 py-2.5 bg-white dark:bg-slate-800/80 border border-stone-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100 dark:focus:ring-teal-950/40 transition-all disabled:opacity-60"
+                              className="w-full pl-10 pr-3.5 py-2.5 bg-surface dark:bg-surface-muted/80 border border-line dark:border-line rounded-xl text-body dark:text-ink text-sm focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100 dark:focus:ring-teal-950/40 transition-all disabled:opacity-60"
                             />
 
                             {/* Resultados */}
                             {showInstitutionResults &&
                               !loadingInstitutions && (
-                                <div className="mt-2 overflow-hidden rounded-xl border border-stone-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
+                                <div className="mt-2 overflow-hidden rounded-xl border border-line dark:border-line bg-surface dark:bg-surface-muted shadow-sm">
                                   {filteredInstitutions.length > 0 ? (
                                     <div className="max-h-52 overflow-y-auto">
                                       {filteredInstitutions.map(
@@ -789,18 +789,18 @@ export const RegisterPage = () => {
                                                 institution
                                               )
                                             }
-                                            className="w-full px-3 py-2.5 flex items-start gap-2.5 text-left border-b last:border-b-0 border-stone-100 dark:border-slate-700 hover:bg-teal-50 dark:hover:bg-teal-950/30 transition-colors cursor-pointer"
+                                            className="w-full px-3 py-2.5 flex items-start gap-2.5 text-left border-b last:border-b-0 border-stone-100 dark:border-line hover:bg-teal-50 dark:hover:bg-teal-950/30 transition-colors cursor-pointer"
                                           >
                                             <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center shrink-0">
                                               <Building2 className="w-4 h-4 text-blue-800 dark:text-teal-300" />
                                             </div>
 
                                             <div className="min-w-0">
-                                              <p className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                                              <p className="text-xs font-bold text-body dark:text-ink">
                                                 {institution.name}
                                               </p>
 
-                                              <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5 text-[10px] text-stone-500 dark:text-slate-400">
+                                              <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5 text-xs text-muted dark:text-muted">
                                                 {institution.institution_type && (
                                                   <span>
                                                     {
@@ -825,11 +825,11 @@ export const RegisterPage = () => {
                                     </div>
                                   ) : (
                                     <div className="px-3 py-3 text-center">
-                                      <p className="text-xs font-semibold text-stone-600 dark:text-slate-300">
+                                      <p className="text-xs font-semibold text-muted dark:text-body">
                                         No encontramos esa institución.
                                       </p>
 
-                                      <p className="text-[10px] text-stone-500 dark:text-slate-400 mt-1">
+                                      <p className="text-xs text-muted dark:text-muted mt-1">
                                         Puedes ingresarla manualmente.
                                       </p>
                                     </div>
@@ -839,16 +839,16 @@ export const RegisterPage = () => {
                                   <button
                                     type="button"
                                     onClick={handleUseOtherInstitution}
-                                    className="w-full px-3 py-2.5 flex items-center gap-2 text-left bg-stone-50 dark:bg-slate-900/70 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors cursor-pointer border-t border-stone-200 dark:border-slate-700"
+                                    className="w-full px-3 py-2.5 flex items-center gap-2 text-left bg-canvas dark:bg-surface/70 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors cursor-pointer border-t border-line dark:border-line"
                                   >
                                     <PlusCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
 
                                     <div>
-                                      <p className="text-xs font-bold text-stone-700 dark:text-slate-200">
+                                      <p className="text-xs font-bold text-body dark:text-body">
                                         Mi institución no aparece
                                       </p>
 
-                                      <p className="text-[10px] text-stone-500 dark:text-slate-400">
+                                      <p className="text-xs text-muted dark:text-muted">
                                         Ingresar el nombre manualmente
                                       </p>
                                     </div>
@@ -861,7 +861,7 @@ export const RegisterPage = () => {
                             <button
                               type="button"
                               onClick={handleUseOtherInstitution}
-                              className="mt-2 text-[11px] font-bold text-blue-800 dark:text-teal-300 hover:underline flex items-center gap-1 cursor-pointer"
+                              className="mt-2 text-xs font-bold text-blue-800 dark:text-teal-300 hover:underline flex items-center gap-1 cursor-pointer"
                             >
                               <PlusCircle className="w-3.5 h-3.5" />
                               Mi institución no aparece
@@ -885,7 +885,7 @@ export const RegisterPage = () => {
                         <button
                           type="button"
                           onClick={handleReturnToInstitutionSearch}
-                          className="text-[10px] font-bold text-blue-800 dark:text-teal-300 hover:underline cursor-pointer"
+                          className="text-xs font-bold text-blue-800 dark:text-teal-300 hover:underline cursor-pointer"
                         >
                           Volver al buscador
                         </button>
@@ -899,10 +899,10 @@ export const RegisterPage = () => {
                         placeholder="Ej: Centro Médico Los Alerces"
                         maxLength={200}
                         autoFocus
-                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800/80 border border-amber-300 dark:border-amber-800 rounded-xl text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-100 dark:focus:ring-amber-950/40 transition-all"
+                        className="w-full px-3.5 py-2.5 bg-surface dark:bg-surface-muted/80 border border-amber-300 dark:border-amber-800 rounded-xl text-body dark:text-ink text-sm focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-100 dark:focus:ring-amber-950/40 transition-all"
                       />
 
-                      <p className="mt-1.5 text-[10px] text-amber-700 dark:text-amber-300">
+                      <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-300">
                         Esta institución será informada manualmente y podrá
                         validarse junto con los antecedentes profesionales.
                       </p>
@@ -910,7 +910,7 @@ export const RegisterPage = () => {
                   )}
 
                   {institutionsError && (
-                    <p className="mt-1.5 text-[10px] font-semibold text-rose-600 dark:text-rose-400">
+                    <p className="mt-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400">
                       {institutionsError}
                     </p>
                   )}
@@ -920,7 +920,7 @@ export const RegisterPage = () => {
                 <div className="flex items-start gap-2 rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/20 p-3">
                   <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0 text-amber-700 dark:text-amber-300" />
 
-                  <p className="text-[10px] leading-relaxed text-amber-800 dark:text-amber-200">
+                  <p className="text-xs leading-relaxed text-amber-800 dark:text-amber-200">
                     Registrarse como médico no habilita automáticamente el acceso
                     a fichas clínicas. El perfil profesional debe quedar
                     verificado antes de aparecer disponible para los pacientes.
@@ -934,15 +934,15 @@ export const RegisterPage = () => {
               className={`p-3 rounded-xl border flex items-center justify-between ${
                 isDoctor
                   ? 'bg-teal-50/70 dark:bg-teal-950/30 border-teal-200 dark:border-teal-900'
-                  : 'bg-stone-50 dark:bg-slate-800/60 border-stone-200 dark:border-slate-700'
+                  : 'bg-canvas dark:bg-surface-muted/60 border-line dark:border-line'
               }`}
             >
               <div>
-                <span className="text-xs font-bold text-stone-700 dark:text-slate-300 block">
+                <span className="text-xs font-bold text-body dark:text-body block">
                   Tipo de Cuenta
                 </span>
 
-                <span className="text-[11px] text-stone-500 dark:text-slate-400">
+                <span className="text-xs text-muted dark:text-muted">
                   {isDoctor
                     ? 'Cuenta profesional para acceso clínico autorizado'
                     : 'Titular y dueño de su historial clínico'}
@@ -952,7 +952,7 @@ export const RegisterPage = () => {
               <span
                 className={`text-xs font-extrabold px-2.5 py-1 rounded-lg shrink-0 border ${
                   isDoctor
-                    ? 'text-teal-800 dark:text-teal-300 bg-white dark:bg-teal-950/60 border-teal-300 dark:border-teal-800'
+                    ? 'text-teal-800 dark:text-teal-300 bg-surface dark:bg-teal-950/60 border-teal-300 dark:border-teal-800'
                     : 'text-blue-800 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 border-blue-200 dark:border-blue-800'
                 }`}
               >
@@ -972,7 +972,7 @@ export const RegisterPage = () => {
                     !formData.specialty.trim() ||
                     !doctorInstitutionValid))
               }
-              className="w-full mt-3 py-3 bg-blue-900 hover:bg-blue-950 active:scale-[0.99] text-white font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 text-sm cursor-pointer disabled:opacity-50"
+              className="w-full mt-3 py-3 bg-blue-900 hover:bg-blue-950 active:scale-[0.99] text-white font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 text-sm cursor-pointer disabled:bg-[#536572] disabled:cursor-not-allowed"
             >
               <span>
                 {isLoading
@@ -987,7 +987,7 @@ export const RegisterPage = () => {
           </form>
 
           {/* Login */}
-          <div className="mt-5 text-center text-xs text-stone-600 dark:text-slate-400">
+          <div className="mt-5 text-center text-xs text-muted dark:text-muted">
             ¿Ya tienes una cuenta registrada?{' '}
 
             <Link
@@ -1001,7 +1001,7 @@ export const RegisterPage = () => {
       </main>
 
       {/* Footer */}
-      <footer className="py-4 text-center text-[11px] text-stone-400 dark:text-slate-500 border-t border-stone-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
+      <footer className="py-4 text-center text-xs text-muted dark:text-muted border-t border-line dark:border-line bg-surface dark:bg-surface transition-colors">
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 mb-1">
           <Link
             to="/privacy"
