@@ -23,8 +23,8 @@ MyMedRecord es una plataforma web de salud digital concebida para la interoperab
 | **Portal del Paciente ("Mi Ficha")** | [Completado] | Dashboard interactivo con alerta de ficha incompleta y modal estructurado con opción "Otro" (texto libre para registrar alergias y patologías). |
 | **Portal del Médico Administrador** | [Completado] | Búsqueda clínica unificada por RUT, revisión de signos vitales, emisión de recetas electrónicas (CIE-10) y panel de trazabilidad (Ley N° 21.668). |
 | **Diseño y Modo Claro / Oscuro** | [Completado] | Interfaz moderna con selector de tema integrado en el menú de usuario y estilos coordinados en todas las vistas. |
-| **Digitalización OCR con IA (ai-service)** | [En desarrollo] | Microservicio en Python con FastAPI y Tesseract para extracción automática de recetas y exámenes médicos. |
-| **Escáner QR en vivo por Cámara** | [En desarrollo] | Tokens temporales operativos en base de datos (access_grants); pendiente vinculación de API de cámara web en tiempo real. |
+| **Digitalización OCR con IA (ai-service)** | [Completado] | Microservicio en Python con FastAPI y Tesseract para extracción automática de recetas y exámenes médicos. |
+| **Escáner QR en vivo por Cámara** | [Completado] | Tokens temporales operativos en base de datos (access_grants); pendiente vinculación de API de cámara web en tiempo real. |
 
 ---
 
