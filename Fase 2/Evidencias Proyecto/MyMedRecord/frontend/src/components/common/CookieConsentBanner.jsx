@@ -69,7 +69,7 @@ export const CookieConsentBanner = () => {
             </button>
             <button
               onClick={handleAccept}
-              className="px-3.5 py-1.5 bg-teal-500 hover:bg-teal-400 text-ink text-xs font-extrabold rounded-xl transition-all shadow-xs flex items-center gap-1 cursor-pointer active:scale-95"
+              className="px-3.5 py-1.5 bg-action hover:bg-action-hover text-on-action text-xs font-extrabold rounded-xl transition-all shadow-xs flex items-center gap-1 cursor-pointer active:scale-95"
             >
               <Check className="w-3.5 h-3.5" />
               <span>Aceptar</span>

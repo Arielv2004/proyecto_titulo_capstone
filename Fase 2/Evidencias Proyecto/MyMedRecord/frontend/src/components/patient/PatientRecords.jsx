@@ -1,13 +1,13 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { FileText, Search, Upload, ArrowUpRight, Trash2 } from 'lucide-react';
 import {
   Button,
   Card,
   DocumentStatus,
   EmptyState,
+  InfoPopover,
   LoadingState,
   Notice,
-  PageHeader,
 } from '../ui/ClinicalUI';
 
 export function PatientRecords({
@@ -24,20 +24,38 @@ export function PatientRecords({
   onDocument,
   onDelete,
 }) {
+  const filterListRef = useRef(null);
+
+  useEffect(() => {
+    const list = filterListRef.current;
+    const selected = list?.querySelector('[aria-pressed="true"]');
+    if (!list || !selected) return;
+
+    // Keep the category opened from Inicio visible in the mobile filter strip.
+    const listLeft = list.getBoundingClientRect().left;
+    const selectedLeft = selected.getBoundingClientRect().left;
+    list.scrollLeft += selectedLeft - listLeft - (list.clientWidth - selected.clientWidth) / 2;
+  }, [category]);
+
   return (
-    <div className="mm-stack">
-      <PageHeader
-        eyebrow="TU HISTORIAL"
-        title="Mi ficha"
-        description="Encuentra los documentos que has subido y consulta su fecha y procedencia antes de compartirlos."
-        actions={
+    <div className="mm-records mm-stack">
+      <header className="mm-records-header">
+        <div className="mm-records-heading">
+          <p className="mm-eyebrow">TU HISTORIAL</p>
+          <h1 className="sr-only">Mi ficha</h1>
+        </div>
+        <div className="mm-records-controls">
           <Button onClick={onUpload}>
             <Upload size={18} />
             Subir documento
           </Button>
-        }
-      />
-      <Card>
+          <InfoPopover label="Cómo usar Mi ficha">
+            <p>Usa la búsqueda o elige un tipo para encontrar un documento. Abre cada registro para consultar su archivo y los datos disponibles.</p>
+            <p>«Documento guardado» indica que se almacenó en tu ficha; no significa que un médico haya revisado su contenido. Contrasta los datos extraídos con el original.</p>
+          </InfoPopover>
+        </div>
+      </header>
+      <Card className="mm-records-panel">
         <label className="mm-search">
           <Search size={20} aria-hidden="true" />
           <span className="sr-only">Buscar documentos por título, médico o institución</span>
@@ -45,10 +63,10 @@ export function PatientRecords({
             type="search"
             value={query}
             onChange={(e) => onQuery(e.target.value)}
-            placeholder="Buscar documento, médico o institución"
+            placeholder="Buscar en mi ficha"
           />
         </label>
-        <div className="mm-filter-list" role="group" aria-label="Filtrar documentos por categoría">
+        <div ref={filterListRef} className="mm-filter-list" role="group" aria-label="Filtrar documentos por categoría">
           {[{ id: 'ALL', title: 'Todos', count: documents.length }, ...categories].map((item) => (
             <button
               type="button"
@@ -144,7 +162,7 @@ export function PatientRecords({
                       Eliminar documento con error
                     </Button>
                   ) : (
-                    <Button variant="secondary" onClick={() => onDocument(doc)}>
+                    <Button className="mm-record-view-button" variant="secondary" onClick={() => onDocument(doc)}>
                       Ver documento
                       <ArrowUpRight size={16} />
                     </Button>

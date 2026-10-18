@@ -4,7 +4,7 @@ import { Html5Qrcode } from 'html5-qrcode';
 import { formatRut, validateRut } from '../utils/rutValidator';
 import { useMetaTags } from '../hooks/useMetaTags';
 import api from '../services/api';
-import { HeartHandshake, ShieldCheck, QrCode, Camera, Upload, AlertCircle, CheckCircle2, UserCheck, AlertTriangle, ArrowLeft, RefreshCw, ChevronRight, Keyboard } from 'lucide-react';
+import { HeartHandshake, ShieldCheck, QrCode, Camera, Upload, AlertCircle, CheckCircle2, UserCheck, Info, ArrowLeft, RefreshCw, ChevronRight, Keyboard } from 'lucide-react';
 import { ClinicalRecord } from '../components/doctor/ClinicalRecord';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 
@@ -30,7 +30,9 @@ export const DoctorQrAccessPage = () => {
   const [apiError, setApiError] = useState('');
 
   const [isProcessingImage, setIsProcessingImage] = useState(false);
-  const [isSecureEnv, setIsSecureEnv] = useState(true);
+  const isSecureEnv = typeof window !== 'undefined'
+    && (window.isSecureContext || ['localhost', '127.0.0.1'].includes(window.location.hostname))
+    && Boolean(window.navigator.mediaDevices?.getUserMedia);
 
   // Datos desbloqueados de la Ficha
   const [clinicalData, setClinicalData] = useState(null);
@@ -45,14 +47,6 @@ export const DoctorQrAccessPage = () => {
     doctorDataRef.current = doctorData;
   }, [doctorData]);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const hasGetUserMedia = Boolean(navigator?.mediaDevices?.getUserMedia);
-      setIsSecureEnv((window.isSecureContext || isLocalhost) && hasGetUserMedia);
-    }
-  }, []);
-
   const isRutValid = doctorData.rut.trim() !== '' && validateRut(doctorData.rut);
 
   const handleRutChange = (e) => {
@@ -61,22 +55,9 @@ export const DoctorQrAccessPage = () => {
     setRutTouched(true);
   };
 
-  // Inicializar o detener escáner de cámara en vivo
-  useEffect(() => {
-    if (activeScanTab === 'CAMERA' && !clinicalData && isSecureEnv) {
-      startCamera();
-    } else {
-      stopCamera();
-    }
-    return () => {
-      stopCamera();
-    };
-  }, [activeScanTab, clinicalData, isSecureEnv]);
-
-  const startCamera = async () => {
+  async function startCamera() {
     setScannerError('');
     if (!navigator?.mediaDevices?.getUserMedia) {
-      setScannerError('Los navegadores móviles requieren HTTPS para video en vivo. Usa el botón "Tomar Foto al QR" para escanear con la cámara del celular.');
       setIsScanning(false);
       return;
     }
@@ -110,28 +91,40 @@ export const DoctorQrAccessPage = () => {
       setIsScanning(true);
     } catch (err) {
       console.warn('Error al iniciar cámara:', err);
-      setScannerError('No se pudo activar el video en vivo de la cámara. Puedes tomar una foto directamente con la cámara de tu celular pulsando el botón a continuación.');
+      setScannerError('No se pudo abrir la cámara en vivo. Puedes usar «Tomar foto del QR».');
       setIsScanning(false);
     }
-  };
+  }
 
-  const stopCamera = async () => {
+  async function stopCamera() {
     if (html5QrCodeRef.current) {
       try {
         if (html5QrCodeRef.current.isScanning) {
           await html5QrCodeRef.current.stop();
         }
         await html5QrCodeRef.current.clear();
-      } catch (e) {
+      } catch {
         // Silencioso
       }
       html5QrCodeRef.current = null;
       setIsScanning(false);
     }
-  };
+  }
+
+  // Inicializar o detener escáner de cámara en vivo
+  useEffect(() => {
+    if (activeScanTab === 'CAMERA' && !clinicalData && isSecureEnv) {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+    return () => {
+      stopCamera();
+    };
+  }, [activeScanTab, clinicalData, isSecureEnv]);
 
   // Manejar cuando un QR es detectado (cámara o foto)
-  const handleQrDecoded = async (text) => {
+  async function handleQrDecoded(text) {
     let token = text.trim();
     if (token.includes('token=')) {
       const match = token.match(/token=([A-Za-z0-9-]+)/);
@@ -145,7 +138,7 @@ export const DoctorQrAccessPage = () => {
     if (validateRut(currentDoc.rut) && currentDoc.name.trim()) {
       executeValidation(token, currentDoc.rut, currentDoc.name, currentDoc.institution);
     }
-  };
+  }
 
   // Redimensionar imagen para escaneo óptimo de códigos QR (evita fallos de memoria con fotos de 12-48MP de celulares)
   const resizeImageToBlob = (file, maxDim = 1200) => {
@@ -197,7 +190,7 @@ export const DoctorQrAccessPage = () => {
     try {
       const res1 = await html5QrCode.scanFile(file, true);
       if (res1) return res1;
-    } catch (err1) {
+    } catch {
       // Continuar a redimensionamiento
     }
 
@@ -207,7 +200,7 @@ export const DoctorQrAccessPage = () => {
       const file1200 = new File([blob1200], 'qr_1200.jpg', { type: 'image/jpeg' });
       const res2 = await html5QrCode.scanFile(file1200, true);
       if (res2) return res2;
-    } catch (err2) {
+    } catch {
       // Continuar
     }
 
@@ -217,7 +210,7 @@ export const DoctorQrAccessPage = () => {
       const file800 = new File([blob800], 'qr_800.jpg', { type: 'image/jpeg' });
       const res3 = await html5QrCode.scanFile(file800, true);
       if (res3) return res3;
-    } catch (err3) {
+    } catch {
       // Continuar
     }
 
@@ -304,20 +297,20 @@ export const DoctorQrAccessPage = () => {
     <div className="min-h-screen flex flex-col bg-canvas dark:bg-canvas text-body dark:text-ink transition-colors">
 
       {/* Header */}
-      <header className="border-b border-line/80 dark:border-line bg-surface/90 dark:bg-surface/90 backdrop-blur-md px-4 sm:px-8 py-3.5 flex items-center justify-between sticky top-0 z-30 shadow-xs">
+      <header className="mm-qr-header border-b border-line/80 dark:border-line bg-surface/90 dark:bg-surface/90 backdrop-blur-md px-4 sm:px-8 py-3.5 flex items-center justify-between sticky top-0 z-30 shadow-xs">
         <div className="flex items-center gap-3">
           <Link to="/login" className="flex items-center gap-3 group">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-900 text-white shadow-xs group-hover:scale-105 transition-transform">
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-action text-on-action shadow-xs group-hover:scale-105 transition-transform">
               <HeartHandshake className="w-6 h-6 text-teal-300" />
             </div>
             <div>
-              <span className="text-base font-extrabold text-ink dark:text-ink tracking-tight flex items-center gap-1.5">
+              <span className="mm-qr-header-brand text-base font-extrabold text-ink dark:text-ink tracking-tight flex items-center gap-1.5">
                 MyMedRecord
-                <span className="text-xs uppercase font-bold tracking-wider px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-teal-300 rounded border border-blue-200/60 dark:border-blue-800">
+                <span className="mm-qr-header-badge text-xs uppercase font-bold tracking-wider px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-accent-ink dark:text-teal-300 rounded border border-blue-200/60 dark:border-blue-800">
                   Acceso Médico
                 </span>
               </span>
-              <p className="text-xs text-muted dark:text-muted font-medium">
+              <p className="mm-qr-header-subtitle text-xs text-muted dark:text-muted font-medium">
                 Portal Médico Autorizado (Ley N° 21.668)
               </p>
             </div>
@@ -337,24 +330,24 @@ export const DoctorQrAccessPage = () => {
       {/* VISTA 1: IDENTIFICACIÓN Y ESCÁNER (ANTES DE DESBLOQUEAR LA FICHA)         */}
       {/* ========================================================================= */}
       {!clinicalData ? (
-        <main id="main-content" tabIndex={-1} className="mm-shell">
-          <div className="mb-4">
-            <Link to="/login" className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-900 dark:text-teal-300 hover:underline">
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Volver a Inicio de Sesión</span>
+        <main id="main-content" tabIndex={-1} className="mm-shell mm-qr-shell">
+          <div className="mm-qr-back mb-4">
+            <Link to="/login" className="mm-qr-back-link" aria-label="Volver al inicio de sesión">
+              <ArrowLeft aria-hidden="true" className="w-4 h-4" />
+              <span>Volver</span>
             </Link>
           </div>
 
-          <div className="bg-surface dark:bg-surface border border-line/90 dark:border-line rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
-            <div className="text-center max-w-lg mx-auto">
-              <div className="w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300 flex items-center justify-center mx-auto mb-3">
+          <div className="mm-qr-panel bg-surface dark:bg-surface border border-line/90 dark:border-line rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+            <div className="mm-qr-intro text-center max-w-lg mx-auto">
+              <div className="mm-qr-intro-icon w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300 flex items-center justify-center mx-auto mb-3">
                 <QrCode className="w-6 h-6" />
               </div>
               <h1 className="text-2xl font-black text-ink dark:text-ink tracking-tight">
                 Portal de Acceso Médico
               </h1>
-              <p className="text-xs text-muted dark:text-muted mt-1">
-                Consulta clínica autorizada por el paciente. Válido para centros de salud, hospitales, clínicas, CESFAM y consultas privadas bajo <strong>Ley N° 21.668</strong>.
+              <p className="text-sm text-muted dark:text-muted mt-1">
+                Consulta una ficha médica solo cuando el paciente te haya dado acceso mediante un pase QR temporal.
               </p>
             </div>
 
@@ -367,13 +360,13 @@ export const DoctorQrAccessPage = () => {
 
             <form onSubmit={handleFormSubmit} className="space-y-5">
               {/* Paso 1: Datos Profesionales del Médico */}
-              <div className="p-5 bg-canvas dark:bg-surface-muted/60 rounded-2xl border border-line/80 dark:border-line space-y-3">
-                <span className="block text-xs font-bold uppercase tracking-wider text-ink dark:text-body flex items-center gap-1.5">
+              <div className="mm-qr-step p-5 bg-canvas dark:bg-surface-muted/60 rounded-2xl border border-line/80 dark:border-line space-y-3">
+                <span className="mm-qr-step-title block text-xs font-bold uppercase tracking-wider text-ink dark:text-body flex items-center gap-1.5">
                   <UserCheck className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                  1. Identificación del Profesional de Salud
+                  1. Identificación profesional
                 </span>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="mm-qr-fields grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-body dark:text-body mb-1">
                       RUT del Médico *
@@ -383,7 +376,7 @@ export const DoctorQrAccessPage = () => {
                       required
                       value={doctorData.rut}
                       onChange={handleRutChange}
-                      placeholder="00.000.000-0"
+                      placeholder="Ej.: 12.345.678-5"
                       className={`w-full px-3.5 py-2.5 bg-surface dark:bg-surface border rounded-xl text-sm font-mono focus:outline-none transition-all ${rutTouched && doctorData.rut
                         ? isRutValid
                           ? 'border-emerald-500 text-body dark:text-ink focus:ring-2 focus:ring-emerald-100'
@@ -402,21 +395,21 @@ export const DoctorQrAccessPage = () => {
                       required
                       value={doctorData.name}
                       onChange={(e) => setDoctorData({ ...doctorData, name: e.target.value })}
-                      placeholder="Dr. Ariel Velásquez"
+                      placeholder="Ej.: Dra. María González"
                       className="w-full px-3.5 py-2.5 bg-surface dark:bg-surface border border-line dark:border-line rounded-xl text-sm text-body dark:text-ink focus:border-blue-700 dark:focus:border-teal-400 focus:outline-none"
                     />
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-body dark:text-body mb-1">
-                      Centro de Salud  *
+                      Centro de Salud *
                     </label>
                     <input
                       type="text"
                       required
                       value={doctorData.institution}
                       onChange={(e) => setDoctorData({ ...doctorData, institution: e.target.value })}
-                      placeholder="Ej: Hospital, Clínica, CESFAM, Consulta Privada"
+                      placeholder="Ej.: Hospital Regional"
                       className="w-full px-3.5 py-2.5 bg-surface dark:bg-surface border border-line dark:border-line rounded-xl text-sm text-body dark:text-ink focus:border-blue-700 dark:focus:border-teal-400 focus:outline-none"
                     />
                   </div>
@@ -424,20 +417,20 @@ export const DoctorQrAccessPage = () => {
               </div>
 
               {/* Paso 2: Escaneo del Código QR */}
-              <div className="p-5 bg-canvas dark:bg-surface-muted/60 rounded-2xl border border-line/80 dark:border-line space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <span className="block text-xs font-bold uppercase tracking-wider text-ink dark:text-body flex items-center gap-1.5">
+              <div className="mm-qr-step p-5 bg-canvas dark:bg-surface-muted/60 rounded-2xl border border-line/80 dark:border-line space-y-4">
+                <div className="mm-qr-method-head flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <span className="mm-qr-step-title block text-xs font-bold uppercase tracking-wider text-ink dark:text-body flex items-center gap-1.5">
                     <QrCode className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                    2. Escanear o Cargar Código QR del Paciente
+                    2. Código QR del paciente
                   </span>
 
                   {/* Selector de Métodos de Escaneo */}
-                  <div className="flex p-1 bg-surface-muted/80 dark:bg-surface rounded-xl">
+                  <div className="mm-qr-method-tabs grid grid-cols-3 w-full min-w-0 p-1 bg-surface-muted/80 dark:bg-surface rounded-xl">
                     <button
                       type="button"
                       onClick={() => setActiveScanTab('CAMERA')}
-                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${activeScanTab === 'CAMERA'
-                        ? 'bg-surface dark:bg-surface-muted text-blue-900 dark:text-teal-300 shadow-xs'
+                      className={`mm-qr-method-tab min-w-0 px-1.5 py-1.5 text-xs font-bold rounded-lg transition-all flex flex-col items-center justify-center gap-0.5 text-center leading-tight cursor-pointer ${activeScanTab === 'CAMERA'
+                        ? 'bg-surface dark:bg-surface-muted text-accent-ink dark:text-teal-300 shadow-xs'
                         : 'text-muted dark:text-muted'
                         }`}
                     >
@@ -447,19 +440,19 @@ export const DoctorQrAccessPage = () => {
                     <button
                       type="button"
                       onClick={() => setActiveScanTab('UPLOAD')}
-                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${activeScanTab === 'UPLOAD'
-                        ? 'bg-surface dark:bg-surface-muted text-blue-900 dark:text-teal-300 shadow-xs'
+                      className={`mm-qr-method-tab min-w-0 px-1.5 py-1.5 text-xs font-bold rounded-lg transition-all flex flex-col items-center justify-center gap-0.5 text-center leading-tight cursor-pointer ${activeScanTab === 'UPLOAD'
+                        ? 'bg-surface dark:bg-surface-muted text-accent-ink dark:text-teal-300 shadow-xs'
                         : 'text-muted dark:text-muted'
                         }`}
                     >
                       <Upload className="w-3.5 h-3.5" />
-                      <span>Subir Imagen</span>
+                      <span>Imagen</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setActiveScanTab('MANUAL')}
-                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${activeScanTab === 'MANUAL'
-                        ? 'bg-surface dark:bg-surface-muted text-blue-900 dark:text-teal-300 shadow-xs'
+                      className={`mm-qr-method-tab min-w-0 px-1.5 py-1.5 text-xs font-bold rounded-lg transition-all flex flex-col items-center justify-center gap-0.5 text-center leading-tight cursor-pointer ${activeScanTab === 'MANUAL'
+                        ? 'bg-surface dark:bg-surface-muted text-accent-ink dark:text-teal-300 shadow-xs'
                         : 'text-muted dark:text-muted'
                         }`}
                     >
@@ -472,7 +465,7 @@ export const DoctorQrAccessPage = () => {
                 {/* Elementos auxiliares ocultos para procesamiento */}
                 <div id="qr-file-processor" className="hidden" />
 
-                {/* Input para captura de foto directa con la cámara del celular (soporta iOS y Android sobre HTTP y HTTPS) */}
+                {/* Input para captura de foto con la cámara del dispositivo. */}
                 <input
                   type="file"
                   ref={cameraCaptureInputRef}
@@ -494,14 +487,14 @@ export const DoctorQrAccessPage = () => {
                 {/* Contenido según pestaña de escáner */}
                 {activeScanTab === 'CAMERA' && (
                   <div className="space-y-4">
-                    {/* Alerta si el dispositivo accede por HTTP en red local */}
+                    {/* La vista en vivo no está disponible en un contexto no seguro. */}
                     {!isSecureEnv && (
-                      <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-2xl text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2.5">
-                        <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                      <div className="mm-qr-camera-note" role="status">
+                        <Info aria-hidden="true" className="w-4 h-4 shrink-0 mt-0.5" />
                         <div className="space-y-1">
-                          <p className="font-bold">Acceso Móvil en Red Local (HTTP)</p>
-                          <p className="text-xs text-muted dark:text-body leading-relaxed">
-                            Los navegadores móviles (Chrome/Safari) bloquean el streaming continuo de video en conexiones HTTP por seguridad. Usa el botón verde a continuación para abrir la cámara de tu celular, tomar la foto al código QR y escanearlo al instante.
+                          <p className="font-semibold">Escanea con una foto</p>
+                          <p className="leading-relaxed">
+                            Usa «Tomar foto del QR» para leer el código. La vista en vivo requiere HTTPS.
                           </p>
                         </div>
                       </div>
@@ -509,7 +502,7 @@ export const DoctorQrAccessPage = () => {
 
                     {/* Visor de video en vivo (solo activo si el navegador soporta getUserMedia) */}
                     {isSecureEnv && (
-                      <div className="relative mx-auto w-full max-w-sm aspect-square bg-slate-950 rounded-2xl overflow-hidden border-2 border-dashed border-teal-400/60 flex items-center justify-center">
+                      <div className="mm-qr-preview relative mx-auto w-full max-w-sm aspect-square bg-slate-950 rounded-2xl overflow-hidden border-2 border-dashed border-teal-400/60 flex items-center justify-center">
                         <div id="qr-reader-container" className="w-full h-full" />
                         {!isScanning && !scannerError && (
                           <div className="absolute text-center p-4 text-stone-300 text-xs">
@@ -520,13 +513,13 @@ export const DoctorQrAccessPage = () => {
                       </div>
                     )}
 
-                    {/* Botón de captura rápida con la cámara del celular (100% compatible con todos los celulares) */}
+                    {/* Captura mediante el selector de cámara del dispositivo. */}
                     <div className="space-y-2 max-w-sm mx-auto">
                       <button
                         type="button"
                         onClick={() => cameraCaptureInputRef.current?.click()}
                         disabled={isProcessingImage}
-                        className="w-full py-3.5 px-4 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 active:scale-98 text-white font-black text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2.5 shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50"
+                        className="mm-qr-capture-button w-full py-3.5 px-4 bg-action hover:bg-action-hover active:scale-98 text-on-action font-black text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2.5 shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50"
                       >
                         {isProcessingImage ? (
                           <>
@@ -536,13 +529,13 @@ export const DoctorQrAccessPage = () => {
                         ) : (
                           <>
                             <Camera className="w-4 h-4 text-teal-200" />
-                            <span>Tomar Foto al QR con la Cámara</span>
+                            <span>Tomar foto del QR</span>
                           </>
                         )}
                       </button>
 
                       <p className="text-center text-xs text-muted dark:text-muted">
-                        Abre la cámara de tu teléfono para capturar y leer el código directamente.
+                        Abre la cámara del teléfono para leer el código.
                       </p>
                     </div>
 
@@ -564,7 +557,7 @@ export const DoctorQrAccessPage = () => {
                         disabled={isProcessingImage}
                         className="p-5 border-2 border-dashed border-teal-400/80 bg-teal-50/40 dark:bg-teal-950/20 hover:bg-teal-50/80 dark:hover:bg-teal-950/40 rounded-2xl text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-2"
                       >
-                        <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-xs">
+                        <div className="w-10 h-10 rounded-xl bg-deep-brand text-white flex items-center justify-center shadow-xs">
                           <Camera className="w-5 h-5" />
                         </div>
                         <span className="font-extrabold text-ink dark:text-ink text-xs block">
@@ -582,7 +575,7 @@ export const DoctorQrAccessPage = () => {
                         disabled={isProcessingImage}
                         className="p-5 border-2 border-dashed border-blue-300 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-950/20 hover:bg-blue-50/70 dark:hover:bg-blue-950/40 rounded-2xl text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-2"
                       >
-                        <div className="w-10 h-10 rounded-xl bg-blue-900 text-white flex items-center justify-center shadow-xs">
+                        <div className="w-10 h-10 rounded-xl bg-action text-on-action flex items-center justify-center shadow-xs">
                           <Upload className="w-5 h-5" />
                         </div>
                         <span className="font-extrabold text-ink dark:text-ink text-xs block">
@@ -646,7 +639,7 @@ export const DoctorQrAccessPage = () => {
               <button
                 type="submit"
                 disabled={isValidating || !doctorData.token}
-                className="w-full py-3.5 bg-blue-900 hover:bg-blue-950 active:scale-[0.99] text-white font-bold rounded-2xl transition-all shadow-xs flex items-center justify-center gap-2 text-sm cursor-pointer disabled:opacity-50"
+                className="mm-qr-submit w-full py-3.5 bg-action hover:bg-action-hover active:scale-[0.99] text-on-action font-bold rounded-2xl transition-all shadow-xs flex items-center justify-center gap-2 text-sm cursor-pointer disabled:opacity-50"
               >
                 <span>{isValidating ? 'Validando vigencia y registrando auditoría...' : 'Validar y Consultar Ficha Clínica'}</span>
                 <ChevronRight className="w-4 h-4 text-teal-300" />

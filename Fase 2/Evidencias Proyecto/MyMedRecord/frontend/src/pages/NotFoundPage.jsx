@@ -22,7 +22,7 @@ export const NotFoundPage = () => {
       {/* Header simple */}
       <header className="border-b border-line/80 bg-surface px-6 py-3.5 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-900 text-white shadow-xs">
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-action text-on-action shadow-xs">
             <HeartHandshake className="w-6 h-6 text-teal-300" />
           </div>
           <div>
@@ -53,7 +53,7 @@ export const NotFoundPage = () => {
 
           <div className="p-4 bg-canvas rounded-2xl border border-line text-left text-xs space-y-1.5 text-muted">
             <div className="flex items-center gap-2 font-bold text-ink">
-              <ShieldAlert className="w-4 h-4 text-blue-900" />
+              <ShieldAlert className="w-4 h-4 text-accent-ink" />
               <span>¿Qué puedes hacer?</span>
             </div>
             <p className="text-xs text-muted pl-6">
@@ -72,7 +72,7 @@ export const NotFoundPage = () => {
 
             <Link
               to={getHomeRoute()}
-              className="flex-1 py-3 px-4 bg-blue-900 hover:bg-blue-950 active:scale-[0.99] text-white font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-2 shadow-xs"
+              className="flex-1 py-3 px-4 bg-action hover:bg-action-hover active:scale-[0.99] text-on-action font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-2 shadow-xs"
             >
               <Home className="w-4 h-4 text-teal-300" />
               <span>Ir al Panel Principal</span>

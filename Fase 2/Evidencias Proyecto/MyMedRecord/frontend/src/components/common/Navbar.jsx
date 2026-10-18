@@ -41,11 +41,11 @@ export const Navbar = ({ roleTitle, onOpenProfile, onOpenHelp }) => {
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="flex items-center gap-2.5 p-1.5 sm:px-3 sm:py-1.5 rounded-2xl border border-line dark:border-line hover:border-blue-300 dark:hover:border-slate-700 hover:bg-canvas dark:hover:bg-slate-800 transition-all cursor-pointer bg-surface dark:bg-surface"
+            className="flex items-center gap-2.5 p-1.5 sm:px-3 sm:py-1.5 rounded-2xl border border-line dark:border-line hover:border-accent-ink dark:hover:border-slate-700 hover:bg-canvas dark:hover:bg-slate-800 transition-all cursor-pointer bg-surface dark:bg-surface"
             aria-expanded={isOpen}
             aria-label="Menú de mi cuenta"
           >
-            <div className="w-8 h-8 rounded-xl bg-blue-900 text-teal-300 flex items-center justify-center font-bold text-xs shadow-xs">
+            <div className="w-8 h-8 rounded-xl bg-deep-brand text-teal-300 flex items-center justify-center font-bold text-xs shadow-xs">
               {getInitials()}
             </div>
             <div className="text-left hidden sm:block">
@@ -56,7 +56,7 @@ export const Navbar = ({ roleTitle, onOpenProfile, onOpenHelp }) => {
                 {user?.rut || 'No registrado'}
               </span>
             </div>
-            <ChevronDown className={`w-4 h-4 text-muted dark:text-muted transition-transform duration-200 ${isOpen ? 'rotate-180 text-blue-900 dark:text-teal-400' : ''}`} />
+            <ChevronDown className={`w-4 h-4 text-muted dark:text-muted transition-transform duration-200 ${isOpen ? 'rotate-180 text-accent-ink dark:text-teal-400' : ''}`} />
           </button>
 
           {/* Menú Desplegable (Dropdown en Web / Hoja Flotante en Móvil) */}
@@ -66,7 +66,7 @@ export const Navbar = ({ roleTitle, onOpenProfile, onOpenHelp }) => {
               <div className="p-3.5 bg-gradient-to-b from-stone-50 to-stone-100/70 dark:from-slate-800/95 dark:to-slate-850/95 rounded-2xl border border-line/90 dark:border-line/80 mb-3 shadow-2xs space-y-2.5">
                 {/* Cabecera: Avatar, Nombre Completo y Estado de Rol */}
                 <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-2xl bg-blue-900 text-teal-300 flex items-center justify-center font-black text-sm shadow-xs shrink-0 ring-2 ring-white dark:ring-slate-700">
+                  <div className="w-11 h-11 rounded-2xl bg-deep-brand text-teal-300 flex items-center justify-center font-black text-sm shadow-xs shrink-0 ring-2 ring-white dark:ring-slate-700">
                     {getInitials()}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -112,7 +112,7 @@ export const Navbar = ({ roleTitle, onOpenProfile, onOpenHelp }) => {
                   }}
                   className="w-full flex items-center gap-2.5 px-3 py-2.5 text-body dark:text-body hover:text-ink dark:hover:text-white hover:bg-surface-muted/80 dark:hover:bg-slate-800/80 rounded-xl transition-all font-semibold cursor-pointer text-left"
                 >
-                  <User className="w-4 h-4 text-blue-800 dark:text-teal-400" />
+                  <User className="w-4 h-4 text-accent-ink dark:text-teal-400" />
                   <span>Mi Perfil</span>
                 </button>
 
@@ -122,8 +122,7 @@ export const Navbar = ({ roleTitle, onOpenProfile, onOpenHelp }) => {
                 >
                   <ShieldCheck className="w-4 h-4 text-teal-700 dark:text-teal-400" />
                   <div className="flex-1 flex items-center justify-between">
-                    <span>Seguridad & Cifrado</span>
-                    <span className="text-xs font-bold px-1.5 py-0.2 bg-teal-100 dark:bg-teal-950/80 text-teal-900 dark:text-teal-300 border border-transparent dark:border-teal-800 rounded">AES-256</span>
+                    <span>Seguridad y accesos</span>
                   </div>
                 </button>
 
@@ -146,7 +145,7 @@ export const Navbar = ({ roleTitle, onOpenProfile, onOpenHelp }) => {
                   }}
                   className="w-full flex items-center gap-2.5 px-3 py-2.5 text-body dark:text-body hover:text-ink dark:hover:text-white hover:bg-surface-muted/80 dark:hover:bg-slate-800/80 rounded-xl transition-all font-semibold cursor-pointer text-left"
                 >
-                  <HelpCircle className="w-4 h-4 text-blue-900 dark:text-blue-400" />
+                  <HelpCircle className="w-4 h-4 text-accent-ink dark:text-blue-400" />
                   <span>Centro de Ayuda & FAQ</span>
                 </button>
               </div>
@@ -180,7 +179,7 @@ export const Navbar = ({ roleTitle, onOpenProfile, onOpenHelp }) => {
           <div className="w-full max-w-lg bg-surface dark:bg-surface border border-line dark:border-line rounded-3xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3.5 border-b border-line dark:border-line">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-blue-50 dark:bg-blue-950/60 text-blue-900 dark:text-teal-300 rounded-xl">
+                <div className="p-2 bg-blue-50 dark:bg-blue-950/60 text-accent-ink dark:text-teal-300 rounded-xl">
                   <User className="w-5 h-5" />
                 </div>
                 <div>
@@ -206,7 +205,7 @@ export const Navbar = ({ roleTitle, onOpenProfile, onOpenHelp }) => {
                     {user?.first_name ? `${user.first_name} ${user.last_name}` : user?.email}
                   </span>
                   <span className="text-xs font-mono text-muted dark:text-muted block mt-0.5">
-                    RUT: <strong className="text-blue-900 dark:text-teal-300">{user?.rut || 'Sin registrar'}</strong>
+                    RUT: <strong className="text-accent-ink dark:text-teal-300">{user?.rut || 'Sin registrar'}</strong>
                   </span>
                   <span className="text-xs font-extrabold text-teal-800 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/50 px-2 py-0.5 rounded-full border border-teal-200/70 dark:border-teal-800 inline-block mt-1">
                     Titular Oficial
@@ -221,11 +220,11 @@ export const Navbar = ({ roleTitle, onOpenProfile, onOpenHelp }) => {
                 </div>
                 <div className="p-3 bg-surface dark:bg-slate-850 rounded-xl border border-line/80 dark:border-line">
                   <span className="text-xs font-bold uppercase tracking-wider text-muted dark:text-muted block mb-0.5">Perfil de Acceso</span>
-                  <span className="text-xs font-bold text-blue-900 dark:text-teal-300 block">{user?.role || 'PACIENTE'}</span>
+                  <span className="text-xs font-bold text-accent-ink dark:text-teal-300 block">{user?.role || 'PACIENTE'}</span>
                 </div>
               </div>
 
-              <div className="p-3.5 bg-blue-50/50 dark:bg-blue-950/20 rounded-2xl border border-blue-100 dark:border-blue-900/40 text-xs text-ink dark:text-blue-200 flex items-center gap-2.5">
+              <div className="p-3.5 bg-blue-50/50 dark:bg-blue-950/20 rounded-2xl border border-blue-100 dark:border-accent-ink/40 text-xs text-ink dark:text-blue-200 flex items-center gap-2.5">
                 <ShieldCheck className="w-5 h-5 text-teal-600 dark:text-teal-400 shrink-0" />
                 <span className="leading-relaxed">Identidad protegida conforme a la Ley N° 21.668 de Interoperabilidad Clínica y Ley N° 20.584 de Derechos en Salud.</span>
               </div>
@@ -234,7 +233,7 @@ export const Navbar = ({ roleTitle, onOpenProfile, onOpenHelp }) => {
             <div className="pt-3 border-t border-line dark:border-line flex justify-end">
               <button
                 onClick={() => setActiveModal(null)}
-                className="px-5 py-2.5 bg-blue-900 hover:bg-blue-950 text-white font-bold rounded-xl text-xs transition-all cursor-pointer shadow-xs"
+                className="px-5 py-2.5 bg-action hover:bg-action-hover text-on-action font-bold rounded-xl text-xs transition-all cursor-pointer shadow-xs"
               >
                 Cerrar
               </button>
@@ -255,7 +254,7 @@ export const Navbar = ({ roleTitle, onOpenProfile, onOpenHelp }) => {
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-ink dark:text-ink">Seguridad & Cifrado de Datos</h3>
+                  <h3 className="text-base font-bold text-ink dark:text-ink">Seguridad y accesos</h3>
                   <p className="text-xs text-muted dark:text-muted">Arquitectura de Ciberseguridad de MyMedRecord</p>
                 </div>
               </div>
@@ -270,41 +269,41 @@ export const Navbar = ({ roleTitle, onOpenProfile, onOpenHelp }) => {
             <div className="space-y-3 py-4 text-xs">
               <div className="p-3.5 bg-blue-50/70 dark:bg-surface-muted/80 border border-blue-200/80 dark:border-line/80 rounded-2xl">
                 <div className="flex items-center gap-2 text-ink dark:text-blue-300 font-bold mb-1">
-                  <Lock className="w-4 h-4 text-blue-900 dark:text-blue-400" />
-                  <span>1. Cifrado en Reposo (AES-256-GCM)</span>
+                  <Lock className="w-4 h-4 text-accent-ink dark:text-blue-400" />
+                  <span>1. Sesión de acceso</span>
                 </div>
                 <p className="text-muted dark:text-body text-xs leading-relaxed">
-                  Tus diagnósticos médicos, notas y datos de exámenes se almacenan encriptados en PostgreSQL mediante el estándar militar <strong>AES-256-GCM</strong>. Ni administradores sin clave pueden leer tus registros clínicos en crudo.
+                  Para consultar tu cuenta debes iniciar sesión. El navegador recibe una cookie de sesión <strong>HttpOnly</strong>; cierra sesión si compartes el dispositivo.
                 </p>
               </div>
 
               <div className="p-3.5 bg-teal-50/70 dark:bg-teal-950/30 border border-teal-200/80 dark:border-teal-800/50 rounded-2xl">
                 <div className="flex items-center gap-2 text-teal-950 dark:text-teal-300 font-bold mb-1">
                   <KeyRound className="w-4 h-4 text-teal-800 dark:text-teal-400" />
-                  <span>2. Autenticación con Cookies HttpOnly & Bcrypt</span>
+                  <span>2. Permisos temporales</span>
                 </div>
                 <p className="text-muted dark:text-body text-xs leading-relaxed">
-                  Tu sesión viaja en Cookies <strong>HttpOnly</strong> y <strong>SameSite=Strict</strong>, haciéndola inmune a robos por código malicioso (XSS/CSRF). Las contraseñas están protegidas con hash salino Bcrypt.
+                  Al compartir una ficha eliges la duración del permiso. Puedes consultar su estado y revocar un acceso vigente desde Accesos.
                 </p>
               </div>
 
               <div className="p-3.5 bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200/80 dark:border-purple-800/50 rounded-2xl">
                 <div className="flex items-center gap-2 text-purple-950 dark:text-purple-300 font-bold mb-1">
                   <ShieldAlert className="w-4 h-4 text-purple-900 dark:text-purple-400" />
-                  <span>3. Trazabilidad Continua (Audit Logs)</span>
+                  <span>3. Actividad registrada</span>
                 </div>
                 <p className="text-muted dark:text-body text-xs leading-relaxed">
-                  Cada vez que un médico o usuario visualiza tu ficha médica, el sistema registra una huella digital inmutable: <strong>Identidad del médico, Fecha, Hora, Dirección IP y Acción realizada</strong>.
+                  En Accesos puedes revisar los eventos que la aplicación ha registrado para tu ficha. Si un dato no está disponible, se indicará en la vista.
                 </p>
               </div>
 
               <div className="p-3.5 bg-canvas dark:bg-surface-muted/80 border border-line dark:border-line/80 rounded-2xl">
                 <div className="flex items-center gap-2 text-stone-800 dark:text-body font-bold mb-1">
                   <Fingerprint className="w-4 h-4 text-body dark:text-muted" />
-                  <span>4. Cero Datos Médicos en Almacenamiento Local</span>
+                  <span>4. Perfil de salud</span>
                 </div>
                 <p className="text-muted dark:text-body text-xs leading-relaxed">
-                  Por diseño de seguridad, tu teléfono y navegador no guardan copias de tu historial en memoria persistente (<code className="bg-surface-muted dark:bg-surface px-1 py-0.5 rounded text-stone-800 dark:text-body">localStorage</code>), garantizando privacidad si compartes tu dispositivo.
+                  El perfil se consulta desde tu cuenta y sus cambios se guardan en el servidor. Esta versión deja de guardar una copia del perfil clínico en el almacenamiento local del navegador.
                 </p>
               </div>
             </div>
@@ -312,7 +311,7 @@ export const Navbar = ({ roleTitle, onOpenProfile, onOpenHelp }) => {
             <div className="pt-3 border-t border-line dark:border-line flex justify-end">
               <button
                 onClick={() => setActiveModal(null)}
-                className="px-5 py-2.5 bg-blue-900 hover:bg-blue-950 text-white font-bold rounded-xl text-xs transition-all cursor-pointer shadow-xs"
+                className="px-5 py-2.5 bg-action hover:bg-action-hover text-on-action font-bold rounded-xl text-xs transition-all cursor-pointer shadow-xs"
               >
                 Cerrar
               </button>
@@ -364,7 +363,7 @@ export const Navbar = ({ roleTitle, onOpenProfile, onOpenHelp }) => {
             <div className="pt-3 border-t border-line dark:border-line flex justify-end">
               <button
                 onClick={() => setActiveModal(null)}
-                className="px-5 py-2.5 bg-blue-900 hover:bg-blue-950 text-white font-bold rounded-xl text-xs transition-all cursor-pointer shadow-xs"
+                className="px-5 py-2.5 bg-action hover:bg-action-hover text-on-action font-bold rounded-xl text-xs transition-all cursor-pointer shadow-xs"
               >
                 Entendido
               </button>

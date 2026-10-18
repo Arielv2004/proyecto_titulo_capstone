@@ -181,7 +181,7 @@ export const DoctorDashboard = () => {
                   className="px-3.5 py-2.5 bg-surface-muted dark:bg-surface-muted hover:bg-surface-muted dark:hover:bg-slate-700 text-body dark:text-body text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   <RefreshCw
-                    className={`w-3.5 h-3.5 text-blue-900 dark:text-teal-300 ${
+                    className={`w-3.5 h-3.5 text-accent-ink dark:text-teal-300 ${
                       isRefreshingLogs ? 'animate-spin' : ''
                     }`}
                   />
@@ -200,7 +200,7 @@ export const DoctorDashboard = () => {
                       'Exportación de bitácora disponible en una etapa posterior del prototipo.'
                     )
                   }
-                  className="px-3.5 py-2.5 bg-blue-900 hover:bg-blue-950 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                  className="px-3.5 py-2.5 bg-action hover:bg-action-hover text-on-action text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5 text-teal-300" />
                   <span>Exportar</span>
@@ -213,7 +213,7 @@ export const DoctorDashboard = () => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="bg-surface dark:bg-surface border border-line/90 dark:border-line rounded-3xl p-5 shadow-xs">
                 <span className="text-xs font-bold text-muted dark:text-muted uppercase tracking-wider flex items-center gap-1.5">
-                  <Users className="w-4 h-4 text-blue-800 dark:text-teal-300" />
+                  <Users className="w-4 h-4 text-accent-ink dark:text-teal-300" />
                   Usuarios demo
                 </span>
 
@@ -222,7 +222,7 @@ export const DoctorDashboard = () => {
                     {sampleUsers.length}
                   </span>
 
-                  <span className="text-xs font-bold text-blue-800 dark:text-teal-300 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
+                  <span className="text-xs font-bold text-accent-ink dark:text-teal-300 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
                     Paciente · Médico
                   </span>
                 </div>
@@ -281,7 +281,7 @@ export const DoctorDashboard = () => {
                   onClick={() => setAuditSubTab('LOGS')}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     auditSubTab === 'LOGS'
-                      ? 'bg-blue-900 text-white shadow-xs'
+                      ? 'bg-action text-on-action shadow-xs'
                       : 'bg-surface-muted dark:bg-surface-muted hover:bg-surface-muted dark:hover:bg-slate-700 text-muted dark:text-muted'
                   }`}
                 >
@@ -293,7 +293,7 @@ export const DoctorDashboard = () => {
                   onClick={() => setAuditSubTab('USERS')}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     auditSubTab === 'USERS'
-                      ? 'bg-blue-900 text-white shadow-xs'
+                      ? 'bg-action text-on-action shadow-xs'
                       : 'bg-surface-muted dark:bg-surface-muted hover:bg-surface-muted dark:hover:bg-slate-700 text-muted dark:text-muted'
                   }`}
                 >
@@ -423,7 +423,7 @@ export const DoctorDashboard = () => {
                               className={`text-xs font-bold px-2 py-0.5 rounded-full border ${
                                 u.role === 'PACIENTE'
                                   ? 'bg-teal-50 dark:bg-teal-950/40 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-800'
-                                  : 'bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200 border-blue-200 dark:border-blue-800'
+                                  : 'bg-blue-50 dark:bg-blue-950/40 text-accent-ink dark:text-blue-200 border-blue-200 dark:border-blue-800'
                               }`}
                             >
                               {u.roleLabel}

@@ -10,7 +10,7 @@ export const ThemeToggle = ({ compact = false, className = '' }) => {
       <button
         onClick={toggleTheme}
         type="button"
-        className={`relative p-2 rounded-xl border border-line dark:border-line bg-surface dark:bg-surface-muted text-muted dark:text-amber-300 hover:text-blue-900 dark:hover:text-amber-200 hover:border-blue-300 dark:hover:border-amber-400/50 shadow-xs transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500/40 ${className}`}
+        className={`relative p-2 rounded-xl border border-line dark:border-line bg-surface dark:bg-surface-muted text-muted dark:text-amber-300 hover:text-accent-ink dark:hover:text-amber-200 hover:border-accent-ink dark:hover:border-amber-400/50 shadow-xs transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500/40 ${className}`}
         title={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
         aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
       >
@@ -37,7 +37,7 @@ export const ThemeToggle = ({ compact = false, className = '' }) => {
           {isDark ? (
             <Sun className="w-4 h-4 text-amber-400" />
           ) : (
-            <Moon className="w-4 h-4 text-blue-900" />
+            <Moon className="w-4 h-4 text-accent-ink" />
           )}
         </div>
         <span className="text-body dark:text-body">

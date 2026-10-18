@@ -32,7 +32,7 @@ export class ErrorBoundary extends React.Component {
                 this.setState({ hasError: false });
                 window.location.reload();
               }}
-              className="w-full py-3 bg-blue-900 hover:bg-blue-950 text-white font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+              className="w-full py-3 bg-action hover:bg-action-hover text-on-action font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs"
             >
               <RefreshCw className="w-4 h-4 text-teal-300" />
               <span>Recargar Página</span>

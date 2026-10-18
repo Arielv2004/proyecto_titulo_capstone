@@ -58,18 +58,12 @@ export const LoginPage = () => {
       {/* Encabezado Superior */}
       <header className="border-b border-line/80 dark:border-line bg-surface/90 dark:bg-surface/90 backdrop-blur-md px-6 py-3.5 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-900 text-white shadow-xs">
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-action text-on-action shadow-xs">
             <HeartHandshake className="w-6 h-6 text-teal-300" />
           </div>
 
           <div>
-            <span className="text-base font-extrabold text-ink dark:text-ink tracking-tight flex items-center gap-1.5">
-              MyMedRecord
-
-              <span className="text-xs uppercase font-bold tracking-wider px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-teal-300 rounded border border-blue-200/60 dark:border-blue-800">
-                Chile
-              </span>
-            </span>
+            <span className="text-base font-extrabold text-ink dark:text-ink tracking-tight">MyMedRecord</span>
 
             <p className="text-xs text-muted dark:text-muted font-medium">
               Plataforma de Salud Digital Interoperable (Ley N° 21.668)
@@ -93,7 +87,7 @@ export const LoginPage = () => {
         <div className="w-full max-w-md bg-surface dark:bg-surface border border-line/90 dark:border-line rounded-3xl p-6 sm:p-8 shadow-sm">
           {/* Selector de Pestañas */}
           <div className="flex p-1 mb-6 bg-surface-muted dark:bg-surface-muted/80 rounded-2xl border border-line dark:border-line/80">
-            <div className="flex-1 py-2 text-center text-xs font-bold bg-blue-900 text-white rounded-xl shadow-xs flex items-center justify-center gap-1.5">
+            <div className="flex-1 py-2 text-center text-xs font-bold bg-action text-on-action rounded-xl shadow-xs flex items-center justify-center gap-1.5">
               <LogIn className="w-3.5 h-3.5 text-teal-300" />
 
               <span>Iniciar Sesión</span>
@@ -171,7 +165,7 @@ export const LoginPage = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-2.5 p-1 text-muted hover:text-blue-900 dark:hover:text-teal-300 rounded-lg transition-all cursor-pointer"
+                  className="absolute right-3 top-2.5 p-1 text-muted hover:text-accent-ink dark:hover:text-teal-300 rounded-lg transition-all cursor-pointer"
                   title={
                     showPassword
                       ? 'Ocultar contraseña'
@@ -184,7 +178,7 @@ export const LoginPage = () => {
                   }
                 >
                   {showPassword ? (
-                    <EyeOff className="w-4 h-4 text-blue-900 dark:text-teal-300" />
+                    <EyeOff className="w-4 h-4 text-accent-ink dark:text-teal-300" />
                   ) : (
                     <Eye className="w-4 h-4 text-muted" />
                   )}
@@ -195,7 +189,7 @@ export const LoginPage = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full mt-2 py-3 bg-blue-900 hover:bg-blue-950 active:scale-[0.99] text-white font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 text-sm cursor-pointer disabled:bg-[#536572] disabled:cursor-not-allowed"
+              className="w-full mt-2 py-3 bg-action hover:bg-action-hover active:scale-[0.99] text-on-action font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 text-sm cursor-pointer disabled:bg-surface-muted disabled:text-muted disabled:cursor-not-allowed"
             >
               <span>
                 {isLoading
@@ -226,7 +220,7 @@ export const LoginPage = () => {
 
             <Link
               to="/register"
-              className="text-blue-800 dark:text-teal-300 hover:underline font-bold"
+              className="text-accent-ink dark:text-teal-300 hover:underline font-bold"
             >
               Crear cuenta nueva
             </Link>
@@ -239,7 +233,7 @@ export const LoginPage = () => {
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 mb-1">
           <Link
             to="/privacy"
-            className="hover:text-blue-900 dark:hover:text-teal-300 hover:underline"
+            className="hover:text-accent-ink dark:hover:text-teal-300 hover:underline"
           >
             Política de Privacidad
           </Link>
@@ -248,7 +242,7 @@ export const LoginPage = () => {
 
           <Link
             to="/terms"
-            className="hover:text-blue-900 dark:hover:text-teal-300 hover:underline"
+            className="hover:text-accent-ink dark:hover:text-teal-300 hover:underline"
           >
             Términos y Condiciones
           </Link>

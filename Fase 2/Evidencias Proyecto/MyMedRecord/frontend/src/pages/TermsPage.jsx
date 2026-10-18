@@ -13,7 +13,7 @@ export const TermsPage = () => {
 
       <header className="border-b border-line/80 bg-surface px-6 py-3.5 flex items-center justify-between sticky top-0 z-30 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-900 text-white shadow-xs">
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-action text-on-action shadow-xs">
             <HeartHandshake className="w-6 h-6 text-teal-300" />
           </div>
           <div>
@@ -34,7 +34,7 @@ export const TermsPage = () => {
       <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-8 space-y-6 pb-12">
         <div className="bg-surface border border-line/90 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
           <div>
-            <span className="text-xs font-bold text-blue-900 uppercase tracking-wider block mb-1">
+            <span className="text-xs font-bold text-accent-ink uppercase tracking-wider block mb-1">
               Condiciones de Uso del Servicio
             </span>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-ink tracking-tight">
@@ -48,7 +48,7 @@ export const TermsPage = () => {
           <div className="space-y-4 text-xs sm:text-sm text-muted leading-relaxed">
             <section className="space-y-2">
               <h2 className="text-base font-bold text-ink flex items-center gap-2">
-                <Scale className="w-4 h-4 text-blue-900" />
+                <Scale className="w-4 h-4 text-accent-ink" />
                 1. Objeto y Alcance de la Plataforma
               </h2>
               <p>

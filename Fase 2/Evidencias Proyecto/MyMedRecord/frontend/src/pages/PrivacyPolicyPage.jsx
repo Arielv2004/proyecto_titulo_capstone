@@ -13,7 +13,7 @@ export const PrivacyPolicyPage = () => {
 
       <header className="border-b border-line/80 bg-surface px-6 py-3.5 flex items-center justify-between sticky top-0 z-30 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-900 text-white shadow-xs">
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-action text-on-action shadow-xs">
             <HeartHandshake className="w-6 h-6 text-teal-300" />
           </div>
           <div>
@@ -45,9 +45,9 @@ export const PrivacyPolicyPage = () => {
             </p>
           </div>
 
-          <div className="p-4 bg-teal-50/70 border border-teal-200/80 rounded-2xl flex items-start gap-3">
-            <ShieldCheck className="w-6 h-6 text-teal-700 shrink-0 mt-0.5" />
-            <div className="text-xs text-teal-950 leading-relaxed">
+          <div className="p-4 bg-accent-soft border border-line rounded-2xl flex items-start gap-3">
+            <ShieldCheck className="w-6 h-6 text-accent-ink shrink-0 mt-0.5" />
+            <div className="text-sm text-body leading-relaxed">
               <strong>Compromiso de Soberanía del Paciente:</strong> En MyMedRecord, tú eres el único dueño de tu información de salud. Ninguna entidad ni médico puede visualizar tu historial sin tu autorización explícita (vía QR o verificación por RUT).
             </div>
           </div>
@@ -55,7 +55,7 @@ export const PrivacyPolicyPage = () => {
           <div className="space-y-4 text-xs sm:text-sm text-muted leading-relaxed">
             <section className="space-y-2">
               <h2 className="text-base font-bold text-ink flex items-center gap-2">
-                <FileText className="w-4 h-4 text-blue-900" />
+                <FileText className="w-4 h-4 text-accent-ink" />
                 1. Datos Personales y Sensibles Recolectados
               </h2>
               <p>
@@ -70,7 +70,7 @@ export const PrivacyPolicyPage = () => {
 
             <section className="space-y-2">
               <h2 className="text-base font-bold text-ink flex items-center gap-2">
-                <Lock className="w-4 h-4 text-blue-900" />
+                <Lock className="w-4 h-4 text-accent-ink" />
                 2. Medidas de Seguridad y Cifrado (AES-256-GCM)
               </h2>
               <p>
@@ -80,7 +80,7 @@ export const PrivacyPolicyPage = () => {
 
             <section className="space-y-2">
               <h2 className="text-base font-bold text-ink flex items-center gap-2">
-                <UserCheck className="w-4 h-4 text-blue-900" />
+                <UserCheck className="w-4 h-4 text-accent-ink" />
                 3. Derechos del Titular de Datos (ARCO)
               </h2>
               <p>

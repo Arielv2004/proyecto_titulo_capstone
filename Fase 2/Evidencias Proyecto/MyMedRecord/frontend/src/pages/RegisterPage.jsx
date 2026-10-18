@@ -340,18 +340,12 @@ export const RegisterPage = () => {
       {/* Header */}
       <header className="border-b border-line/80 dark:border-line bg-surface/90 dark:bg-surface/90 backdrop-blur-md px-6 py-3.5 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-900 text-white shadow-xs">
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-action text-on-action shadow-xs">
             <HeartHandshake className="w-6 h-6 text-teal-300" />
           </div>
 
           <div>
-            <span className="text-base font-extrabold text-ink dark:text-ink tracking-tight flex items-center gap-1.5">
-              MyMedRecord
-
-              <span className="text-xs uppercase font-bold tracking-wider px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-teal-300 rounded border border-blue-200/60 dark:border-blue-800">
-                Chile
-              </span>
-            </span>
+            <span className="text-base font-extrabold text-ink dark:text-ink tracking-tight">MyMedRecord</span>
 
             <p className="text-xs text-muted dark:text-muted font-medium">
               Plataforma de Salud Digital Interoperable (Ley N° 21.668)
@@ -383,7 +377,7 @@ export const RegisterPage = () => {
               <span>Iniciar Sesión</span>
             </Link>
 
-            <div className="flex-1 py-2 text-center text-xs font-bold bg-blue-900 text-white rounded-xl shadow-xs flex items-center justify-center gap-1.5">
+            <div className="flex-1 py-2 text-center text-xs font-bold bg-action text-on-action rounded-xl shadow-xs flex items-center justify-center gap-1.5">
               <UserPlus className="w-3.5 h-3.5 text-teal-300" />
               <span>Registrar Cuenta</span>
             </div>
@@ -426,14 +420,14 @@ export const RegisterPage = () => {
                 className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
                   formData.role === 'PACIENTE'
                     ? 'border-blue-700 bg-blue-50 dark:bg-blue-950/40 ring-2 ring-blue-100 dark:ring-blue-950'
-                    : 'border-line dark:border-line bg-canvas dark:bg-surface-muted/60 hover:border-blue-300 dark:hover:border-slate-600'
+                    : 'border-line dark:border-line bg-canvas dark:bg-surface-muted/60 hover:border-accent-ink dark:hover:border-slate-600'
                 }`}
               >
                 <div className="flex items-center gap-2 mb-1">
                   <div
                     className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                       formData.role === 'PACIENTE'
-                        ? 'bg-blue-900 text-white'
+                        ? 'bg-action text-on-action'
                         : 'bg-surface dark:bg-surface-muted text-muted dark:text-body'
                     }`}
                   >
@@ -464,7 +458,7 @@ export const RegisterPage = () => {
                   <div
                     className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                       formData.role === 'MEDICO'
-                        ? 'bg-teal-700 text-white'
+                        ? 'bg-action text-on-action'
                         : 'bg-surface dark:bg-surface-muted text-muted dark:text-body'
                     }`}
                   >
@@ -518,7 +512,7 @@ export const RegisterPage = () => {
                   required
                   value={formData.firstName}
                   onChange={handleChange}
-                  placeholder="Ignacio"
+                  placeholder="Ej.: María"
                   className="w-full px-3.5 py-2.5 bg-canvas/80 dark:bg-surface-muted/80 border border-line dark:border-line rounded-xl text-body dark:text-ink text-sm focus:outline-none focus:border-blue-700 dark:focus:border-teal-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-teal-950/40 transition-all"
                 />
               </div>
@@ -534,7 +528,7 @@ export const RegisterPage = () => {
                   required
                   value={formData.lastName}
                   onChange={handleChange}
-                  placeholder="Pérez"
+                  placeholder="Ej.: González"
                   className="w-full px-3.5 py-2.5 bg-canvas/80 dark:bg-surface-muted/80 border border-line dark:border-line rounded-xl text-body dark:text-ink text-sm focus:outline-none focus:border-blue-700 dark:focus:border-teal-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-teal-950/40 transition-all"
                 />
               </div>
@@ -576,7 +570,7 @@ export const RegisterPage = () => {
                 required
                 value={formData.rut}
                 onChange={handleRutChange}
-                placeholder="12.345.678-9"
+                placeholder="Ej.: 12.345.678-5"
                 className={`w-full px-3.5 py-2.5 bg-canvas/80 dark:bg-surface-muted/80 border rounded-xl text-body dark:text-ink text-sm focus:outline-none transition-all font-mono ${
                   rutTouched && formData.rut
                     ? isRutValid
@@ -629,7 +623,7 @@ export const RegisterPage = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-2.5 p-1 text-muted hover:text-blue-900 dark:hover:text-teal-300 rounded-lg transition-all cursor-pointer"
+                  className="absolute right-3 top-2.5 p-1 text-muted hover:text-accent-ink dark:hover:text-teal-300 rounded-lg transition-all cursor-pointer"
                   title={
                     showPassword
                       ? 'Ocultar contraseña'
@@ -642,7 +636,7 @@ export const RegisterPage = () => {
                   }
                 >
                   {showPassword ? (
-                    <EyeOff className="w-4 h-4 text-blue-900 dark:text-teal-300" />
+                    <EyeOff className="w-4 h-4 text-accent-ink dark:text-teal-300" />
                   ) : (
                     <Eye className="w-4 h-4 text-muted" />
                   )}
@@ -792,7 +786,7 @@ export const RegisterPage = () => {
                                             className="w-full px-3 py-2.5 flex items-start gap-2.5 text-left border-b last:border-b-0 border-stone-100 dark:border-line hover:bg-teal-50 dark:hover:bg-teal-950/30 transition-colors cursor-pointer"
                                           >
                                             <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center shrink-0">
-                                              <Building2 className="w-4 h-4 text-blue-800 dark:text-teal-300" />
+                                              <Building2 className="w-4 h-4 text-accent-ink dark:text-teal-300" />
                                             </div>
 
                                             <div className="min-w-0">
@@ -861,7 +855,7 @@ export const RegisterPage = () => {
                             <button
                               type="button"
                               onClick={handleUseOtherInstitution}
-                              className="mt-2 text-xs font-bold text-blue-800 dark:text-teal-300 hover:underline flex items-center gap-1 cursor-pointer"
+                              className="mt-2 text-xs font-bold text-accent-ink dark:text-teal-300 hover:underline flex items-center gap-1 cursor-pointer"
                             >
                               <PlusCircle className="w-3.5 h-3.5" />
                               Mi institución no aparece
@@ -885,7 +879,7 @@ export const RegisterPage = () => {
                         <button
                           type="button"
                           onClick={handleReturnToInstitutionSearch}
-                          className="text-xs font-bold text-blue-800 dark:text-teal-300 hover:underline cursor-pointer"
+                          className="text-xs font-bold text-accent-ink dark:text-teal-300 hover:underline cursor-pointer"
                         >
                           Volver al buscador
                         </button>
@@ -953,7 +947,7 @@ export const RegisterPage = () => {
                 className={`text-xs font-extrabold px-2.5 py-1 rounded-lg shrink-0 border ${
                   isDoctor
                     ? 'text-teal-800 dark:text-teal-300 bg-surface dark:bg-teal-950/60 border-teal-300 dark:border-teal-800'
-                    : 'text-blue-800 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 border-blue-200 dark:border-blue-800'
+                    : 'text-accent-ink dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 border-blue-200 dark:border-blue-800'
                 }`}
               >
                 {isDoctor ? 'Médico' : 'Paciente'}
@@ -972,7 +966,7 @@ export const RegisterPage = () => {
                     !formData.specialty.trim() ||
                     !doctorInstitutionValid))
               }
-              className="w-full mt-3 py-3 bg-blue-900 hover:bg-blue-950 active:scale-[0.99] text-white font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 text-sm cursor-pointer disabled:bg-[#536572] disabled:cursor-not-allowed"
+              className="w-full mt-3 py-3 bg-action hover:bg-action-hover active:scale-[0.99] text-on-action font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 text-sm cursor-pointer disabled:bg-surface-muted disabled:text-muted disabled:cursor-not-allowed"
             >
               <span>
                 {isLoading
@@ -992,7 +986,7 @@ export const RegisterPage = () => {
 
             <Link
               to="/login"
-              className="text-blue-800 dark:text-teal-300 hover:underline font-bold"
+              className="text-accent-ink dark:text-teal-300 hover:underline font-bold"
             >
               Iniciar Sesión
             </Link>
@@ -1005,7 +999,7 @@ export const RegisterPage = () => {
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 mb-1">
           <Link
             to="/privacy"
-            className="hover:text-blue-900 dark:hover:text-teal-300 hover:underline"
+            className="hover:text-accent-ink dark:hover:text-teal-300 hover:underline"
           >
             Política de Privacidad
           </Link>
@@ -1014,7 +1008,7 @@ export const RegisterPage = () => {
 
           <Link
             to="/terms"
-            className="hover:text-blue-900 dark:hover:text-teal-300 hover:underline"
+            className="hover:text-accent-ink dark:hover:text-teal-300 hover:underline"
           >
             Términos y Condiciones
           </Link>

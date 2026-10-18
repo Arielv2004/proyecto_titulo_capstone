@@ -169,7 +169,7 @@ export const SharedRecordPage = () => {
           <button
             type="button"
             onClick={() => navigate('/doctor')}
-            className="mb-4 flex items-center gap-2 text-xs font-bold text-muted dark:text-body hover:text-blue-900 dark:hover:text-white transition-colors cursor-pointer"
+            className="mb-4 flex items-center gap-2 text-xs font-bold text-muted dark:text-body hover:text-accent-ink dark:hover:text-white transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             Volver al portal médico
@@ -202,7 +202,7 @@ export const SharedRecordPage = () => {
             <button
               type="button"
               onClick={() => navigate('/doctor')}
-              className="mt-6 px-5 py-3 bg-blue-900 hover:bg-blue-950 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+              className="mt-6 px-5 py-3 bg-action hover:bg-action-hover text-on-action rounded-xl text-xs font-bold transition-all cursor-pointer"
             >
               Volver al portal médico
             </button>

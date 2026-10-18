@@ -28,6 +28,7 @@ export function DoctorHome({ shares, loading, error, onRefresh, onOpen, onQr }) 
       <PageHeader
         eyebrow="PORTAL MÉDICO"
         title="Prepara tu próxima consulta."
+        hideTitle
         description="Encuentra las fichas que tus pacientes han compartido contigo."
         actions={
           <Button onClick={onQr}>

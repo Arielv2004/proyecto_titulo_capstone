@@ -1,11 +1,12 @@
 import { PatientRecords } from '../components/patient/PatientRecords';
+import { PatientHelp } from '../components/patient/PatientHelp';
 import { DialogFrame } from '../components/ui/DialogFrame';
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useMetaTags } from '../hooks/useMetaTags';
 import { documentsApi, mapDocumentFromApi } from '../services/documentsApi';
 
 import { useAuthStore } from '../store/useAuthStore';
-import { Home, Pill, FlaskConical, Stethoscope, ScanLine, Camera, QrCode, FileText, Sparkles, ShieldCheck, Building2, User, Clock, CheckCircle2, AlertCircle, Download, Share2, X, Lock, UploadCloud, HelpCircle, PhoneCall, Activity, AlertTriangle, UserCheck, Droplet, Save, Plus, Trash2, Copy, Check, RefreshCw, ExternalLink, Timer } from 'lucide-react';
+import { Home, Pill, Stethoscope, ClipboardPenLine, Microscope, HeartPulse, ScanSearch, Camera, QrCode, FileText, Sparkles, ShieldCheck, Building2, User, Clock, CheckCircle2, AlertCircle, Download, Share2, X, HelpCircle, Activity, AlertTriangle, UserCheck, Droplet, Save, Plus, Trash2, Copy, Check, RefreshCw, ExternalLink, Timer, Images, ChevronRight } from 'lucide-react';
 
 import { QRCodeSVG } from 'qrcode.react';
 import api from '../services/api';
@@ -14,7 +15,29 @@ import { Navbar } from '../components/common/Navbar';
 import { BottomNav } from '../components/common/BottomNav';
 import { PatientProfile } from '../components/patient/PatientProfile';
 import { PatientHome } from '../components/patient/PatientHome';
-import { SectionNav, Notice, PageHeader, Button, LoadingState } from '../components/ui/ClinicalUI';
+import { UploadCamera } from '../components/patient/UploadCamera';
+import { SectionNav, Notice, PageHeader, Button, InfoPopover, LoadingState } from '../components/ui/ClinicalUI';
+
+const emptyPatientProfile = () => ({
+  bloodType: '',
+  healthInsurance: '',
+  isOrganDonor: null,
+  allergies: [],
+  chronicConditions: [],
+  emergencyContactName: '',
+  emergencyContactPhone: '',
+  isCompleted: false,
+});
+
+const clearLegacyPatientProfileCache = () => {
+  try {
+    Object.keys(localStorage)
+      .filter((key) => key === 'mymedrecord_saved_patient_profile' || key.startsWith('mymedrecord_saved_patient_profile_'))
+      .forEach((key) => localStorage.removeItem(key));
+  } catch (error) {
+    console.warn('No se pudo limpiar la copia local anterior del perfil:', error);
+  }
+};
 
 
 export const PatientDashboard = () => {
@@ -25,45 +48,8 @@ export const PatientDashboard = () => {
   // Pestaña activa ('home' | 'records' | 'help' | 'profile')
   const [currentTab, setCurrentTab] = useState('home');
 
-  // Perfil Clínico Base del Paciente (persistente en localStorage y editable)
-  const [patientProfile, setPatientProfile] = useState(() => {
-    if (typeof window === 'undefined') {
-      return {
-        bloodType: '',
-        healthInsurance: '',
-        isOrganDonor: true,
-        allergies: [],
-        chronicConditions: [],
-        emergencyContactName: '',
-        emergencyContactPhone: '',
-        isCompleted: false
-      };
-    }
-    try {
-      const saved = localStorage.getItem('mymedrecord_saved_patient_profile');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed === 'object') {
-          return {
-            ...parsed,
-            isCompleted: Boolean(parsed.isCompleted && parsed.bloodType && parsed.healthInsurance)
-          };
-        }
-      }
-    } catch (e) {
-      console.error('Error loading patient profile:', e);
-    }
-    return {
-      bloodType: '',
-      healthInsurance: '',
-      isOrganDonor: true,
-      allergies: [],
-      chronicConditions: [],
-      emergencyContactName: '',
-      emergencyContactPhone: '',
-      isCompleted: false
-    };
-  });
+  // El servidor es la única fuente del perfil clínico.
+  const [patientProfile, setPatientProfile] = useState(emptyPatientProfile);
 
   const [showProfileEditModal, setShowProfileEditModal] = useState(false);
   const [profileSaveError, setProfileSaveError] = useState('');
@@ -190,7 +176,10 @@ export const PatientDashboard = () => {
     (async () => {
       try {
         const res = await api.get('/patient-profile/me');
-        if (mounted && res.data?.success && res.data?.data) {
+        if (!res.data?.success || !res.data?.data) {
+          throw new Error('El servidor no devolvió el perfil del paciente.');
+        }
+        if (mounted) {
           const d = res.data.data;
           const p = {
             bloodType: d.blood_type || '',
@@ -203,6 +192,7 @@ export const PatientDashboard = () => {
             isCompleted: !!(d.blood_type && d.health_insurance)
           };
           setPatientProfile(p);
+          clearLegacyPatientProfileCache();
         }
       } catch (err) {
         console.warn('Error cargando perfil del paciente desde backend:', err);
@@ -298,6 +288,9 @@ export const PatientDashboard = () => {
   // Estados para Modal de Subida y Pre-confirmación con IA
   // null (cerrado) | 'idle' | 'analyzing' | 'preview' | 'confirmed'
   const [uploadModalState, setUploadModalState] = useState(null);
+  const [uploadSource, setUploadSource] = useState('choices');
+  const galleryInputRef = useRef(null);
+  const pdfInputRef = useRef(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState(null);
   const [tempDocument, setTempDocument] = useState(null);
@@ -311,6 +304,7 @@ export const PatientDashboard = () => {
   const [confirmedStatus, setConfirmedStatus] = useState('CONFIRMADO');
 
   const handleOpenUploadModal = () => {
+    setUploadSource('choices');
     setUploadError(null);
     setUploadProgress(0);
     setTempDocument(null);
@@ -336,6 +330,17 @@ export const PatientDashboard = () => {
 
   const handleStartAnalyze = async (file) => {
     if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(file.type)) {
+      setUploadError('Formato no compatible. Usa una imagen JPG, PNG o WEBP, o un archivo PDF.');
+      setUploadSource('choices');
+      return;
+    }
+    if (file.size === 0 || file.size > 10 * 1024 * 1024) {
+      setUploadError('El archivo debe tener contenido y pesar como máximo 10 MB.');
+      setUploadSource('choices');
+      return;
+    }
+    setUploadSource('choices');
     setUploadError(null);
     setUploadProgress(0);
     setUploadModalState('analyzing');
@@ -526,8 +531,11 @@ export const PatientDashboard = () => {
     }));
   };
 
-  // Compatibilidad hacia atrás
-  const handleUploadFile = handleStartAnalyze;
+  const handleUploadInputChange = (event) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = '';
+    if (file) handleStartAnalyze(file);
+  };
   // Manejar la eliminación de un documento con error
   const handleDeleteDocument = async (doc) => {
     const confirm = window.confirm(
@@ -596,7 +604,7 @@ export const PatientDashboard = () => {
         id: 'RECETA',
         title: 'Recetas Médicas',
         subtitle: 'Tratamientos y medicamentos',
-        icon: Pill,
+        icon: ClipboardPenLine,
         count: recetaDocs.length,
         badgeText: recetaBadge,
         border: 'border-emerald-200/80 dark:border-emerald-900',
@@ -607,7 +615,7 @@ export const PatientDashboard = () => {
         id: 'EXAMEN',
         title: 'Exámenes de Lab',
         subtitle: 'Sangre, orina y perfiles',
-        icon: FlaskConical,
+        icon: Microscope,
         count: examenCount,
         badgeText: examenBadge,
         border: 'border-teal-200/80 dark:border-teal-900',
@@ -618,18 +626,18 @@ export const PatientDashboard = () => {
         id: 'CONSULTA',
         title: 'Consultas Médicas',
         subtitle: 'Atenciones y diagnósticos',
-        icon: Stethoscope,
+        icon: HeartPulse,
         count: consultaCount,
         badgeText: consultaBadge,
-        border: 'border-blue-200/80 dark:border-blue-900',
-        iconColor: 'text-blue-800 dark:text-blue-400',
+        border: 'border-blue-200/80 dark:border-accent-ink',
+        iconColor: 'text-accent-ink dark:text-blue-400',
         iconBg: 'bg-blue-100/80 dark:bg-blue-950/40',
       },
       {
         id: 'IMAGEN',
         title: 'Informes & Imágenes',
         subtitle: 'Radiografías y ecografías',
-        icon: ScanLine,
+        icon: ScanSearch,
         count: imagenCount,
         badgeText: imagenBadge,
         border: 'border-indigo-200/80 dark:border-indigo-900',
@@ -656,9 +664,14 @@ export const PatientDashboard = () => {
   }, [documents, selectedCategory, searchQuery]);
 
   const handlePillarClick = (categoryId) => {
+    setSearchQuery('');
     setSelectedCategory(categoryId);
     setCurrentTab('records');
   };
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [currentTab]);
 
   const handleOpenEditProfile = () => {
     setProfileSaveError('');
@@ -687,10 +700,7 @@ export const PatientDashboard = () => {
     try {
       await api.put('/patient-profile/me', updated);
       setPatientProfile(updated);
-      localStorage.setItem('mymedrecord_saved_patient_profile', JSON.stringify(updated));
-      if (user?.email) {
-        localStorage.setItem(`mymedrecord_saved_patient_profile_${user.email}`, JSON.stringify(updated));
-      }
+      clearLegacyPatientProfileCache();
       fetchAuditLogs();
     } catch (err) {
       console.error('Error guardando perfil en backend:', err);
@@ -997,15 +1007,34 @@ export const PatientDashboard = () => {
   };
 
   // Copiar link de acceso médico directo al portapapeles
-  const handleCopyLink = () => {
+  const handleCopyLink = async () => {
     if (!activeGrant?.token) return;
     const directUrl = `${window.location.origin}/doctor/qr-access?token=${encodeURIComponent(activeGrant.token)}`;
-    navigator.clipboard.writeText(directUrl).then(() => {
+    let field;
+    const previousFocus = document.activeElement;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(directUrl);
+      } else {
+        field = document.createElement('textarea');
+        field.value = directUrl;
+        field.style.position = 'fixed';
+        field.style.opacity = '0';
+        document.body.appendChild(field);
+        field.focus();
+        field.select();
+        const copied = document.execCommand('copy');
+        if (!copied) throw new Error('El navegador no permitió copiar el enlace.');
+      }
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2500);
-    }).catch(() => {
-      // Fallback
-    });
+    } catch (error) {
+      console.warn('No se pudo copiar el enlace:', error);
+      setGrantError('No se pudo copiar el enlace en este navegador. Puedes descargar o mostrar el código QR.');
+    } finally {
+      field?.remove();
+      if (field && previousFocus?.isConnected) previousFocus.focus();
+    }
   };
 
   // Descargar imagen del código QR en formato PNG nítido (Tarjeta Oficial de Acceso)
@@ -1028,12 +1057,12 @@ export const PatientDashboard = () => {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         // Borde decorativo exterior
-        ctx.strokeStyle = '#e2e8f0';
+        ctx.strokeStyle = '#d3e4e4';
         ctx.lineWidth = 4;
         ctx.strokeRect(12, 12, canvas.width - 24, canvas.height - 24);
 
-        // Cabecera institucional azul
-        ctx.fillStyle = '#1e3a8a';
+        // Cabecera institucional en el color de marca
+        ctx.fillStyle = '#126b72';
         ctx.fillRect(12, 12, canvas.width - 24, 110);
 
         // Franja bicolor
@@ -1044,12 +1073,12 @@ export const PatientDashboard = () => {
 
         // Textos del encabezado
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 32px system-ui, -apple-system, sans-serif';
+        ctx.font = '650 32px "DM Sans", system-ui, sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('MyMedRecord', canvas.width / 2, 62);
 
-        ctx.font = 'bold 15px system-ui, -apple-system, sans-serif';
-        ctx.fillStyle = '#99f6e4';
+        ctx.font = '650 15px "DM Sans", system-ui, sans-serif';
+        ctx.fillStyle = '#d4f0f0';
         ctx.fillText('PASE DE ACCESO MÉDICO TEMPORAL • LEY N° 21.668', canvas.width / 2, 95);
 
         // Marco y renderizado del Código QR
@@ -1057,35 +1086,35 @@ export const PatientDashboard = () => {
         const qrX = (canvas.width - qrSize) / 2;
         const qrY = 160;
 
-        ctx.fillStyle = '#f8fafc';
+        ctx.fillStyle = '#f8fbfb';
         ctx.fillRect(qrX - 16, qrY - 16, qrSize + 32, qrSize + 32);
-        ctx.strokeStyle = '#cbd5e1';
+        ctx.strokeStyle = '#d3e4e4';
         ctx.lineWidth = 2;
         ctx.strokeRect(qrX - 16, qrY - 16, qrSize + 32, qrSize + 32);
 
         ctx.drawImage(img, qrX, qrY, qrSize, qrSize);
 
         // Indicador del código de acceso
-        ctx.fillStyle = '#64748b';
-        ctx.font = 'bold 13px system-ui, -apple-system, sans-serif';
+        ctx.fillStyle = '#536b70';
+        ctx.font = '650 13px "DM Sans", system-ui, sans-serif';
         ctx.fillText('CÓDIGO DE ACCESO / TOKEN:', canvas.width / 2, 675);
 
-        ctx.fillStyle = '#0f172a';
+        ctx.fillStyle = '#17343b';
         ctx.font = 'bold 28px monospace';
         ctx.fillText(activeGrant?.token || '---', canvas.width / 2, 715);
 
         // Indicador de vigencia
-        ctx.fillStyle = '#047857';
-        ctx.font = 'bold 17px system-ui, -apple-system, sans-serif';
+        ctx.fillStyle = '#126b72';
+        ctx.font = '650 17px "DM Sans", system-ui, sans-serif';
         ctx.fillText(`Vigencia Autorizada: ${activeGrant?.duration_hours || 12} Horas`, canvas.width / 2, 765);
 
         // Información al médico y paciente
-        ctx.fillStyle = '#64748b';
-        ctx.font = '13px system-ui, -apple-system, sans-serif';
+        ctx.fillStyle = '#536b70';
+        ctx.font = '13px "DM Sans", system-ui, sans-serif';
         ctx.fillText('El profesional médico debe ingresar su RUT y nombre para validar la consulta.', canvas.width / 2, 805);
 
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = 'italic 12px system-ui, -apple-system, sans-serif';
+        ctx.fillStyle = '#536b70';
+        ctx.font = 'italic 12px "DM Sans", system-ui, sans-serif';
         ctx.fillText('Acceso seguro, encriptado y trazable auditado por MyMedRecord.', canvas.width / 2, 830);
 
         const pngUrl = canvas.toDataURL('image/png');
@@ -1116,107 +1145,42 @@ export const PatientDashboard = () => {
         {id:'audit',label:'Accesos',icon:ShieldCheck}, {id:'profile',label:'Mi perfil',icon:User}, {id:'help',label:'Ayuda',icon:HelpCircle}
       ]} /></div>
 
-      <main id="main-content" tabIndex={-1} className="mm-shell mm-patient-shell space-y-6">
+      <main id="main-content" tabIndex={-1} className={`mm-shell mm-patient-shell space-y-6${currentTab === 'home' ? ' mm-patient-shell--home' : ''}`}>
         {/* ========================================================================= */}
         {/* PESTAÑA 1: INICIO (HOME PRINCIPAL) */}
         {/* ========================================================================= */}
         {currentTab === 'home' && <PatientHome
-          documents={documents} loading={loadingDocs} error={docsError}
+          loading={loadingDocs} error={docsError}
           grants={myGrants} loadingGrants={loadingGrants} grantsError={grantsError} categories={clinicalPillars}
           onUpload={handleOpenUploadModal} onShare={handleOpenDirectShare} onQr={() => setShowQrModal(true)}
-          onRecords={() => { setSelectedCategory('ALL'); setCurrentTab('records'); }}
-          onAccess={() => setCurrentTab('audit')} onDocument={setSelectedDocument} onCategory={handlePillarClick}
+          onRecords={() => { setSearchQuery(''); setSelectedCategory('ALL'); setCurrentTab('records'); }}
+          onAccess={() => setCurrentTab('audit')} onCategory={handlePillarClick}
         />}
 
         {currentTab === 'records' && <PatientRecords documents={documents} filtered={filteredDocuments} categories={clinicalPillars} category={selectedCategory} onCategory={setSelectedCategory} query={searchQuery} onQuery={setSearchQuery} loading={loadingDocs} error={docsError} onUpload={handleOpenUploadModal} onDocument={setSelectedDocument} onDelete={handleDeleteDocument} />}
 
         {currentTab === 'profile' && <PatientProfile user={user} profile={patientProfile} loading={profileLoading} error={profileError} saved={showSuccessAlert} onEdit={handleOpenEditProfile} />}
 
-        {currentTab === 'help' && (
-          <div className="space-y-6 animate-in fade-in duration-200">
-            <div>
-              <h1 className="text-xl font-extrabold text-ink">Centro de Ayuda y Preguntas Frecuentes</h1>
-              <p className="text-xs text-muted">
-                Aprende cómo funciona el escaneo con IA, tus derechos y los números de salud en Chile.
-              </p>
-            </div>
-
-            {/* Números de Emergencia Oficiales en Chile */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center font-black text-base">
-                  131
-                </div>
-                <div>
-                  <span className="font-extrabold text-rose-950 text-xs block">SAMU Urgencias</span>
-                  <span className="text-xs text-rose-800">Ambulancias y riesgo vital</span>
-                </div>
-              </div>
-
-              <div className="p-4 bg-teal-50 border border-teal-200 rounded-2xl flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-teal-700 text-white flex items-center justify-center">
-                  <PhoneCall className="w-5 h-5" />
-                </div>
-                <div>
-                  <span className="font-extrabold text-teal-950 text-xs block">Salud Responde</span>
-                  <span className="text-xs text-teal-800">600 360 77 77 (Minsal)</span>
-                </div>
-              </div>
-
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-900 text-white flex items-center justify-center">
-                  <ShieldCheck className="w-5 h-5 text-teal-300" />
-                </div>
-                <div>
-                  <span className="font-extrabold text-ink text-xs block">Superintendencia</span>
-                  <span className="text-xs text-blue-800/80">Derechos de Salud</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Preguntas Frecuentes */}
-            <div className="bg-surface border border-line/90 rounded-3xl p-6 shadow-xs space-y-4">
-              <h2 className="text-base font-bold text-ink">Preguntas Frecuentes sobre MyMedRecord</h2>
-
-              <div className="space-y-3 text-xs">
-                <div className="p-4 bg-canvas rounded-2xl border border-line space-y-1">
-                  <h3 className="font-bold text-ink">¿Qué tipo de papeles médicos puedo fotografiar?</h3>
-                  <p className="text-muted leading-relaxed">
-                    Puedes fotografiar cualquier documento físico: recetas médicas manuscritas o impresas, resultados de exámenes de laboratorio (sangre, orina), informes de radiología o epicrisis de alta. El motor OCR lo clasificará de forma automática.
-                  </p>
-                </div>
-
-                <div className="p-4 bg-canvas rounded-2xl border border-line space-y-1">
-                  <h3 className="font-bold text-ink">¿Qué respalda la Ley N° 21.668 en Chile?</h3>
-                  <p className="text-muted leading-relaxed">
-                    La Ley 21.668 establece que la información médica es propiedad del paciente. Obliga a los centros de salud (hospitales públicos, clínicas privadas y laboratorios) a permitir la interoperabilidad y portabilidad de los antecedentes de salud.
-                  </p>
-                </div>
-
-                <div className="p-4 bg-canvas rounded-2xl border border-line space-y-1">
-                  <h3 className="font-bold text-ink">¿Cómo comparto mi ficha con un médico en la consulta?</h3>
-                  <p className="text-muted leading-relaxed">
-                    Toca el botón <strong>"QR para Médico"</strong> y muestra la pantalla de tu celular al profesional de la salud. El médico escaneará el código para tener acceso de lectura temporal por 24 horas.
-                  </p>
-                </div>
-
-                <div className="p-4 bg-canvas rounded-2xl border border-line space-y-1">
-                  <h3 className="font-bold text-ink">¿Mis datos están seguros ante robos o hackeos?</h3>
-                  <p className="text-muted leading-relaxed">
-                    Sí. La plataforma utiliza cifrado militar <strong>AES-256-GCM</strong> para los registros clínicos en la base de datos, sesiones protegidas con cookies <strong>HttpOnly</strong> y jamás almacena antecedentes médicos en el almacenamiento local del teléfono.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {currentTab === 'help' && <PatientHelp />}
 
         {/* ========================================================================= */}
         {/* PESTAÑA 5: SEGURIDAD, AUDITORÍA Y TRAZABILIDAD (LEY N° 21.668 Y 20.584) */}
         {/* ========================================================================= */}
         {currentTab === 'audit' && (
           <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-200">
-            <PageHeader eyebrow="TÚ CONTROLAS EL ACCESO" title="Compartir y accesos" description="Consulta los permisos que has entregado y la actividad registrada en tu ficha." actions={<Button variant="secondary" onClick={() => { fetchAuditLogs(); fetchMyGrants(); }} disabled={loadingAudit || loadingGrants}><RefreshCw size={17} />Actualizar</Button>} />
+            <PageHeader
+              eyebrow="TÚ CONTROLAS EL ACCESO"
+              title="Compartir y accesos"
+              eyebrowBelow
+              hideTitle
+              info={
+                <InfoPopover label="Cómo funcionan los accesos">
+                  <p>Desde Inicio puedes elegir un médico para compartir tu ficha directamente o generar un pase con «Mostrar QR». Tú eliges cuánto dura el permiso.</p>
+                  <p>Aquí revisas los permisos emitidos y su actividad. Puedes revocar un acceso vigente cuando ya no quieras compartir la información.</p>
+                </InfoPopover>
+              }
+              actions={<Button variant="secondary" onClick={() => { fetchAuditLogs(); fetchMyGrants(); }} disabled={loadingAudit || loadingGrants}><RefreshCw size={17} />Actualizar</Button>}
+            />
             {grantsError && <Notice title="No pudimos cargar los permisos" tone="danger">{grantsError}</Notice>}
             {auditError && <Notice title="No pudimos cargar la actividad" tone="danger">{auditError}</Notice>}
 
@@ -1229,17 +1193,14 @@ export const PatientDashboard = () => {
                   </div>
                   <div className="min-w-0">
                     <h2 className="text-xs sm:text-sm font-extrabold text-ink dark:text-ink truncate">
-                      Pases Médicos Emitidos
+                      Permisos emitidos
                     </h2>
-                    <p className="text-xs sm:text-xs text-muted dark:text-muted truncate">
-                      Pases temporales QR y directos
-                    </p>
                   </div>
                 </div>
 
                 <button
                   onClick={() => setShowQrModal(true)}
-                  className="shrink-0 px-2.5 py-1 sm:px-3 sm:py-1.5 bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs rounded-xl flex items-center gap-1 transition-all cursor-pointer shadow-xs"
+                  className="shrink-0 px-2.5 py-1 sm:px-3 sm:py-1.5 bg-action hover:bg-action-hover text-on-action font-bold text-xs rounded-xl flex items-center gap-1 transition-all cursor-pointer shadow-xs"
                 >
                   <Plus className="w-3.5 h-3.5 text-teal-300" />
                   <span>Emitir QR</span>
@@ -1248,8 +1209,8 @@ export const PatientDashboard = () => {
 
               {loadingGrants ? <LoadingState label="Cargando permisos" /> : grantsError ? null : myGrants.length === 0 ? (
                 <div className="py-4 text-center text-xs text-muted dark:text-muted space-y-0.5">
-                  <p className="font-bold text-body dark:text-body text-xs">No hay pases médicos registrados.</p>
-                  <p className="text-xs">Cuando generes un código QR para un médico, aparecerá aquí con su estado de vigencia.</p>
+                  <p className="font-bold text-body dark:text-body text-xs">Aún no has compartido tu ficha.</p>
+                  <p className="text-xs">Cuando compartas tu ficha, el permiso aparecerá aquí con su vigencia.</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -1312,7 +1273,7 @@ export const PatientDashboard = () => {
                           <div className="pt-0.5 flex items-center gap-1.5">
                             <button
                               onClick={() => setShowQrModal(true)}
-                              className="flex-1 py-1 bg-blue-900 hover:bg-blue-950 text-white font-bold rounded-lg text-xs flex items-center justify-center gap-1 transition-all cursor-pointer shadow-2xs"
+                              className="flex-1 py-1 bg-action hover:bg-action-hover text-on-action font-bold rounded-lg text-xs flex items-center justify-center gap-1 transition-all cursor-pointer shadow-2xs"
                             >
                               <QrCode className="w-3 h-3 text-teal-300" />
                               <span>Ver QR</span>
@@ -1416,16 +1377,13 @@ export const PatientDashboard = () => {
             <section className="bg-surface dark:bg-surface border border-line/90 dark:border-line rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-xs space-y-3">
               <div className="flex items-center justify-between gap-2 pb-2 border-b border-stone-100 dark:border-line">
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-teal-300 border border-blue-200 dark:border-blue-800 flex items-center justify-center font-bold shrink-0">
+                  <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-accent-ink dark:text-teal-300 border border-blue-200 dark:border-blue-800 flex items-center justify-center font-bold shrink-0">
                     <Clock className="w-3.5 h-3.5" />
                   </div>
                   <div className="min-w-0">
                     <h2 className="text-xs sm:text-sm font-extrabold text-ink dark:text-ink truncate">
-                      Bitácora de Accesos y Eventos
+                      Actividad de la ficha
                     </h2>
-                    <p className="text-xs sm:text-xs text-muted dark:text-muted truncate">
-                      Trazabilidad legal inmutable (Ley N° 21.668)
-                    </p>
                   </div>
                 </div>
 
@@ -1433,22 +1391,18 @@ export const PatientDashboard = () => {
                   <span className="text-xs font-mono font-bold text-muted dark:text-muted bg-surface-muted dark:bg-surface-muted px-2 py-0.5 rounded-md">
                     {auditLogs.length} registros
                   </span>
-                  <div className="hidden sm:flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
-                    <Lock className="w-3 h-3" />
-                    <span>Inmutable</span>
-                  </div>
                 </div>
               </div>
 
               {loadingAudit ? (
                 <div className="py-6 text-center space-y-2">
-                  <RefreshCw className="w-5 h-5 text-blue-900 animate-spin mx-auto" />
+                  <RefreshCw className="w-5 h-5 text-accent-ink animate-spin mx-auto" />
                   <p className="text-xs text-muted">Consultando bitácora legal...</p>
                 </div>
               ) : auditError ? null : auditLogs.length === 0 ? (
                 <div className="py-5 text-center text-xs text-muted dark:text-muted space-y-0.5">
-                  <p className="font-bold text-body dark:text-body text-xs">Sin registros de auditoría por ahora.</p>
-                  <p className="text-xs">Toda interacción quedará firmada aquí automáticamente.</p>
+                  <p className="font-bold text-body dark:text-body text-xs">Sin actividad registrada por ahora.</p>
+                  <p className="text-xs">Los eventos registrados para tu ficha aparecerán aquí.</p>
                 </div>
               ) : (
                 <div className="max-h-[340px] sm:max-h-[460px] overflow-y-auto pr-1">
@@ -1468,7 +1422,7 @@ export const PatientDashboard = () => {
                                 ? 'bg-rose-600'
                                 : isConsent
                                   ? 'bg-amber-500'
-                                  : 'bg-blue-900'
+                                : 'bg-accent-ink'
                               }`}
                           />
 
@@ -1556,6 +1510,9 @@ export const PatientDashboard = () => {
                 <div className="space-y-3">
                   <h4 className="font-bold text-ink">Prescripción de Fármacos Extraída:</h4>
                   <div className="space-y-2">
+                    {selectedDocument.extractedData.medicamentos.length === 0 && (
+                      <p className="text-muted">No hay medicamentos extraídos de este documento.</p>
+                    )}
                     {selectedDocument.extractedData.medicamentos.map((m, i) => (
                       <div key={i} className="p-3.5 bg-canvas rounded-2xl border border-line space-y-1">
                         <div className="flex justify-between font-bold text-ink text-sm">
@@ -1596,6 +1553,9 @@ export const PatientDashboard = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-stone-100">
+                        {selectedDocument.extractedData.parametros.length === 0 && (
+                          <tr><td colSpan={3} className="py-3 text-muted">No hay resultados extraídos de este documento.</td></tr>
+                        )}
                         {selectedDocument.extractedData.parametros.map((p, i) => (
                           <tr key={i}>
                             <td className="py-2.5 font-bold text-ink">{p.nombre}</td>
@@ -1609,47 +1569,21 @@ export const PatientDashboard = () => {
                 </div>
               )}
 
-              {selectedDocument.category === 'CONSULTA' && (
+              {(selectedDocument.category === 'CONSULTA' || selectedDocument.category === 'IMAGEN') && (
                 <div className="space-y-3">
                   <div className="p-3.5 bg-canvas rounded-2xl border border-line space-y-2">
-                    <h4 className="font-bold text-ink">Detalle de la Consulta Médica:</h4>
-                    <p className="text-body">{selectedDocument.extractedData.anamnesis}</p>
-                    <div className="p-2.5 bg-blue-50/70 border border-blue-200 rounded-xl">
-                      <span className="font-bold text-ink block">Diagnóstico Principal:</span>
-                      <span className="text-blue-900">{selectedDocument.extractedData.diagnostico}</span>
-                    </div>
-                    <p className="text-body"><strong>Plan Terapéutico:</strong> {selectedDocument.extractedData.plan}</p>
-                    <p className="text-muted text-xs pt-2 border-t border-line">
-                      Signos vitales registrados en box: {selectedDocument.extractedData.signosVitalesEnConsulta}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {selectedDocument.category === 'IMAGEN' && (
-                <div className="space-y-3">
-                  <div className="p-3.5 bg-canvas rounded-2xl border border-line space-y-2">
-                    <h4 className="font-bold text-ink">Conclusiones del Radiólogo:</h4>
-                    <p className="text-body"><strong>Técnica:</strong> {selectedDocument.extractedData.tecnica}</p>
-                    <div className="p-2.5 bg-indigo-50/70 border border-indigo-200 rounded-xl">
-                      <span className="font-bold text-indigo-950 block">Diagnóstico Imagenológico:</span>
-                      <span className="text-indigo-900">{selectedDocument.extractedData.diagnostico}</span>
-                    </div>
-                    <p className="text-body">{selectedDocument.extractedData.conclusiones}</p>
+                    <h4 className="font-bold text-ink">Información extraída disponible</h4>
+                    <p className="text-body"><strong>Resumen:</strong> {selectedDocument.summary}</p>
+                    <p className="text-body"><strong>Diagnóstico registrado:</strong> {selectedDocument.extractedData.diagnostico}</p>
+                    {selectedDocument.extractedData.indicaciones !== '—' && (
+                      <p className="text-body"><strong>Indicaciones registradas:</strong> {selectedDocument.extractedData.indicaciones}</p>
+                    )}
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="pt-3 border-t border-line flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => alert('Descargando copia legal certificada en PDF con timbre institucional...')}
-                  className="px-4 py-2 bg-surface-muted hover:bg-surface-muted text-stone-800 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Descargar PDF</span>
-                </button>
+            <div className="pt-3 border-t border-line flex justify-end items-center gap-2">
                 {selectedDocument.filePath && (selectedDocument.filePath.startsWith('http://') || selectedDocument.filePath.startsWith('https://')) && (
                   <a
                     href={selectedDocument.filePath}
@@ -1661,11 +1595,9 @@ export const PatientDashboard = () => {
                     <span>Ver Original</span>
                   </a>
                 )}
-              </div>
-
               <button
                 aria-label="Cerrar diálogo" onClick={() => setSelectedDocument(null)}
-                className="px-5 py-2 bg-blue-900 hover:bg-blue-950 text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
+                className="px-5 py-2 bg-action hover:bg-action-hover text-on-action text-xs font-bold rounded-xl transition-all cursor-pointer"
               >
                 Cerrar
               </button>
@@ -1678,12 +1610,12 @@ export const PatientDashboard = () => {
       {/* MODAL DE SUBIDA / FOTO CON IA */}
       {/* ========================================================================= */}
       {uploadModalState !== null && (
-        <DialogFrame label="Subir y revisar documento" onClose={isSubmittingConfirm || isSubmittingDiscard || uploadModalState === 'analyzing' ? undefined : handleCloseUploadModal} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="w-full max-w-lg bg-surface dark:bg-surface border border-line dark:border-line rounded-3xl p-6 shadow-2xl space-y-4 max-h-[92vh] flex flex-col">
+        <DialogFrame label="Subir y revisar documento" onClose={isSubmittingConfirm || isSubmittingDiscard || uploadModalState === 'analyzing' ? undefined : handleCloseUploadModal} className="mm-upload-backdrop">
+          <div className="mm-upload-dialog">
             
             {/* Header del Modal */}
             <div className="flex items-center justify-between pb-3 border-b border-stone-100 dark:border-line shrink-0">
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <div className="p-2.5 bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 rounded-2xl">
                   {uploadModalState === 'analyzing' ? (
                     <Sparkles className="w-5 h-5 animate-spin" />
@@ -1696,12 +1628,12 @@ export const PatientDashboard = () => {
                   ) : uploadModalState === 'preview' && (tempDocument?.analysis?.is_medical_document === false || tempDocument?.isUnreadable) ? (
                     <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                   ) : (
-                    <Camera className="w-5 h-5" />
+                    <FileText className="w-5 h-5" />
                   )}
                 </div>
-                <div>
+                <div className="min-w-0">
                   <h3 className="text-base font-extrabold text-ink dark:text-ink">
-                    {uploadModalState === 'idle' && 'Digitalizar Documento Médico'}
+                    {uploadModalState === 'idle' && 'Subir documento médico'}
                     {uploadModalState === 'analyzing' && 'Analizando con Inteligencia Artificial'}
                     {uploadModalState === 'preview' && (
                       tempDocument?.analysis?.is_medical_document === false
@@ -1713,13 +1645,13 @@ export const PatientDashboard = () => {
                     {uploadModalState === 'confirmed' && 'Documento guardado'}
                   </h3>
                   <p className="text-xs text-muted dark:text-muted">
-                    {uploadModalState === 'idle' && 'La IA leerá tu receta antes de guardarla en tu historial'}
-                    {uploadModalState === 'analyzing' && 'Extrayendo medicamentos, dosis y diagnóstico...'}
+                    {uploadModalState === 'idle' && 'Elige cómo agregarlo a Mi ficha'}
+                    {uploadModalState === 'analyzing' && 'Extrayendo información del documento...'}
                     {uploadModalState === 'preview' && (
                       tempDocument?.analysis?.is_medical_document === false
-                        ? 'La imagen no contiene datos clínicos ni recetas médicas'
+                        ? 'El archivo no parece contener información médica'
                         : tempDocument?.isUnreadable
-                          ? 'No pudimos leer con certeza la imagen'
+                          ? 'No pudimos leer con certeza el documento'
                           : 'Tú tienes el control: revisa o corrige los datos'
                     )}
                     {uploadModalState === 'confirmed' && (
@@ -1734,6 +1666,7 @@ export const PatientDashboard = () => {
                 type="button"
                 onClick={handleCloseUploadModal}
                 disabled={isSubmittingConfirm || isSubmittingDiscard || uploadModalState === 'analyzing'}
+                aria-label="Cerrar carga de documento"
                 className="p-1.5 text-muted hover:text-muted dark:hover:text-slate-200 rounded-xl hover:bg-surface-muted dark:hover:bg-slate-800 cursor-pointer disabled:opacity-40 transition-colors"
                 title="Cerrar"
               >
@@ -1746,45 +1679,36 @@ export const PatientDashboard = () => {
               
               {/* ESTADO 1: IDLE (Selector de imagen) */}
               {uploadModalState === 'idle' && (
-                <div className="space-y-4">
-                  <label className="mm-upload-control block p-7 border-2 border-dashed border-teal-400/80 dark:border-teal-500/50 bg-teal-50/40 dark:bg-surface-muted/40 hover:bg-teal-50/80 dark:hover:bg-slate-800/80 rounded-3xl text-center cursor-pointer transition-all">
-                    <UploadCloud className="w-11 h-11 text-teal-600 dark:text-teal-400 mx-auto mb-2.5 animate-bounce" />
-                    <span className="font-extrabold text-ink dark:text-ink text-sm block">
-                      Toma una foto o selecciona tu receta
-                    </span>
-                    <span className="text-xs text-muted dark:text-muted block mt-1">
-                      Soporta fotos claras (JPG, PNG, WEBP) o documentos PDF
-                    </span>
-                    <input
-                      type="file"
-                      accept="image/*,application/pdf"
-                      capture="environment"
-                      className="sr-only"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleStartAnalyze(file);
-                        e.target.value = '';
-                      }}
-                    />
-                  </label>
-
-                  <div className="p-4 bg-canvas dark:bg-surface-muted/60 rounded-2xl border border-line dark:border-line/80 space-y-2">
-                    <span className="font-bold text-ink dark:text-body flex items-center gap-1.5">
-                      <Sparkles className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                      ¿Cómo funciona la carga?
-                    </span>
-                    <p className="text-xs text-muted dark:text-body leading-relaxed">
-                      1. <strong>Lectura Inteligente:</strong> Nuestro motor OCR lee el texto del médico.<br />
-                      2. <strong>Revisión de datos:</strong> Podrás ver y corregir los datos extraídos antes de guardarlos. Esto no sustituye la interpretación médica.<br />
-                      3. <strong>Seguridad Ley 21.668:</strong> Si cancelas, el archivo temporal se borra de inmediato.
-                    </p>
-                  </div>
-
+                <div className="mm-upload-source-step">
+                  {uploadSource === 'camera' ? (
+                    <UploadCamera onCapture={handleStartAnalyze} onBack={() => setUploadSource('choices')} />
+                  ) : (
+                    <>
+                      <p className="mm-upload-source-lead">Selecciona el origen de tu receta, examen o informe.</p>
+                      <div className="mm-upload-source-list">
+                        <button type="button" className="mm-upload-source mm-upload-source--camera" onClick={() => { setUploadError(null); setUploadSource('camera'); }} autoFocus>
+                          <span className="mm-upload-source-icon"><Camera size={22} aria-hidden="true" /></span>
+                          <span className="mm-upload-source-copy"><strong>Tomar foto</strong><small>Usa la cámara para un documento en papel.</small></span>
+                          <ChevronRight size={19} aria-hidden="true" />
+                        </button>
+                        <button type="button" className="mm-upload-source" onClick={() => galleryInputRef.current?.click()}>
+                          <span className="mm-upload-source-icon"><Images size={22} aria-hidden="true" /></span>
+                          <span className="mm-upload-source-copy"><strong>Elegir de galería</strong><small>Selecciona una imagen JPG, PNG o WEBP.</small></span>
+                          <ChevronRight size={19} aria-hidden="true" />
+                        </button>
+                        <button type="button" className="mm-upload-source" onClick={() => pdfInputRef.current?.click()}>
+                          <span className="mm-upload-source-icon"><FileText size={22} aria-hidden="true" /></span>
+                          <span className="mm-upload-source-copy"><strong>Subir archivo PDF</strong><small>Elige un PDF guardado en tu dispositivo.</small></span>
+                          <ChevronRight size={19} aria-hidden="true" />
+                        </button>
+                      </div>
+                      <input ref={galleryInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" tabIndex={-1} onChange={handleUploadInputChange} />
+                      <input ref={pdfInputRef} type="file" accept="application/pdf,.pdf" className="hidden" tabIndex={-1} onChange={handleUploadInputChange} />
+                      <p className="mm-upload-source-note">La IA y el OCR ayudan a extraer y organizar los datos. Podrás revisarlos antes de guardarlos. Máximo 10 MB.</p>
+                    </>
+                  )}
                   {uploadError && (
-                    <div className="p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-2xl flex items-start gap-2.5">
-                      <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
-                      <p className="text-xs text-rose-800 dark:text-rose-300">{uploadError}</p>
-                    </div>
+                    <p className="mm-upload-source-error" role="alert"><AlertCircle size={18} aria-hidden="true" />{uploadError}</p>
                   )}
                 </div>
               )}
@@ -1798,10 +1722,10 @@ export const PatientDashboard = () => {
 
                   <div className="space-y-1">
                     <span className="font-extrabold text-ink dark:text-ink text-sm block">
-                      Analizando tu receta con IA...
+                      Analizando tu documento con IA...
                     </span>
                     <p className="text-xs text-muted dark:text-muted max-w-xs mx-auto">
-                      Identificando medicamentos, dosis y diagnóstico. Tomará solo unos segundos.
+                      Extrayendo la información disponible. Puede tardar unos momentos.
                     </p>
                   </div>
 
@@ -2099,7 +2023,7 @@ export const PatientDashboard = () => {
                   type="button"
                   onClick={() => handleConfirmDocument()}
                   disabled={isSubmittingConfirm || isSubmittingDiscard}
-                  className="px-5 py-2.5 bg-gradient-to-r from-blue-900 to-teal-700 hover:from-blue-950 hover:to-teal-800 active:scale-95 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs cursor-pointer transition-all disabled:opacity-50"
+                  className="px-5 py-2.5 bg-action hover:bg-action-hover active:scale-95 text-on-action font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs cursor-pointer transition-all disabled:opacity-50"
                 >
                   {isSubmittingConfirm ? (
                     <>
@@ -2127,7 +2051,7 @@ export const PatientDashboard = () => {
           <div className="w-full max-w-lg bg-surface dark:bg-surface border border-line dark:border-line rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto">
             <div className="flex items-start justify-between pb-3 border-b border-stone-100 dark:border-line">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-blue-900 text-teal-300 flex items-center justify-center shadow-xs">
+                <div className="w-10 h-10 rounded-2xl bg-deep-brand text-teal-300 flex items-center justify-center shadow-xs">
                   <Share2 className="w-5 h-5" />
                 </div>
                 <div>
@@ -2164,7 +2088,7 @@ export const PatientDashboard = () => {
                   <label className="text-xs font-bold text-slate-700 dark:text-body">1. Selecciona el médico</label>
                   {loadingDoctors ? (
                     <div className="py-8 text-center border border-line dark:border-line rounded-2xl">
-                      <RefreshCw className="w-6 h-6 text-blue-900 dark:text-teal-400 animate-spin mx-auto" />
+                      <RefreshCw className="w-6 h-6 text-accent-ink dark:text-teal-400 animate-spin mx-auto" />
                       <p className="mt-2 text-xs text-muted">Cargando médicos registrados...</p>
                     </div>
                   ) : doctors.length === 0 ? (
@@ -2175,7 +2099,7 @@ export const PatientDashboard = () => {
                     <select aria-label="Duración del permiso"
                       value={selectedDoctorId}
                       onChange={(e) => setSelectedDoctorId(e.target.value)}
-                      className="w-full px-4 py-3 rounded-2xl border border-line dark:border-line bg-surface dark:bg-surface-muted text-sm text-body dark:text-ink outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-blue-900"
+                      className="w-full px-4 py-3 rounded-2xl border border-line dark:border-line bg-surface dark:bg-surface-muted text-sm text-body dark:text-ink outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-accent-ink"
                     >
                       <option value="">Seleccionar médico...</option>
                       {doctors.map((doctor) => {
@@ -2205,18 +2129,18 @@ export const PatientDashboard = () => {
                         type="button"
                         onClick={() => setDirectShareDuration(opt.hours)}
                         className={`p-3 rounded-2xl border text-center transition-all cursor-pointer ${directShareDuration === opt.hours
-                          ? 'bg-blue-900 text-white border-blue-900 shadow-md ring-2 ring-teal-400/40'
-                          : 'bg-surface dark:bg-surface-muted text-slate-700 dark:text-body border-line dark:border-line hover:border-blue-300'
+                          ? 'bg-action text-on-action border-accent-ink shadow-md ring-2 ring-teal-400/40'
+                          : 'bg-surface dark:bg-surface-muted text-slate-700 dark:text-body border-line dark:border-line hover:border-accent-ink'
                         }`}
                       >
                         <span className="text-xs font-extrabold block">{opt.label}</span>
-                        <span className={`text-xs mt-1 block ${directShareDuration === opt.hours ? 'text-teal-200' : 'text-muted'}`}>{opt.desc}</span>
+                        <span className={`text-xs mt-1 block ${directShareDuration === opt.hours ? 'text-on-action/80' : 'text-muted'}`}>{opt.desc}</span>
                       </button>
                     ))}
                   </div>
                 </div>
 
-                <div className="p-3.5 bg-blue-50/60 dark:bg-blue-950/20 rounded-2xl border border-blue-100 dark:border-blue-900/40">
+                <div className="p-3.5 bg-blue-50/60 dark:bg-blue-950/20 rounded-2xl border border-blue-100 dark:border-accent-ink/40">
                   <div className="flex gap-2">
                     <ShieldCheck className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
                     <div>
@@ -2230,7 +2154,7 @@ export const PatientDashboard = () => {
                   type="button"
                   onClick={handleShareDirect}
                   disabled={isSharingDirect || loadingDoctors || !selectedDoctorId}
-                  className="w-full py-3 bg-blue-900 hover:bg-blue-950 active:scale-95 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-3 bg-action hover:bg-action-hover active:scale-95 text-on-action font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSharingDirect ? <RefreshCw className="w-4 h-4 animate-spin text-teal-300" /> : <Share2 className="w-4 h-4 text-teal-300" />}
                   <span>{isSharingDirect ? 'Compartiendo...' : `Compartir por ${directShareDuration} Horas`}</span>
@@ -2263,7 +2187,7 @@ export const PatientDashboard = () => {
             {/* Header */}
             <div className="flex items-start justify-between pb-3 border-b border-stone-100 dark:border-line">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-blue-900 text-teal-300 flex items-center justify-center font-bold shadow-xs">
+                <div className="w-10 h-10 rounded-2xl bg-deep-brand text-teal-300 flex items-center justify-center font-bold shadow-xs">
                   <QrCode className="w-5 h-5" />
                 </div>
                 <div>
@@ -2294,7 +2218,7 @@ export const PatientDashboard = () => {
             {/* Estado de Carga */}
             {isLoadingGrant ? (
               <div className="py-12 text-center space-y-3">
-                <RefreshCw className="w-8 h-8 text-blue-900 animate-spin mx-auto" />
+                <RefreshCw className="w-8 h-8 text-accent-ink animate-spin mx-auto" />
                 <p className="text-xs text-muted font-medium">Verificando tokens activos...</p>
               </div>
             ) : activeGrant ? (
@@ -2382,13 +2306,13 @@ export const PatientDashboard = () => {
                 </div>
 
                 {/* Resumen Legal y Auditoría */}
-                <div className="p-3 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40 rounded-xl text-xs text-ink dark:text-blue-200 space-y-1">
+                <div className="p-3 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-accent-ink/40 rounded-xl text-xs text-ink dark:text-blue-200 space-y-1">
                   <div className="flex items-center gap-1.5 font-bold">
                     <ShieldCheck className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
-                    <span>Auditoría de Acceso en Tiempo Real</span>
+                    <span>Actividad de este acceso</span>
                   </div>
                   <p className="text-xs text-muted dark:text-muted leading-relaxed">
-                    El médico no requiere cuenta previa, pero debe validar su RUT y Nombre Profesional para ingresar. La consulta se estampará en tu registro inmutable.
+                    El profesional debe identificarse con su RUT y nombre para consultar la ficha. La actividad que registre el sistema aparecerá en Accesos.
                   </p>
                 </div>
 
@@ -2428,12 +2352,12 @@ export const PatientDashboard = () => {
                         type="button"
                         onClick={() => setQrDuration(opt.hours)}
                         className={`p-3 rounded-2xl border text-center transition-all cursor-pointer flex flex-col items-center justify-between ${qrDuration === opt.hours
-                          ? 'bg-blue-900 text-white border-blue-900 shadow-md ring-2 ring-teal-400/40'
-                          : 'bg-surface dark:bg-surface-muted text-slate-700 dark:text-body border-line dark:border-line hover:border-blue-300'
+                          ? 'bg-action text-on-action border-accent-ink shadow-md ring-2 ring-teal-400/40'
+                          : 'bg-surface dark:bg-surface-muted text-slate-700 dark:text-body border-line dark:border-line hover:border-accent-ink'
                           }`}
                       >
                         <span className="text-xs font-extrabold">{opt.label}</span>
-                        <span className={`text-xs mt-1 ${qrDuration === opt.hours ? 'text-teal-200' : 'text-muted'}`}>
+                        <span className={`text-xs mt-1 ${qrDuration === opt.hours ? 'text-on-action/80' : 'text-muted'}`}>
                           {opt.desc}
                         </span>
                       </button>
@@ -2460,7 +2384,7 @@ export const PatientDashboard = () => {
                     type="button"
                     onClick={() => handleGenerateGrant(qrDuration)}
                     disabled={isGeneratingGrant}
-                    className="w-full py-3 bg-blue-900 hover:bg-blue-950 active:scale-95 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all disabled:opacity-50"
+                    className="w-full py-3 bg-action hover:bg-action-hover active:scale-95 text-on-action font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all disabled:opacity-50"
                   >
                     {isGeneratingGrant ? (
                       <RefreshCw className="w-4 h-4 animate-spin text-teal-300" />
@@ -2494,7 +2418,7 @@ export const PatientDashboard = () => {
           <div className="w-full max-w-xl bg-surface dark:bg-surface border border-line dark:border-line rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-start justify-between pb-3 border-b border-stone-100 dark:border-line">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-900 text-teal-300 flex items-center justify-center font-bold shadow-xs shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-deep-brand text-teal-300 flex items-center justify-center font-bold shadow-xs shrink-0">
                   <UserCheck className="w-5 h-5" />
                 </div>
                 <div>
@@ -2520,7 +2444,7 @@ export const PatientDashboard = () => {
               <div className="space-y-2 p-3 bg-canvas/70 dark:bg-surface-muted/50 rounded-2xl border border-line/80 dark:border-line/60">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-xs text-ink dark:text-body flex items-center gap-1.5">
-                    <Building2 className="w-3.5 h-3.5 text-blue-800 dark:text-teal-300" />
+                    <Building2 className="w-3.5 h-3.5 text-accent-ink dark:text-teal-300" />
                     Previsión de Salud
                   </span>
                   <span className="text-xs text-muted font-mono">Selecciona una</span>
@@ -2536,8 +2460,8 @@ export const PatientDashboard = () => {
                         onClick={() => setEditFormData({ ...editFormData, healthInsurance: isSelected ? '' : opt })}
                         className={`p-2 rounded-xl text-left text-xs font-semibold transition-all border cursor-pointer flex items-center justify-between gap-1 ${
                           isSelected
-                            ? 'bg-blue-900 text-white border-blue-900 shadow-2xs font-bold'
-                            : 'bg-surface dark:bg-surface text-body dark:text-body border-line dark:border-line hover:border-blue-300'
+                            ? 'bg-action text-on-action border-accent-ink shadow-2xs font-bold'
+                            : 'bg-surface dark:bg-surface text-body dark:text-body border-line dark:border-line hover:border-accent-ink'
                         }`}
                       >
                         <span className="truncate">{opt}</span>
@@ -2615,13 +2539,13 @@ export const PatientDashboard = () => {
               </div>
 
               {/* 4. Enfermedades y Patologías Crónicas */}
-              <div className="space-y-2 p-3 bg-blue-50/40 dark:bg-blue-950/20 rounded-2xl border border-blue-200/80 dark:border-blue-900/40">
+              <div className="space-y-2 p-3 bg-blue-50/40 dark:bg-blue-950/20 rounded-2xl border border-blue-200/80 dark:border-accent-ink/40">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-xs text-ink dark:text-blue-200 flex items-center gap-1.5">
                     <Activity className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                     Patologías Crónicas / Diagnósticos GES
                   </span>
-                  <span className="text-xs text-blue-800 dark:text-blue-400 font-mono">
+                  <span className="text-xs text-accent-ink dark:text-blue-400 font-mono">
                     {editFormData.chronicConditions.filter(c => !c.startsWith('Medicamento: ') && !c.startsWith('Cirugía: ')).length} seleccionadas
                   </span>
                 </div>
@@ -2636,8 +2560,8 @@ export const PatientDashboard = () => {
                         onClick={() => handleToggleCondition(cond)}
                         className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border cursor-pointer flex items-center gap-1.5 ${
                           isSelected
-                            ? 'bg-blue-900 text-white border-blue-900 shadow-2xs font-bold'
-                            : 'bg-surface dark:bg-surface text-body dark:text-body border-line dark:border-line hover:border-blue-300'
+                            ? 'bg-action text-on-action border-accent-ink shadow-2xs font-bold'
+                            : 'bg-surface dark:bg-surface text-body dark:text-body border-line dark:border-line hover:border-accent-ink'
                         }`}
                       >
                         {isSelected ? <Check className="w-3.5 h-3.5 text-teal-300" /> : <Plus className="w-3.5 h-3.5 opacity-40" />}
@@ -2748,7 +2672,7 @@ export const PatientDashboard = () => {
                 <button
                   type="submit"
                   disabled={savingProfile}
-                  className="px-6 py-2.5 bg-blue-900 hover:bg-blue-950 active:scale-95 text-white font-bold text-xs rounded-xl flex items-center gap-2 shadow-xs cursor-pointer transition-all"
+                  className="px-6 py-2.5 bg-action hover:bg-action-hover active:scale-95 text-on-action font-bold text-xs rounded-xl flex items-center gap-2 shadow-xs cursor-pointer transition-all"
                 >
                   <Save className="w-4 h-4 text-teal-300" />
                   <span>{savingProfile ? 'Guardando…' : 'Guardar Cambios en Mi Perfil'}</span>
@@ -2763,7 +2687,7 @@ export const PatientDashboard = () => {
       <BottomNav
         activeTab={currentTab}
         onTabChange={(tab) => setCurrentTab(tab)}
-        onFileSelected={handleUploadFile}
+        onUpload={handleOpenUploadModal}
         isUploading={uploadModalState === 'analyzing'}
       />
 
