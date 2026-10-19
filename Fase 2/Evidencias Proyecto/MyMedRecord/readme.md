@@ -13,6 +13,10 @@ MyMedRecord es una plataforma de salud digital concebida para la interoperabilid
 
 La plataforma destaca por su motor de Inteligencia Artificial que permite fotografiar una receta en papel para extraer automáticamente los medicamentos, dosis y diagnósticos, almacenando la información de forma estructurada, segura y validada por el propio paciente.
 <img width="2396" height="1191" alt="image" src="https://github.com/user-attachments/assets/ab200f26-a4d3-44bf-870c-da02a752c222" />
+<img width="492" height="1061" alt="image" src="https://github.com/user-attachments/assets/ce65d80e-1e44-4e7f-b5df-6909f5d7e3c7" /><img width="488" height="1060" alt="image" src="https://github.com/user-attachments/assets/ad89f5cb-9de7-4753-8da5-f2d364cc1489" /><img width="481" height="1062" alt="image" src="https://github.com/user-attachments/assets/4835cf31-d3f8-4049-a4ff-dc3609577c56" />
+
+
+
 
 
 
