@@ -163,7 +163,8 @@ En la pantalla de inicio de sesión se puede ingresar manualmente o utilizar los
 | **Paciente** | `paciente@mymedrecord.cl` o `12.345.678-9` | `password123` | Ficha personal, digitalización de recetas con IA, historial médico y generación de QR. |
 | **Médico Administrador** | `medico@mymedrecord.cl` o `98.765.432-1` | `password123` | Búsqueda clínica por RUT, emisión de recetas electrónicas y supervisión de auditoría (Ley 21.668). |
 
-<img width="800" alt="image" src="https://github.com/user-attachments/assets/aa219d54-a029-460e-93a1-48be66f1d226" />
+<img width="800" alt="image" src="https://github.com/user-attachments/assets/9d4e2975-1cbe-43ab-a253-19dd724ef49d" />
+
 
 ---
 
