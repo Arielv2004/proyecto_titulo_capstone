@@ -15,13 +15,14 @@ La plataforma destaca por su motor de Inteligencia Artificial que permite fotogr
 ### Capturas de la Aplicación
 
 **Vista de Escritorio:**
+
 <img width="800" alt="Dashboard Escritorio" src="https://github.com/user-attachments/assets/ab200f26-a4d3-44bf-870c-da02a752c222" />
+
 
 **Vistas Móviles (PWA):**
 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
   <img width="250" alt="Móvil 1" src="https://github.com/user-attachments/assets/ce65d80e-1e44-4e7f-b5df-6909f5d7e3c7" />
   <img width="250" alt="Móvil 2" src="https://github.com/user-attachments/assets/ad89f5cb-9de7-4753-8da5-f2d364cc1489" />
-  <img width="250" alt="Móvil 3" src="https://github.com/user-attachments/assets/4835cf31-d3f8-4049-a4ff-dc3609577c56" />
   <img width="250" alt="Móvil 4" src="https://github.com/user-attachments/assets/aab358db-6aa8-4a92-a393-34ce3c45871a" />
 </div>
 
