@@ -42,7 +42,7 @@ def run():
         response = client.post(url, headers={"x-service-token": token}, files={"file": ("ficticio.pdf", pdf, "application/pdf")})
         assert response.status_code == 200, response.text
         assert "FICTICIO PDF" in response.json()["raw_text"]
-        assert "llm_service" not in (Path(__file__).parent / "routers" / "extract.py").read_text(encoding="utf-8")
+        assert response.json()["processing_mode"] == "local"
     print("PASS OCR real de imagen y PDF, servicio autenticado y formato rechazado.")
 if __name__ == "__main__":
     run()

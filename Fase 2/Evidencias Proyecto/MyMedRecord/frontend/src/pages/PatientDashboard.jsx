@@ -1,6 +1,5 @@
 import { PatientRecords } from '../components/patient/PatientRecords';
 import { QrApprovalRequests } from '../components/patient/QrApprovalRequests';
-import { PrivacyControls } from '../components/patient/PrivacyControls';
 import { GrantTokenButton } from '../components/patient/GrantTokenButton';
 import { PatientHelp } from '../components/patient/PatientHelp';
 import { DialogFrame } from '../components/ui/DialogFrame';
@@ -1304,7 +1303,6 @@ export const PatientDashboard = () => {
 
       <main id="main-content" tabIndex={-1} className={`mm-shell mm-patient-shell space-y-6${currentTab === 'home' ? ' mm-patient-shell--home' : ''}`}>
         <QrApprovalRequests />
-        {currentTab === 'profile' && <PrivacyControls />}
         {/* ========================================================================= */}
         {/* PESTAÑA 1: INICIO (HOME PRINCIPAL) */}
         {/* ========================================================================= */}
@@ -1855,6 +1853,9 @@ export const PatientDashboard = () => {
               </button>
             </div>
 
+            {uploadModalState === 'preview' && tempDocument?.analysis?.processing_notice && (
+              <p role="status" className="rounded-xl border border-line p-3 text-sm text-body">{tempDocument.analysis.processing_notice}</p>
+            )}
             {/* Contenido según Estado */}
             <div className="flex-1 overflow-y-auto pr-1 space-y-4 text-xs">
               
@@ -1885,7 +1886,7 @@ export const PatientDashboard = () => {
                       </div>
                       <input ref={galleryInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" tabIndex={-1} onChange={handleUploadInputChange} />
                       <input ref={pdfInputRef} type="file" accept="application/pdf,.pdf" className="hidden" tabIndex={-1} onChange={handleUploadInputChange} />
-                      <p className="mm-upload-source-note">El OCR lee el texto localmente. Completa y revisa los datos antes de guardarlos. Máximo 10 MB y 20 páginas por PDF.</p>
+                      <p className="mm-upload-source-note">La IA y el OCR ayudan a extraer y organizar los datos. Podrás revisarlos antes de guardarlos. Máximo 10 MB.</p>
                     </>
                   )}
                   {uploadError && (
@@ -1903,7 +1904,7 @@ export const PatientDashboard = () => {
 
                   <div className="space-y-1">
                     <span className="font-extrabold text-ink dark:text-ink text-sm block">
-                      Leyendo tu documento con OCR local...
+                      Analizando tu documento con IA...
                     </span>
                     <p className="text-xs text-muted dark:text-muted max-w-xs mx-auto">
                       Extrayendo la información disponible. Puede tardar unos momentos.
@@ -1912,7 +1913,7 @@ export const PatientDashboard = () => {
 
                   <div className="space-y-2 max-w-sm mx-auto">
                     <div className="flex items-center justify-between text-xs font-mono text-muted dark:text-muted">
-                      <span>Procesando OCR local</span>
+                      <span>Procesando OCR + LLM</span>
                       <span className="font-bold text-teal-600 dark:text-teal-400">{uploadProgress}%</span>
                     </div>
                     <div className="w-full h-2.5 bg-surface-muted dark:bg-surface-muted rounded-full overflow-hidden p-0.5">
@@ -1930,7 +1931,7 @@ export const PatientDashboard = () => {
                 <div className="space-y-4">
                   {tempDocument?.analysis?.raw_text && <details className="rounded-xl border border-line p-4">
                     <summary className="cursor-pointer font-semibold">Texto leído con OCR local</summary>
-                    <p className="my-2 text-sm text-muted">Compara este texto con el original y completa los campos. No se envió a una IA externa.</p>
+                    <p className="my-2 text-sm text-muted">Compara este texto con el original y revisa los datos propuestos antes de guardarlos.</p>
                     <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap break-words text-sm">{tempDocument.analysis.raw_text}</pre>
                   </details>}
                   {/* CASO A0: DOCUMENTO NO MÉDICO */}

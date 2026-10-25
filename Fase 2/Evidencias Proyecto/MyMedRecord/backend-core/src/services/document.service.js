@@ -539,7 +539,7 @@ class DocumentService {
             form,
             {
                 headers: { ...form.getHeaders(), 'X-Service-Token': process.env.AI_SERVICE_TOKEN },
-                timeout: 60000, // 60s (OCR + LLM puede tardar)
+                timeout: 80000, // 60s (OCR + LLM puede tardar)
                 maxBodyLength: Infinity,
                 maxContentLength: Infinity,
             }

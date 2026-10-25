@@ -1,5 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from models.schemas import DocumentExtractionResponse
+from core.config import settings
 from starlette.concurrency import run_in_threadpool
 import asyncio
 import subprocess
@@ -30,9 +31,18 @@ async def process_document(file: UploadFile = File(...)):
             slots.release()
         if not raw_text.strip():
             raise HTTPException(422, "No se encontró texto legible. Puedes completar los datos manualmente.")
-        # OCR local: no importa ni invoca proveedores externos.
+        notice = None
+        if settings.EXTERNAL_AI_ENABLED:
+            if settings.LLM_API_KEY:
+                from services.llm_service import LLMService
+                try:
+                    return await asyncio.wait_for(LLMService.extract_clinical_entities(raw_text[:100000]), timeout=30)
+                except Exception:
+                    notice = "Gemini no pudo estructurar el documento. Conservamos el texto OCR para revisión manual."
+            else:
+                notice = "Gemini no está configurado en este entorno. Conservamos el texto OCR para revisión manual."
         return DocumentExtractionResponse(document_type="OTRO", raw_text=raw_text[:100000],
-            summary=None, diagnoses=[], medications=[], lab_metrics=[], is_medical_document=True)
+            summary=None, processing_notice=notice, diagnoses=[], medications=[], lab_metrics=[], is_medical_document=True)
     except HTTPException:
         raise
     except Exception:

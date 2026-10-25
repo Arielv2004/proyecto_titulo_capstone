@@ -1,6 +1,6 @@
 import React from 'react';
 import { formatClinicalDate } from '../../utils/clinicalDate';
-import { ArrowLeft, Clock, FileText, Phone, Printer, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Clock, FileText, Printer, ExternalLink } from 'lucide-react';
 import { Button, Card, EmptyState, Notice, PageHeader, StatusBadge } from '../ui/ClinicalUI';
 
 export function ClinicalRecord({ data, timeLeft, onFinish, onOpenFile, fileError, openingFileId, backLabel = 'Volver a pacientes' }) {
@@ -79,29 +79,6 @@ export function ClinicalRecord({ data, timeLeft, onFinish, onOpenFile, fileError
             <div>
               <dt>Previsión</dt>
               <dd>{profile.healthInsurance || 'Sin registrar'}</dd>
-            </div>
-          </dl>
-        </Card>
-        <Card title="Contacto de emergencia">
-          <span className="mm-icon mb-4">
-            <Phone size={22} aria-hidden="true" />
-          </span>
-          <dl className="mm-summary-list">
-            <div>
-              <dt>Nombre</dt>
-              <dd>{profile.emergencyContactName || 'Sin registrar'}</dd>
-            </div>
-            <div>
-              <dt>Teléfono</dt>
-              <dd>
-                {profile.emergencyContactPhone ? (
-                  <a className="mm-text-link" href={`tel:${profile.emergencyContactPhone}`}>
-                    {profile.emergencyContactPhone}
-                  </a>
-                ) : (
-                  'Sin registrar'
-                )}
-              </dd>
             </div>
           </dl>
         </Card>

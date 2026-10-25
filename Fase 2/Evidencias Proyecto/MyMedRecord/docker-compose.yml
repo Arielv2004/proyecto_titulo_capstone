@@ -6,10 +6,10 @@ services:
     container_name: mymedrecord_ocr
     env_file: ./ai-service/.env
     environment:
-      EXTERNAL_AI_ENABLED: "false"
-      LLM_API_KEY: ""
+      EXTERNAL_AI_ENABLED: "${EXTERNAL_AI_ENABLED:-true}"
     networks:
       - ocr_private
+      - mymedrecord_network
     read_only: true
     tmpfs:
       - /tmp:size=64m,mode=1777

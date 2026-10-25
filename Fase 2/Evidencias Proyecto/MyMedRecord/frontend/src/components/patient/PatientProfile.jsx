@@ -82,13 +82,6 @@ export function PatientProfile({ user, profile, loading, error, onEdit, saved })
                   <div><dt>Cirugías previas</dt><dd>{display(surgeries)}</dd></div>
                 </dl>
               </section>
-              <section className="mm-profile-section mm-profile-section--emergency" aria-labelledby="profile-emergency-title">
-                <h3 id="profile-emergency-title">Contacto de emergencia</h3>
-                <dl className="mm-profile-fields">
-                  <div><dt>Nombre</dt><dd>{profile.emergencyContactName || 'No registrado'}</dd></div>
-                  <div><dt>Teléfono</dt><dd>{profile.emergencyContactPhone || 'No registrado'}</dd></div>
-                </dl>
-              </section>
             </div>
           </Card>
         </>

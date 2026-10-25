@@ -3,7 +3,7 @@
 > **Proyecto de Portafolio de Título (APT) - Ingeniería en Informática**  
 > **Integrantes:** Ariel Velásquez, Sergio Vera, Ignacio Ruiz  
 > **Marco Regulatorio:** Ley N° 21.668 (Interoperabilidad de Fichas Clínicas) y Ley N° 20.584 (Derechos y Deberes del Paciente)  
-> **Estado Actual:** MVP Funcional Operativo (PostgreSQL 15 en Docker, API REST Express, Frontend React 19 + PWA, Microservicio de IA en Python + Gemini, y Almacenamiento en Supabase Storage).
+> **Estado Actual:** Prototipo académico con datos ficticios (PostgreSQL 15 en Docker, API REST Express, Frontend React 19 + PWA, Microservicio de IA en Python + Gemini, y Almacenamiento en Supabase Storage).
 
 ---
 
@@ -38,7 +38,7 @@ La plataforma destaca por su motor de Inteligencia Artificial que permite fotogr
 | :--- | :---: | :--- |
 | **Base de Datos Relacional (PostgreSQL 15)** | [Completado] | 10 tablas normalizadas (`init.sql`) con índices, claves foráneas, restricciones de integridad y tabla de auditoría forense (`audit_logs`). |
 | **Autenticación Dual (RUT o Correo)** | [Completado] | Inicio de sesión con RUT Chileno (validación Módulo 11) o Email, gestionado con tokens JWT en cookies seguras HttpOnly. |
-| **Digitalización OCR con IA (ai-service)** | [Completado] | Microservicio en FastAPI que usa Tesseract para leer la imagen y Gemini (LLM) para estructurar los datos clínicos (medicamentos, diagnósticos). |
+| **Digitalización OCR con IA (ai-service)** | Integrado; prueba real de Gemini pendiente | OCR local con Tesseract y estructuración automática con Gemini cuando existe clave válida. Se conserva revisión manual ante fallos. |
 | **Flujo de Confirmación Previa** | [Completado] | El paciente revisa, edita y valida los datos extraídos por la IA antes de guardarlos en su historial clínico, evitando datos erróneos. |
 | **Almacenamiento en la Nube** | [Completado] | Las imágenes de los documentos se guardan de forma segura en Supabase Storage (URLs públicas), evitando saturar el disco local. |
 | **Cálculo de Vigencia de Recetas** | [Completado] | El sistema calcula automáticamente la fecha de vencimiento (`valid_until`) basándose en la duración de los medicamentos extraídos. |
@@ -72,51 +72,42 @@ MyMedRecord/
 - Python (v3.10 o superior).
 - Tesseract OCR (con soporte para español instalado).
 
-### Paso 1: Levantar Base de Datos (Docker)
+### Paso 1: Configurar y migrar el entorno
 
-En la raíz del proyecto ejecutar:
+Seguir [Instalación y migración segura](docs/PROTECCION_DATOS_SENSIBLES.md#instalación-y-migración-segura). El backend requiere claves de cifrado, token de servicio, migraciones y un usuario PostgreSQL limitado; ya no basta con ejecutar el servidor con credenciales de superusuario.
+
+Copiar los `.env.example` solo para un entorno nuevo. No sobrescribir las claves de una base ya cifrada. Los `.env` no se publican en Git. Nunca ejecutar `database/init.sql` sobre una base existente ni eliminar el volumen para actualizarla.
+
+Para arrancar la base y pgAdmin antes de migrar:
 
 ```bash
-docker compose up -d
+docker compose up -d db pgadmin
 ```
 
-- **PostgreSQL:** `localhost:5432` (Base de datos: `mymedrecord` / Usuario: `postgres` / Clave: `password`)
-- **pgAdmin 4:** `http://localhost:5050` (Usuario: `admin@mymedrecord.cl` / Clave: `admin`)
+Los puertos locales son PostgreSQL `127.0.0.1:5432` y pgAdmin `http://localhost:5050`. Las credenciales administrativas de demostración del Compose no son las del usuario limitado de la aplicación.
 
-### Paso 2: Configurar Variables de Entorno (`.env`)
+### Paso 2: Configurar OCR y Gemini
 
-Se deben crear los archivos `.env` basándose en los `.env.example` de cada carpeta.
-
-#### Backend (`backend-core/.env`):
-Debe incluir las credenciales de la base de datos local y las llaves de Supabase Storage:
+En `ai-service/.env`, mantener `AI_SERVICE_TOKEN` igual al del backend y configurar una clave privada:
 
 ```env
-PORT=5000
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=password
-DB_NAME=mymedrecord
-AI_SERVICE_URL=http://localhost:8000
-CORS_ORIGIN=http://localhost:5173
-SUPABASE_URL=https://xxxxx.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=su_service_role_key
-SUPABASE_BUCKET=medical-documents
-```
-
-#### AI Service (`ai-service/.env`):
-Debe incluir la API Key de Google Gemini:
-
-```env
-PORT=8000
 LLM_PROVIDER=gemini
-LLM_MODEL=gemini-1.5-flash
-LLM_API_KEY=su_api_key_de_gemini
+LLM_MODEL=gemini-2.5-flash
+LLM_API_KEY=
+EXTERNAL_AI_ENABLED=true
 ```
 
-### Paso 3: Iniciar Backend (API Node.js)
+No pegar claves en documentación, chats o commits. El flujo es automático, sin casilla adicional al subir documentos. La clave de Gemini está pendiente en el entorno revisado: las pruebas simuladas no garantizan extracción real. Usar documentos ficticios.
 
-En una terminal:
+```bash
+docker compose up -d --build ocr ocr-gateway
+```
+
+El gateway escucha en `127.0.0.1:8000`; el servicio requiere autenticación del backend. No iniciar simultáneamente otro proceso Python en ese puerto. Para desactivar Gemini, establecer `EXTERNAL_AI_ENABLED=false` en el entorno de Compose y recrear el servicio. Ante falta de clave o fallo del proveedor, el OCR queda disponible para revisión manual.
+
+### Paso 3: Iniciar Backend
+
+Después de completar las migraciones y restringir el usuario de base de datos:
 
 ```bash
 cd backend-core
@@ -124,21 +115,7 @@ npm install
 npm run dev
 ```
 
-*Disponible en: `http://localhost:5000/api/v1`*
-
-### Paso 4: Iniciar Microservicio de IA (Python)
-
-En una nueva terminal:
-
-```bash
-cd ai-service
-python -m venv venv
-.\venv\Scripts\activate    # En Windows (o 'source venv/bin/activate' en Linux/macOS)
-pip install -r requirements.txt
-python main.py
-```
-
-*Disponible en: `http://localhost:8000/docs`*
+API: `http://localhost:5000/api/v1`. Storage debe ser privado y las variables deben corresponder al entorno local. Consultar [controles, pruebas y pendientes](docs/PROTECCION_DATOS_SENSIBLES.md).
 
 ### Paso 5: Iniciar Frontend (React)
 

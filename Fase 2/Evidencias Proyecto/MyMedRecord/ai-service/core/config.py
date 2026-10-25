@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     PORT: int = 8000
     HOST: str = "127.0.0.1"
     AI_SERVICE_TOKEN: str = ""
-    EXTERNAL_AI_ENABLED: bool = False
+    EXTERNAL_AI_ENABLED: bool = True
 
     # Restringir CORS solo para backend-core (aislamiento)
     BACKEND_CORE_ORIGIN: str = os.getenv("BACKEND_CORE_ORIGIN", "http://localhost:5000")
@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     # LLM Settings
     LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "gemini")
     LLM_API_KEY: str = os.getenv("LLM_API_KEY", "")
-    LLM_MODEL: str = os.getenv("LLM_MODEL", "gemini-3.6-flash")
+    LLM_MODEL: str = os.getenv("LLM_MODEL", "gemini-2.5-flash")
 
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",

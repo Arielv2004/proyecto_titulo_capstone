@@ -31,8 +31,8 @@ export function PatientHome({
           <div className="mm-ai-spotlight">
             <span className="mm-ai-spotlight-icon"><Sparkles size={21} aria-hidden="true" /></span>
             <div>
-              <strong>Digitaliza con OCR local</strong>
-              <p>El OCR lee el texto sin enviarlo a una IA externa. Completa y revisa los datos antes de guardarlos.</p>
+              <strong>Digitaliza con OCR + IA</strong>
+              <p>El OCR lee el texto y Gemini ayuda a ordenar los datos extraídos. Tú los revisas antes de guardarlos.</p>
             </div>
           </div>
         </div>

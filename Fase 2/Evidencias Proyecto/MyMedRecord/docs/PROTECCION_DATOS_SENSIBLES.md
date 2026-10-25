@@ -13,12 +13,12 @@ Esta entrega no certifica cumplimiento legal ni autoriza un piloto clínico.
 - Médicos: cuenta activa, rol MEDICO, perfil VERIFICADO y habilitado; permiso del médico correcto, vigente y no revocado. Las rutas heredadas de citas también exigen perfil habilitado. La navegación nueva usa el ID del permiso directo; las rutas antiguas siguen comprobando autorización.
 - QR sin cuenta: identificación declarada cifrada, solicitud de cinco minutos, aprobación/rechazo por el paciente y cookie de consulta ligada al navegador. La expiración nunca supera la del pase. Finalizar consulta invalida esa sesión; revocar un pase no revoca los demás. Los QR anteriores a la migración quedan anulados.
 - El enlace QR nuevo transporta el código en el fragmento, que no viaja en la solicitud HTTP; se retira de la dirección al abrir la página. No se persisten tokens ni fichas en localStorage. No hay service worker que almacene respuestas clínicas.
-- OCR local: Tesseract en español e inglés instalado en contenedor, lectura de PDF local, autenticación del backend y red interna sin salida a Internet. El gateway solo publica 127.0.0.1:8000. No se invoca Gemini. El paciente ve el texto OCR y completa los campos; no se ofrece un modelo de lenguaje local.
+- OCR local: Tesseract en español e inglés instalado en contenedor, lectura de PDF local, autenticación del backend y acceso al proveedor externo para estructuración. El gateway solo publica 127.0.0.1:8000. La demostración restaura la estructuración automática con Gemini, descrita abajo; no se ofrece un modelo de lenguaje local.
 - Procesamiento: contenido real admitido, máximo 10 MB, 20 páginas PDF y 20 megapíxeles; dos procesos simultáneos y terminación del subproceso a los 40 segundos. La imagen OCR usa además timeout de Tesseract.
 - Confirmar/descartar retira el texto OCR; temporales abandonados de más de 24 horas se limpian al iniciar y cada hora.
 - El borrado oculta inmediatamente el documento y crea una tarea durable. Si Storage falla, queda pendiente; se reintenta cada hora. Al completarse se eliminan los datos estructurados asociados y se vacía la carga clínica del documento.
 - La auditoría registra acción, recurso o patrón de ruta, resultado, modalidad e identidad declarada/autenticada. El rol de aplicación solo puede insertar y leer audit_logs. Un administrador PostgreSQL sigue teniendo capacidad de modificarla.
-- Mi perfil permite exportar datos estructurados en JSON y registrar aceptación del aviso 2026-10-25.1. Los originales se descargan individualmente desde Mi ficha.
+- Por decisión de interfaz, Mi perfil no muestra exportación JSON ni aceptación del aviso. Los endpoints del backend permanecen implementados; los originales se descargan individualmente desde Mi ficha.
 
 ## Evidencia de verificación
 
@@ -57,7 +57,7 @@ Dos referencias de originales de la base de demostración apuntaban a archivos a
 5. Ejecutar node scripts/migrate-security.cjs. Usa transacción y comprueba descifrado; mantiene lecturas compatibles, limpia copias clínicas y anula QR antiguos. Repetir no vuelve a revocar los nuevos QR.
 6. Configurar el bucket como privado desde Supabase. El backend rechaza arrancar si Storage sigue público.
 7. Ejecutar node scripts/restrict-db.cjs. Crea/configura mymedrecord_app con clave aleatoria, sin superusuario, creación de roles ni bases. Impide edición/borrado de auditoría y escritura de la tabla de migraciones.
-8. Desde la raíz del proyecto ejecutar docker compose up -d --build. PostgreSQL/pgAdmin/gateway OCR se exponen solo en loopback. El contenedor OCR es no-root, de solo lectura, con límites de memoria/procesos y sin salida externa.
+8. Desde la raíz del proyecto ejecutar docker compose up -d --build. PostgreSQL/pgAdmin/gateway OCR se exponen solo en loopback. El contenedor OCR es no-root, de solo lectura, con límites de memoria/procesos y salida externa para Gemini.
 9. Iniciar backend y frontend con sus comandos habituales. Todos deben volver a iniciar sesión y emitir nuevos pases QR.
 10. Ejecutar las pruebas con datos ficticios antes de integrar la rama.
 
@@ -116,5 +116,19 @@ Incidente: suspender accesos afectados, revocar credenciales y sesiones, preserv
 ## Fuentes del plan
 
 - [Supabase: buckets privados y públicos](https://supabase.com/docs/guides/storage/buckets/fundamentals).
-- [Condiciones de Gemini API](https://ai.google.dev/gemini-api/terms?hl=en). No se usa en esta implementación local.
+- [Condiciones de Gemini API](https://ai.google.dev/gemini-api/terms?hl=en). Aplicables cuando se habilita la opción de Gemini.
 - [Ley 21.719, texto oficial BCN](https://www.bcn.cl/leychile/navegar?i=1209272). La implementación técnica no reemplaza la revisión de las obligaciones aplicables.
+
+## Flujo automático OCR + Gemini para la demostración académica
+
+Se restaura el flujo original: seleccionar cámara, galería o PDF → leer con OCR → estructurar automáticamente con Gemini → revisar/corregir → confirmar o descartar. No se pide marcar una casilla adicional. El texto se envía al proveedor; el prototipo utiliza exclusivamente datos ficticios. Se conservan el cifrado, los permisos y el almacenamiento privado.
+
+Configurar `LLM_API_KEY` y `LLM_MODEL=gemini-2.5-flash` en `ai-service/.env` y ejecutar `docker compose up -d --build ocr ocr-gateway`. Cada integrante necesita configurar una clave privada válida; no se incluye en Git. El Compose base habilita Gemini y salida de red, sin publicar directamente el servicio OCR. Para un entorno solo local se puede ejecutar con `EXTERNAL_AI_ENABLED=false` en el entorno de Compose.
+
+Si falta la clave o falla el proveedor, se muestra un aviso y queda disponible el texto OCR para revisión manual. Las respuestas se validan contra el esquema clínico y no se guardan errores técnicos como datos clínicos. La llamada al proveedor tiene un plazo de 30 segundos.
+
+La prueba `ai-service/.venv/Scripts/python.exe ai-service/test_gemini_flow.py` verifica el procesamiento automático con un proveedor simulado y la degradación controlada. La extracción real con Google sigue pendiente de una clave y cuota válidas; no se considera acreditada por las pruebas simuladas.
+
+## Ajustes de interfaz posteriores
+
+Se retiraron contacto de emergencia en perfil/ficha médica y el bloque de exportación JSON y aceptación del aviso en Mi perfil. No se eliminaron datos almacenados ni endpoints de privacidad. Se restauraron los textos originales de selección/progreso de subida y se mantienen el texto OCR desplegable y los avisos de fallo. Las pruebas del flujo Gemini usan respuestas simuladas; la clave del entorno sigue pendiente. No se publicó ni integró esta entrega a main.

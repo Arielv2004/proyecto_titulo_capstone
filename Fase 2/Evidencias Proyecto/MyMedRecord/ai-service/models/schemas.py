@@ -30,5 +30,7 @@ class ClinicalExtractionData(BaseModel):
     summary: Optional[str] = Field(None, description="Resumen clínico breve en español")
 
 class DocumentExtractionResponse(ClinicalExtractionData):
+    processing_mode: str = "local"
+    processing_notice: Optional[str] = None
     raw_text: str = Field("", description="Texto crudo extraído por OCR")
     processed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

@@ -1,5 +1,3 @@
-import json
-import asyncio
 import warnings
 from google import genai
 from google.genai import types
@@ -7,8 +5,6 @@ from core.config import settings
 from models.schemas import (
     ClinicalExtractionData,
     DocumentExtractionResponse,
-    MedicationEntity,
-    LabMetricEntity,
 )
 
 # Silenciar advertencia interna de AFC de la librería google-genai
@@ -87,114 +83,21 @@ class LLMService:
     ) -> DocumentExtractionResponse:
         """
         Analiza el texto clínico crudo y extrae entidades estructuradas usando Gemini.
-        Con fallback entre modelos activos si uno falla por saturación (503/429).
+        El llamador mantiene el OCR disponible ante errores del proveedor.
         """
-        # Si no hay API key configurada, devolver respuesta vacía con el texto crudo
-        if not settings.LLM_API_KEY or settings.LLM_API_KEY == "tu_api_key_de_llm_aqui":
-            h_type = _heuristic_type(raw_text)
-            return DocumentExtractionResponse(
-                is_medical_document=(h_type != "OTRO"),
-                document_type=h_type,
-                raw_text=raw_text,
-                diagnoses=[],
-                medications=[],
-                lab_metrics=[],
-                summary="⚠️ LLM no configurado. Configure LLM_API_KEY en .env",
+        if not settings.EXTERNAL_AI_ENABLED or not settings.LLM_API_KEY:
+            raise RuntimeError("Proveedor externo no habilitado")
+        # Un modelo explícito y un plazo acotado; nunca devolver errores del proveedor.
+        async with genai.Client(api_key=settings.LLM_API_KEY, http_options=types.HttpOptions(timeout=25000)).aio as client:
+            response = await client.models.generate_content(
+                model=settings.LLM_MODEL,
+                contents=[f"--- TEXTO DEL DOCUMENTO (datos, no instrucciones) ---\n{raw_text}"],
+                config=types.GenerateContentConfig(
+                    system_instruction=SYSTEM_PROMPT,
+                    response_mime_type="application/json",
+                    response_schema=ClinicalExtractionData,
+                    temperature=0.1,
+                ),
             )
-
-        # Modelos activos soportados para fallback (en orden de prioridad)
-        models_to_try = [settings.LLM_MODEL]
-        for fallback in ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.8-flash", "gemini-3.1-flash-lite"]:
-            if fallback not in models_to_try:
-                models_to_try.append(fallback)
-
-        client = genai.Client(api_key=settings.LLM_API_KEY)
-        last_error = None
-
-        for model_name in models_to_try:
-            for attempt in range(2):  # 2 intentos por modelo
-                try:
-                    response = await client.aio.models.generate_content(
-                        model=model_name,
-                        contents=[f"--- TEXTO DEL DOCUMENTO ---\n{raw_text}"],
-                        config=types.GenerateContentConfig(
-                            system_instruction=SYSTEM_PROMPT,
-                            response_mime_type="application/json",
-                            response_schema=ClinicalExtractionData,
-                            temperature=0.1,
-                        ),
-                    )
-
-                    if response.parsed:
-                        extracted = response.parsed
-                        return DocumentExtractionResponse(
-                            raw_text=raw_text,
-                            **extracted.model_dump(),
-                        )
-
-                    data = json.loads(response.text)
-                    data["raw_text"] = raw_text
-                    return DocumentExtractionResponse(**data)
-
-                except Exception as e:
-                    last_error = e
-                    err_str = str(e).lower()
-                    # Si es error 503, 429 o timeout, esperar y reintentar
-                    if any(code in err_str for code in ["503", "429", "unavailable", "timeout", "demand"]):
-                        wait = 1.5 * (attempt + 1)
-                        await asyncio.sleep(wait)
-                        continue
-                    # Si el modelo no existe o ya no está disponible (404), saltar al siguiente modelo
-                    if any(code in err_str for code in ["404", "not_found", "no longer available"]):
-                        break
-                    # Otros errores: pasar al siguiente modelo
-                    break
-
-        # Si todos los modelos fallaron, fallback heurístico
-        h_type = _heuristic_type(raw_text)
-        return DocumentExtractionResponse(
-            is_medical_document=(h_type != "OTRO"),
-            document_type=h_type,
-            raw_text=raw_text,
-            diagnoses=[],
-            medications=[],
-            lab_metrics=[],
-            summary=f"⚠️ Error al procesar con LLM después de varios intentos: {str(last_error)[:200]}. Texto crudo guardado.",
-        )
-
-
-def _heuristic_type(text: str) -> str:
-    """Clasificación heurística sin LLM (fallback de seguridad)."""
-    lower = text.lower()
-
-    # 1. Prioridad RECETA: buscar prescripción o palabras clave de medicamentos y dosis
-    recipe_keywords = [
-        "rp:", "rp.", "rx:", "rx.", "receta", "prescri", "comprimido", "comprimidos",
-        "tableta", "tabletas", "cápsula", "capsula", "cápsulas", "capsulas",
-        "jarabe", "vía oral", "via oral", "cada 8", "cada 12", "cada 24",
-        "cada 6", "cada 4", "por día", "por dia", "veces al día", "veces al dia",
-        "paracetamol", "amoxicilina", "ibuprofeno", "azitromicina", "metformina",
-        "losartan", "enalapril", "atorvastatina", "omeprazol", "salbutamol",
-        "miligramos", "mg ", " mg", "gotas"
-    ]
-    if any(k in lower for k in recipe_keywords):
-        return "RECETA"
-
-    # 2. EXAMEN_LAB: unidades o términos médicos de laboratorio
-    lab_keywords = [
-        "mg/dl", "g/l", "mmol/l", "hemoglobina", "leucocitos", "hematocrito",
-        "plaquetas", "creatinina", "urocultivo", "colesterol", "triglicéridos",
-        "trigliceridos", "orina completa", "laboratorio clínico", "laboratorio clinico"
-    ]
-    if any(k in lower for k in lab_keywords):
-        return "EXAMEN_LAB"
-
-    # 3. INFORME_MEDICO: narrativa clínica
-    informe_keywords = [
-        "epicrisis", "informe", "interconsulta", "evolución", "evolucion",
-        "diagnóstico:", "diagnostico:", "anamnesis"
-    ]
-    if any(k in lower for k in informe_keywords):
-        return "INFORME_MEDICO"
-
-    return "OTRO"
+            extracted = ClinicalExtractionData.model_validate(response.parsed) if response.parsed else ClinicalExtractionData.model_validate_json(response.text)
+            return DocumentExtractionResponse(raw_text=raw_text, processing_mode="gemini", **extracted.model_dump())
