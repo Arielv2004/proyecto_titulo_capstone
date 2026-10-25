@@ -1060,6 +1060,15 @@ html.dark {
   flex-wrap: wrap;
   gap: 0.75rem;
 }
+.mm-record-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+.mm-record-actions .mm-button {
+  min-height: 40px;
+}
 .mm-record-footer > .mm-button {
   margin-left: auto;
 }
@@ -1069,6 +1078,13 @@ html.dark {
   color: var(--accent-text);
 }
 @media (max-width: 767px) {
+  .mm-record-actions {
+    width: 100%;
+    margin-left: 0;
+  }
+  .mm-record-actions .mm-button {
+    flex: 1 1 auto;
+  }
   .mm-record-footer > .mm-button:not(.mm-record-view-button) {
     width: 100%;
     margin-left: 0;
@@ -1790,12 +1806,11 @@ textarea {
   color: var(--accent-text);
 }
 .mm-onboarding-hero .mm-info-popover-trigger::before {
-  border-color: var(--accent-text);
-  background: transparent;
+  display: none;
 }
-.mm-onboarding-hero .mm-info-popover-trigger:hover::before,
-.mm-onboarding-hero .mm-info-popover-trigger[aria-expanded='true']::before {
-  background: var(--hero-hover);
+.mm-onboarding-hero .mm-info-popover-trigger:hover,
+.mm-onboarding-hero .mm-info-popover-trigger[aria-expanded='true'] {
+  color: var(--hero-text);
 }
 .mm-help-header h1 {
   color: var(--ink);

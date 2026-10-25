@@ -2,6 +2,7 @@ const crypto = require('crypto');
 
 const AccessGrantRepository = require('../repositories/access-grant.repository');
 const db = require('../config/db');
+const { isValidRut } = require('../utils/rut.util');
 
 class AccessGrantService {
   /**
@@ -13,10 +14,6 @@ class AccessGrantService {
     const hours = parseInt(durationHours, 10);
     const validHours = [1, 2, 6, 12, 24, 48];
     const finalHours = validHours.includes(hours) ? hours : 2;
-
-    // Revocar solamente QR activos anteriores.
-    // Los accesos DIRECTO no se modifican.
-    await AccessGrantRepository.revokeAllActiveByPatient(patientId);
 
     const randomHex = crypto
       .randomBytes(12)
@@ -50,7 +47,6 @@ class AccessGrantService {
         patientId,
         JSON.stringify({
           grantId: grant.id,
-          token: grant.token,
           durationHours: finalHours,
           expiresAt: grant.expires_at,
         }),
@@ -334,9 +330,9 @@ class AccessGrantService {
     // 2. Validar identificación profesional
     // -----------------------------------------------------
 
-    if (!doctorRut || !doctorName) {
+    if (!isValidRut(doctorRut) || !String(doctorName || '').trim() || String(doctorName).trim().length > 150 || String(doctorInstitution || '').length > 150) {
       const error = new Error(
-        'Para acceder a la ficha debe identificarse con su RUT y Nombre profesional.'
+        'Ingresa un RUT válido y tu nombre profesional para acceder con el QR.'
       );
 
       error.statusCode = 400;
@@ -435,7 +431,6 @@ class AccessGrantService {
         grant.patient_id,
 
         JSON.stringify({
-          token: grant.token,
           doctor_rut: doctorRut.trim(),
           doctor_name: doctorName.trim(),
           doctor_institution:
@@ -545,7 +540,6 @@ class AccessGrantService {
           grantId,
           grantType: revoked.grant_type,
           doctorId: revoked.doctor_id || null,
-          token: revoked.token,
         }),
 
         '127.0.0.1',
@@ -584,6 +578,7 @@ class AccessGrantService {
       token: grant.token,
       grantType: grant.grant_type,
       expiresAt: grant.expires_at,
+      durationHours: Math.round((expiry - new Date(grant.created_at)) / 3600000),
       minutesRemaining,
       doctorRut: grant.doctor_rut,
       doctorName: grant.doctor_name,
@@ -894,7 +889,6 @@ class AccessGrantService {
 
         JSON.stringify({
           grantId: grant.id,
-          token: grant.token,
           grantType: grant.grant_type,
           doctorId,
           patientId: grant.patient_id,

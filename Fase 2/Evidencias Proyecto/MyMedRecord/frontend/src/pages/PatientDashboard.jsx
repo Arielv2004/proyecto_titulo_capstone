@@ -1,9 +1,11 @@
 import { PatientRecords } from '../components/patient/PatientRecords';
+import { GrantTokenButton } from '../components/patient/GrantTokenButton';
 import { PatientHelp } from '../components/patient/PatientHelp';
 import { DialogFrame } from '../components/ui/DialogFrame';
+import { EditDocumentDialog } from '../components/patient/EditDocumentDialog';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useMetaTags } from '../hooks/useMetaTags';
-import { documentsApi, mapDocumentFromApi } from '../services/documentsApi';
+import { documentsApi, mapDocumentFromApi, openDocumentBlob, prepareDocumentWindow } from '../services/documentsApi';
 
 import { useAuthStore } from '../store/useAuthStore';
 import { Home, Pill, Stethoscope, ClipboardPenLine, Microscope, HeartPulse, ScanSearch, Camera, QrCode, FileText, Sparkles, ShieldCheck, Building2, User, Clock, CheckCircle2, AlertCircle, Download, Share2, X, HelpCircle, Activity, AlertTriangle, UserCheck, Droplet, Save, Plus, Trash2, Copy, Check, RefreshCw, ExternalLink, Timer, Images, ChevronRight } from 'lucide-react';
@@ -136,7 +138,14 @@ export const PatientDashboard = () => {
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDocument, setSelectedDocument] = useState(null);
+  const [editingDocument, setEditingDocument] = useState(null);
+  const [savingDocument, setSavingDocument] = useState(false);
+  const [editDocumentError, setEditDocumentError] = useState('');
+  const [replacingDocumentId, setReplacingDocumentId] = useState(null);
+  const [openingFileId, setOpeningFileId] = useState(null);
   const [showQrModal, setShowQrModal] = useState(false);
+  const [selectedQrGrantId, setSelectedQrGrantId] = useState(null);
+  const [showNewQrForm, setShowNewQrForm] = useState(false);
   // Compartir ficha directamente con un médico registrado
   const [showDirectShareModal, setShowDirectShareModal] = useState(false);
   const [doctors, setDoctors] = useState([]);
@@ -154,8 +163,17 @@ export const PatientDashboard = () => {
   const [isGeneratingGrant, setIsGeneratingGrant] = useState(false);
   const [isRevokingGrant, setIsRevokingGrant] = useState(false);
   const [grantError, setGrantError] = useState(null);
-  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedQrToken, setCopiedQrToken] = useState(false);
   const [remainingTimeText, setRemainingTimeText] = useState('');
+  const [shareBaseUrl, setShareBaseUrl] = useState(() =>
+    ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname) ? null : window.location.origin,
+  );
+  const [shareUrlError, setShareUrlError] = useState('');
+  const [resolvingShareUrl, setResolvingShareUrl] = useState(() =>
+    ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname),
+  );
+  const qrAccessUrl = shareBaseUrl && activeGrant?.token
+    ? `${shareBaseUrl}/doctor/qr-access?token=${encodeURIComponent(activeGrant.token)}` : '';
 
   // Estado para Lista de Pases QR y Accesos (Punto 2)
   const [myGrants, setMyGrants] = useState([]);
@@ -260,6 +278,13 @@ export const PatientDashboard = () => {
   const [loadingDocs, setLoadingDocs] = useState(true);
   const [docsError, setDocsError] = useState(null);
 
+  const refreshDocuments = async () => {
+    const res = await documentsApi.list();
+    const mapped = (res.data || []).map(mapDocumentFromApi);
+    setDocuments(mapped);
+    return mapped;
+  };
+
   // Cargar documentos del backend al montar el componente
   useEffect(() => {
     let mounted = true;
@@ -267,10 +292,8 @@ export const PatientDashboard = () => {
       try {
         setLoadingDocs(true);
         setDocsError(null);
-        const res = await documentsApi.list();
         if (mounted) {
-          const mapped = (res.data || []).map(mapDocumentFromApi);
-          setDocuments(mapped);
+          await refreshDocuments();
         }
       } catch (err) {
         if (mounted) {
@@ -298,20 +321,27 @@ export const PatientDashboard = () => {
     document_type: 'RECETA',
     diagnostico: '',
     medications: [],
+    labMetrics: [],
+    documentDate: '',
   });
   const [isSubmittingConfirm, setIsSubmittingConfirm] = useState(false);
   const [isSubmittingDiscard, setIsSubmittingDiscard] = useState(false);
   const [confirmedStatus, setConfirmedStatus] = useState('CONFIRMADO');
+  const [replacementWarning, setReplacementWarning] = useState('');
 
   const handleOpenUploadModal = () => {
+    setReplacingDocumentId(null);
     setUploadSource('choices');
     setUploadError(null);
+    setReplacementWarning('');
     setUploadProgress(0);
     setTempDocument(null);
     setEditedData({
       document_type: 'RECETA',
       diagnostico: '',
       medications: [{ name: '', dosage: '', frequency: '', duration: '' }],
+      labMetrics: [],
+      documentDate: '',
     });
     setUploadModalState('idle');
   };
@@ -369,7 +399,7 @@ export const PatientDashboard = () => {
         : '';
 
       const unreadableFlag =
-        isMedicalDoc && (Boolean(isUnreadable) || (initialMeds.length === 0 && !initialDiag.trim()));
+        isMedicalDoc && (Boolean(isUnreadable) || (initialMeds.length === 0 && !initialDiag.trim() && !(analysis?.lab_metrics?.length)));
 
       setTempDocument({
         tempId,
@@ -386,6 +416,12 @@ export const PatientDashboard = () => {
         medications: isMedicalDoc
           ? (initialMeds.length > 0 ? initialMeds : [{ name: '', dosage: '', frequency: '', duration: '' }])
           : [],
+        labMetrics: (analysis?.lab_metrics || []).map((metric) => ({
+          name: metric.test_name || '', value: String(metric.value ?? metric.result_value ?? ''),
+          unit: metric.unit || '', referenceRange: metric.reference_range || '',
+          isAbnormal: Boolean(metric.is_abnormal),
+        })),
+        documentDate: analysis?.document_date || '',
       });
 
       setUploadModalState('preview');
@@ -407,6 +443,7 @@ export const PatientDashboard = () => {
       const payload = {
         document_type: editedData.document_type || 'RECETA',
         is_medical_document: true,
+        document_date: editedData.documentDate || null,
         diagnostico: editedData.diagnostico || '',
         medications: editedData.medications
           .filter((m) => m.name && m.name.trim().length > 0)
@@ -415,6 +452,12 @@ export const PatientDashboard = () => {
             dosage: m.dosage ? m.dosage.trim() : null,
             frequency: m.frequency ? m.frequency.trim() : null,
             duration: m.duration ? m.duration.trim() : null,
+          })),
+        lab_metrics: editedData.labMetrics
+          .filter((metric) => metric.name.trim())
+          .map((metric) => ({
+            test_name: metric.name.trim(), value: metric.value.trim(), unit: metric.unit.trim(),
+            reference_range: metric.referenceRange.trim(), is_abnormal: Boolean(metric.isAbnormal),
           })),
       };
 
@@ -425,8 +468,17 @@ export const PatientDashboard = () => {
         structured: res.data?.structured,
       });
 
-      setDocuments((prev) => [newDoc, ...prev]);
-      setSelectedDocument(newDoc);
+      let warning = '';
+      if (replacingDocumentId) {
+        try { await documentsApi.remove(replacingDocumentId); }
+        catch { warning = 'El nuevo documento se guardó, pero el anterior sigue en Mi ficha. Puedes eliminarlo manualmente.'; }
+        setReplacingDocumentId(null);
+      }
+      try {
+        const refreshed = await refreshDocuments();
+        setSelectedDocument(refreshed.find((item) => item.id === newDoc.id) || newDoc);
+      } catch { warning = warning || 'El documento se guardó. Actualiza Mi ficha para ver los cambios.'; }
+      setReplacementWarning(warning);
       setConfirmedStatus(returnedDoc.status || 'CONFIRMADO');
       setUploadModalState('confirmed');
 
@@ -436,7 +488,7 @@ export const PatientDashboard = () => {
         }
         setTempDocument(null);
         setUploadModalState(null);
-      }, 1800);
+      }, warning ? 6500 : 1800);
     } catch (err) {
       setUploadError(err.response?.data?.message || 'Error al guardar el documento.');
     } finally {
@@ -465,8 +517,17 @@ export const PatientDashboard = () => {
         structured: res.data?.structured,
       });
 
-      setDocuments((prev) => [newDoc, ...prev]);
-      setSelectedDocument(newDoc);
+      let warning = '';
+      if (replacingDocumentId) {
+        try { await documentsApi.remove(replacingDocumentId); }
+        catch { warning = 'El nuevo documento se guardó, pero el anterior sigue en Mi ficha. Puedes eliminarlo manualmente.'; }
+        setReplacingDocumentId(null);
+      }
+      try {
+        const refreshed = await refreshDocuments();
+        setSelectedDocument(refreshed.find((item) => item.id === newDoc.id) || newDoc);
+      } catch { warning = warning || 'El documento se guardó. Actualiza Mi ficha para ver los cambios.'; }
+      setReplacementWarning(warning);
       setConfirmedStatus(returnedDoc.status || 'PENDIENTE_REVISION');
       setUploadModalState('confirmed');
 
@@ -476,7 +537,7 @@ export const PatientDashboard = () => {
         }
         setTempDocument(null);
         setUploadModalState(null);
-      }, 1800);
+      }, warning ? 6500 : 1800);
     } catch (err) {
       setUploadError(err.response?.data?.message || 'Error al guardar el documento.');
     } finally {
@@ -536,7 +597,44 @@ export const PatientDashboard = () => {
     event.currentTarget.value = '';
     if (file) handleStartAnalyze(file);
   };
-  // Manejar la eliminación de un documento con error
+  const handleUpdateDocument = async (changes) => {
+    if (!editingDocument) return;
+    setSavingDocument(true);
+    setEditDocumentError('');
+    try {
+      await documentsApi.update(editingDocument.id, changes);
+      const refreshed = await refreshDocuments();
+      const updated = refreshed.find((item) => item.id === editingDocument.id);
+      setSelectedDocument(updated || null);
+      setEditingDocument(null);
+    } catch (err) {
+      setEditDocumentError(err.response?.data?.message || 'No se pudieron guardar los cambios.');
+    } finally {
+      setSavingDocument(false);
+    }
+  };
+
+  const handleReplaceDocument = (doc) => {
+    setSelectedDocument(null);
+    setEditingDocument(null);
+    handleOpenUploadModal();
+    setReplacingDocumentId(doc.id);
+  };
+
+  const handleOpenOriginal = async (doc) => {
+    const tab = prepareDocumentWindow();
+    setOpeningFileId(doc.id);
+    try {
+      openDocumentBlob(await documentsApi.fileBlob(doc.id), tab);
+    } catch (err) {
+      tab?.close();
+      alert(err.response?.data?.message || 'No fue posible abrir el archivo original.');
+    } finally {
+      setOpeningFileId(null);
+    }
+  };
+
+  // Eliminar documentos guardados o con error.
   const handleDeleteDocument = async (doc) => {
     const confirm = window.confirm(
       `¿Eliminar "${doc.title}" del historial?\n\nEsta acción no se puede deshacer.`
@@ -549,6 +647,7 @@ export const PatientDashboard = () => {
       if (selectedDocument?.id === doc.id) {
         setSelectedDocument(null);
       }
+      if (editingDocument?.id === doc.id) setEditingDocument(null);
     } catch (err) {
       alert(err.response?.data?.message || 'Error al eliminar el documento');
     }
@@ -869,7 +968,28 @@ export const PatientDashboard = () => {
     }
   };
 
-  // Cargar token QR activo al abrir el modal
+  const openQrModal = (grant = null) => {
+    setGrantError(null);
+    setCopiedQrToken(false);
+    setShowNewQrForm(false);
+    setSelectedQrGrantId(grant?.id || null);
+    setActiveGrant(grant ? {
+      id: grant.id,
+      token: grant.token,
+      duration_hours: Math.round((new Date(grant.expiresAt) - new Date(grant.startsAt || grant.createdAt)) / 3600000),
+      expires_at: grant.expiresAt,
+      status: 'ACTIVE'
+    } : null);
+    setShowQrModal(true);
+  };
+
+  const closeQrModal = () => {
+    setShowQrModal(false);
+    setSelectedQrGrantId(null);
+    setShowNewQrForm(false);
+  };
+
+  // Cargar el QR vigente más reciente cuando no se eligió uno de la lista
   const fetchActiveGrant = async () => {
     try {
       setIsLoadingGrant(true);
@@ -881,7 +1001,7 @@ export const PatientDashboard = () => {
           setActiveGrant({
             id: g.id,
             token: g.token,
-            duration_hours: g.duration_hours || g.durationHours || 12,
+            duration_hours: g.duration_hours || g.durationHours || null,
             expires_at: g.expires_at || g.expiresAt,
             status: 'ACTIVE'
           });
@@ -900,9 +1020,35 @@ export const PatientDashboard = () => {
   };
 
   useEffect(() => {
-    if (showQrModal) {
+    if (showQrModal && !selectedQrGrantId) {
       fetchActiveGrant();
     }
+  }, [showQrModal, selectedQrGrantId]);
+
+  useEffect(() => {
+    if (!showQrModal) return undefined;
+    if (!['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname)) {
+      setShareBaseUrl(window.location.origin);
+      setShareUrlError('');
+      setResolvingShareUrl(false);
+      return undefined;
+    }
+    let active = true;
+    setResolvingShareUrl(true);
+    api.get('/access-grants/share-url', { params: { port: window.location.port || 5173 } })
+      .then((response) => {
+        if (!active) return;
+        setShareBaseUrl(response.data?.data?.baseUrl || null);
+        setShareUrlError('');
+        setResolvingShareUrl(false);
+      })
+      .catch(() => {
+        if (!active) return;
+        setShareBaseUrl(null);
+        setShareUrlError('El QR se puede escanear desde el portal médico, pero no se pudo crear un enlace para otro dispositivo.');
+        setResolvingShareUrl(false);
+      });
+    return () => { active = false; };
   }, [showQrModal]);
 
   // Actualizar contador regresivo en tiempo real
@@ -948,6 +1094,8 @@ export const PatientDashboard = () => {
           expires_at: g.expiresAt || g.expires_at,
           status: 'ACTIVE'
         });
+        setSelectedQrGrantId(g.id || g.grantId);
+        setShowNewQrForm(false);
         await fetchMyGrants();
         fetchAuditLogs();
       }
@@ -963,7 +1111,7 @@ export const PatientDashboard = () => {
   const handleRevokeGrant = async () => {
     if (!activeGrant?.id) return;
     const confirmed = window.confirm(
-      '¿Estás seguro de que deseas revocar el acceso médico de inmediato? Si el profesional está viendo tu ficha, perderá el acceso de inmediato.'
+      '¿Revocar este acceso médico? Se bloquearán nuevas consultas y la vista abierta se cerrará cuando compruebe el permiso.'
     );
     if (!confirmed) return;
 
@@ -973,8 +1121,11 @@ export const PatientDashboard = () => {
       await api.patch(`/access-grants/${activeGrant.id}/revoke`, {
         reason: 'Revocado manualmente por el paciente desde su panel de control'
       });
+      const needsRefresh = !selectedQrGrantId;
       setActiveGrant(null);
+      setSelectedQrGrantId(null);
       await fetchMyGrants();
+      if (needsRefresh) await fetchActiveGrant();
       fetchAuditLogs();
     } catch (err) {
       console.error('Error revoking grant:', err);
@@ -987,7 +1138,7 @@ export const PatientDashboard = () => {
   // Revocar un pase específico de la lista (Punto 2)
   const handleRevokeSpecificGrant = async (grantId) => {
     const confirmed = window.confirm(
-      '¿Estás seguro de que deseas revocar este pase de acceso médico inmediatamente? Cualquier profesional que intente usarlo perderá el acceso.'
+      '¿Revocar este pase de acceso médico? No podrá usarse para nuevas consultas.'
     );
     if (!confirmed) return;
 
@@ -1006,34 +1157,38 @@ export const PatientDashboard = () => {
     }
   };
 
-  // Copiar link de acceso médico directo al portapapeles
-  const handleCopyLink = async () => {
-    if (!activeGrant?.token) return;
-    const directUrl = `${window.location.origin}/doctor/qr-access?token=${encodeURIComponent(activeGrant.token)}`;
+  const writeClipboardText = async (value) => {
     let field;
     const previousFocus = document.activeElement;
     try {
       if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(directUrl);
+        await navigator.clipboard.writeText(value);
       } else {
         field = document.createElement('textarea');
-        field.value = directUrl;
+        field.value = value;
         field.style.position = 'fixed';
         field.style.opacity = '0';
         document.body.appendChild(field);
         field.focus();
         field.select();
         const copied = document.execCommand('copy');
-        if (!copied) throw new Error('El navegador no permitió copiar el enlace.');
+        if (!copied) throw new Error('El navegador no permitió copiar.');
       }
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2500);
-    } catch (error) {
-      console.warn('No se pudo copiar el enlace:', error);
-      setGrantError('No se pudo copiar el enlace en este navegador. Puedes descargar o mostrar el código QR.');
     } finally {
       field?.remove();
       if (field && previousFocus?.isConnected) previousFocus.focus();
+    }
+  };
+
+  const handleCopyQrToken = async () => {
+    if (!activeGrant?.token) return;
+    try {
+      await writeClipboardText(activeGrant.token);
+      setCopiedQrToken(true);
+      setTimeout(() => setCopiedQrToken(false), 2500);
+    } catch (error) {
+      console.warn('No se pudo copiar el código:', error);
+      setGrantError('No se pudo copiar el código. Puedes mostrar el QR al profesional.');
     }
   };
 
@@ -1106,16 +1261,16 @@ export const PatientDashboard = () => {
         // Indicador de vigencia
         ctx.fillStyle = '#126b72';
         ctx.font = '650 17px "DM Sans", system-ui, sans-serif';
-        ctx.fillText(`Vigencia Autorizada: ${activeGrant?.duration_hours || 12} Horas`, canvas.width / 2, 765);
+        ctx.fillText(`Vigencia del pase: ${activeGrant?.duration_hours ? `${activeGrant.duration_hours} horas` : 'hasta su expiración'}`, canvas.width / 2, 765);
 
         // Información al médico y paciente
         ctx.fillStyle = '#536b70';
         ctx.font = '13px "DM Sans", system-ui, sans-serif';
-        ctx.fillText('El profesional médico debe ingresar su RUT y nombre para validar la consulta.', canvas.width / 2, 805);
+        ctx.fillText('Quien use el QR debe declarar su RUT y nombre para abrir la ficha.', canvas.width / 2, 805);
 
         ctx.fillStyle = '#536b70';
         ctx.font = 'italic 12px "DM Sans", system-ui, sans-serif';
-        ctx.fillText('Acceso seguro, encriptado y trazable auditado por MyMedRecord.', canvas.width / 2, 830);
+        ctx.fillText('Acceso temporal compartido por el paciente. Puedes revocarlo desde Accesos.', canvas.width / 2, 830);
 
         const pngUrl = canvas.toDataURL('image/png');
         const downloadLink = document.createElement('a');
@@ -1152,12 +1307,12 @@ export const PatientDashboard = () => {
         {currentTab === 'home' && <PatientHome
           loading={loadingDocs} error={docsError}
           grants={myGrants} loadingGrants={loadingGrants} grantsError={grantsError} categories={clinicalPillars}
-          onUpload={handleOpenUploadModal} onShare={handleOpenDirectShare} onQr={() => setShowQrModal(true)}
+          onUpload={handleOpenUploadModal} onShare={handleOpenDirectShare} onQr={() => openQrModal()}
           onRecords={() => { setSearchQuery(''); setSelectedCategory('ALL'); setCurrentTab('records'); }}
           onAccess={() => setCurrentTab('audit')} onCategory={handlePillarClick}
         />}
 
-        {currentTab === 'records' && <PatientRecords documents={documents} filtered={filteredDocuments} categories={clinicalPillars} category={selectedCategory} onCategory={setSelectedCategory} query={searchQuery} onQuery={setSearchQuery} loading={loadingDocs} error={docsError} onUpload={handleOpenUploadModal} onDocument={setSelectedDocument} onDelete={handleDeleteDocument} />}
+        {currentTab === 'records' && <PatientRecords documents={documents} filtered={filteredDocuments} categories={clinicalPillars} category={selectedCategory} onCategory={setSelectedCategory} query={searchQuery} onQuery={setSearchQuery} loading={loadingDocs} error={docsError} onUpload={handleOpenUploadModal} onDocument={setSelectedDocument} onEdit={(doc) => { setEditDocumentError(''); setEditingDocument(doc); }} onDelete={handleDeleteDocument} />}
 
         {currentTab === 'profile' && <PatientProfile user={user} profile={patientProfile} loading={profileLoading} error={profileError} saved={showSuccessAlert} onEdit={handleOpenEditProfile} />}
 
@@ -1199,7 +1354,7 @@ export const PatientDashboard = () => {
                 </div>
 
                 <button
-                  onClick={() => setShowQrModal(true)}
+                  onClick={() => openQrModal()}
                   className="shrink-0 px-2.5 py-1 sm:px-3 sm:py-1.5 bg-action hover:bg-action-hover text-on-action font-bold text-xs rounded-xl flex items-center gap-1 transition-all cursor-pointer shadow-xs"
                 >
                   <Plus className="w-3.5 h-3.5 text-teal-300" />
@@ -1228,9 +1383,7 @@ export const PatientDashboard = () => {
                       >
                         <div className="flex items-center justify-between gap-1.5">
                           <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="font-mono font-black text-xs text-ink dark:text-ink">
-                              {grant.token}
-                            </span>
+                            <GrantTokenButton token={grant.token} />
                             <span
                               className={`px-1.5 py-0.2 rounded-full text-xs font-extrabold uppercase tracking-wider ${grant.status === 'ACTIVO'
                                 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-900/60 dark:text-emerald-300'
@@ -1271,13 +1424,15 @@ export const PatientDashboard = () => {
 
                         {grant.status === 'ACTIVO' && (
                           <div className="pt-0.5 flex items-center gap-1.5">
-                            <button
-                              onClick={() => setShowQrModal(true)}
-                              className="flex-1 py-1 bg-action hover:bg-action-hover text-on-action font-bold rounded-lg text-xs flex items-center justify-center gap-1 transition-all cursor-pointer shadow-2xs"
-                            >
-                              <QrCode className="w-3 h-3 text-teal-300" />
-                              <span>Ver QR</span>
-                            </button>
+                            {grant.grantType === 'QR_TEMPORAL' && (
+                              <button
+                                onClick={() => openQrModal(grant)}
+                                className="flex-1 py-1 bg-action hover:bg-action-hover text-on-action font-bold rounded-lg text-xs flex items-center justify-center gap-1 transition-all cursor-pointer shadow-2xs"
+                              >
+                                <QrCode className="w-3 h-3 text-teal-300" />
+                                <span>Ver QR</span>
+                              </button>
+                            )}
                             <button
                               onClick={() => handleRevokeSpecificGrant(grant.id)}
                               className="py-1 px-2.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 font-bold rounded-lg text-xs flex items-center justify-center gap-1 transition-all cursor-pointer"
@@ -1296,7 +1451,7 @@ export const PatientDashboard = () => {
                     <table className="w-full text-left text-xs">
                       <thead>
                         <tr className="border-b border-line text-muted font-bold uppercase text-xs tracking-wider">
-                          <th className="py-2.5 px-3">Código / Token</th>
+                          <th className="py-2.5 px-3">Código de acceso</th>
                           <th className="py-2.5 px-3">Modalidad</th>
                           <th className="py-2.5 px-3">Fecha Emisión</th>
                           <th className="py-2.5 px-3">Vigencia / Restante</th>
@@ -1308,8 +1463,8 @@ export const PatientDashboard = () => {
                       <tbody className="divide-y divide-stone-100">
                         {myGrants.map((grant) => (
                           <tr key={grant.id} className="hover:bg-canvas/80 transition-colors">
-                            <td className="py-2.5 px-3 font-mono font-bold text-ink">
-                              {grant.token}
+                            <td className="py-2.5 px-3">
+                              <GrantTokenButton token={grant.token} />
                             </td>
                             <td className="py-2.5 px-3">
                               <span className="px-2 py-0.5 rounded-md bg-surface-muted text-body font-bold text-xs">
@@ -1353,13 +1508,24 @@ export const PatientDashboard = () => {
                             </td>
                             <td className="py-2.5 px-3 text-right">
                               {grant.status === 'ACTIVO' ? (
-                                <button
-                                  onClick={() => handleRevokeSpecificGrant(grant.id)}
-                                  className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold rounded-lg transition-colors cursor-pointer text-xs flex items-center gap-1 ml-auto"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                  <span>Revocar</span>
-                                </button>
+                                <div className="flex justify-end gap-1.5">
+                                  {grant.grantType === 'QR_TEMPORAL' && (
+                                    <button
+                                      onClick={() => openQrModal(grant)}
+                                      className="px-2.5 py-1 bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/40 dark:hover:bg-teal-900/60 border border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-200 font-bold rounded-lg transition-colors cursor-pointer text-xs inline-flex items-center gap-1"
+                                    >
+                                      <QrCode className="w-3 h-3" />
+                                      <span>Ver QR</span>
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handleRevokeSpecificGrant(grant.id)}
+                                    className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 font-bold rounded-lg transition-colors cursor-pointer text-xs inline-flex items-center gap-1"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                    <span>Revocar</span>
+                                  </button>
+                                </div>
                               ) : (
                                 <span className="text-muted text-xs">—</span>
                               )}
@@ -1480,7 +1646,7 @@ export const PatientDashboard = () => {
       {/* ========================================================================= */}
       {/* MODAL DE DETALLE CLÍNICO Y EXTRACCIÓN CON IA */}
       {/* ========================================================================= */}
-      {selectedDocument && uploadModalState === null && (
+      {selectedDocument && uploadModalState === null && !editingDocument && (
         <DialogFrame label="Detalle del documento" onClose={() => setSelectedDocument(null)} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="w-full max-w-2xl bg-surface border border-line rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-start justify-between pb-3 border-b border-line">
@@ -1583,18 +1749,16 @@ export const PatientDashboard = () => {
               )}
             </div>
 
-            <div className="pt-3 border-t border-line flex justify-end items-center gap-2">
-                {selectedDocument.filePath && (selectedDocument.filePath.startsWith('http://') || selectedDocument.filePath.startsWith('https://')) && (
-                  <a
-                    href={selectedDocument.filePath}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2 bg-teal-50 hover:bg-teal-100 text-teal-800 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 border border-teal-200"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    <span>Ver Original</span>
-                  </a>
-                )}
+            <div className="pt-3 border-t border-line flex flex-wrap justify-end items-center gap-2">
+              <button type="button" onClick={() => handleOpenOriginal(selectedDocument)} disabled={openingFileId === selectedDocument.id} className="mm-button mm-button--secondary">
+                <ExternalLink size={16} /> {openingFileId === selectedDocument.id ? 'Abriendo…' : 'Ver original'}
+              </button>
+              <button type="button" onClick={() => { setEditingDocument(selectedDocument); setSelectedDocument(null); }} className="mm-button mm-button--secondary">
+                Actualizar
+              </button>
+              <button type="button" onClick={() => handleDeleteDocument(selectedDocument)} className="mm-button mm-button--secondary">
+                <Trash2 size={16} /> Eliminar
+              </button>
               <button
                 aria-label="Cerrar diálogo" onClick={() => setSelectedDocument(null)}
                 className="px-5 py-2 bg-action hover:bg-action-hover text-on-action text-xs font-bold rounded-xl transition-all cursor-pointer"
@@ -1604,6 +1768,19 @@ export const PatientDashboard = () => {
             </div>
           </div>
         </DialogFrame>
+      )}
+
+      {editingDocument && uploadModalState === null && (
+        <EditDocumentDialog
+          key={editingDocument.id}
+          document={editingDocument}
+          onClose={() => setEditingDocument(null)}
+          onSave={handleUpdateDocument}
+          onReplace={() => handleReplaceDocument(editingDocument)}
+          onDelete={() => handleDeleteDocument(editingDocument)}
+          saving={savingDocument}
+          error={editDocumentError}
+        />
       )}
 
       {/* ========================================================================= */}
@@ -1861,6 +2038,18 @@ export const PatientDashboard = () => {
                   ) : (
                     /* CASO B: LECTURA EXITOSA CON CAMPOS EDITABLES */
                     <div className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <label className="text-xs font-bold text-body">Tipo de documento
+                          <select value={editedData.document_type} onChange={(e) => setEditedData({ ...editedData, document_type: e.target.value })} className="mt-1 w-full rounded-xl border border-line bg-surface px-3 py-2 text-body">
+                            <option value="RECETA">Receta médica</option><option value="EXAMEN_LAB">Examen de laboratorio</option>
+                            <option value="INFORME">Informe</option><option value="IMAGEN">Imagen</option><option value="OTRO">Otro</option>
+                          </select>
+                        </label>
+                        <label className="text-xs font-bold text-body">Fecha de emisión, si consta en el documento
+                          <input type="date" value={editedData.documentDate || ''} onChange={(e) => setEditedData({ ...editedData, documentDate: e.target.value })} className="mt-1 w-full rounded-xl border border-line bg-surface px-3 py-2 text-body" />
+                        </label>
+                      </div>
+                      {editedData.document_type === 'RECETA' && <>
                       {/* Diagnóstico editable */}
                       <div className="p-3.5 bg-canvas dark:bg-surface-muted/50 rounded-2xl border border-line dark:border-line/80 space-y-1.5">
                         <label className="font-bold text-slate-700 dark:text-body text-xs flex items-center justify-between">
@@ -1961,6 +2150,25 @@ export const PatientDashboard = () => {
                           </div>
                         )}
                       </div>
+                      </>}
+                      {editedData.document_type === 'EXAMEN_LAB' && (
+                        <div className="space-y-3 rounded-2xl border border-line bg-canvas p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <h4 className="font-bold text-ink">Resultados detectados</h4>
+                            <button type="button" onClick={() => setEditedData((current) => ({ ...current, labMetrics: [...current.labMetrics, { name: '', value: '', unit: '', referenceRange: '', isAbnormal: false }] }))} className="mm-text-link inline-flex items-center gap-1 text-xs"><Plus size={14} /> Agregar resultado</button>
+                          </div>
+                          {editedData.labMetrics.length === 0 && <p className="text-xs text-muted">No hay resultados detectados. Puedes agregarlos desde el documento original.</p>}
+                          {editedData.labMetrics.map((metric, index) => (
+                            <div key={index} className="grid grid-cols-2 gap-2 rounded-xl border border-line bg-surface p-3">
+                              {[['name', 'Parámetro'], ['value', 'Resultado'], ['unit', 'Unidad'], ['referenceRange', 'Rango']].map(([key, label]) => (
+                                <label key={key} className="text-xs text-body">{label}<input value={metric[key]} onChange={(e) => setEditedData((current) => ({ ...current, labMetrics: current.labMetrics.map((row, i) => i === index ? { ...row, [key]: e.target.value } : row) }))} className="mt-1 w-full rounded-lg border border-line bg-canvas px-2 py-1 text-body" /></label>
+                              ))}
+                              <label className="flex items-center gap-2 text-xs text-body"><input type="checkbox" checked={metric.isAbnormal} onChange={(e) => setEditedData((current) => ({ ...current, labMetrics: current.labMetrics.map((row, i) => i === index ? { ...row, isAbnormal: e.target.checked } : row) }))} /> Alterado en el documento</label>
+                              <button type="button" onClick={() => setEditedData((current) => ({ ...current, labMetrics: current.labMetrics.filter((_, i) => i !== index) }))} className="text-xs text-rose-600">Quitar</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -1992,6 +2200,7 @@ export const PatientDashboard = () => {
                       ? 'Los datos extraídos quedan disponibles para consultar y compartir con tu médico.'
                       : 'El documento quedó guardado; sus datos extraídos siguen pendientes de completar.'}
                   </p>
+                  {replacementWarning && <p role="alert" className="mx-auto max-w-sm rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">{replacementWarning}</p>}
                   <span
                     className={`inline-block px-3 py-1 rounded-full text-xs font-mono ${
                       confirmedStatus === 'CONFIRMADO'
@@ -2162,7 +2371,7 @@ export const PatientDashboard = () => {
 
                 <button
                   type="button"
-                  onClick={() => { setShowDirectShareModal(false); setShowQrModal(true); }}
+                  onClick={() => { setShowDirectShareModal(false); openQrModal(); }}
                   className="w-full py-2.5 border border-line dark:border-line text-muted dark:text-body font-bold rounded-xl text-xs flex items-center justify-center gap-2 hover:bg-canvas dark:hover:bg-slate-800 cursor-pointer"
                 >
                   <QrCode className="w-4 h-4" />
@@ -2182,7 +2391,7 @@ export const PatientDashboard = () => {
       {/* MODAL DE CÓDIGO QR PARA EL MÉDICO (LEY N° 21.668 & 20.584) */}
       {/* ========================================================================= */}
       {showQrModal && (
-        <DialogFrame label="Compartir mediante QR" onClose={() => setShowQrModal(false)} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+        <DialogFrame label="Compartir mediante QR" onClose={closeQrModal} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="w-full max-w-md bg-surface dark:bg-surface border border-line dark:border-line rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto">
             {/* Header */}
             <div className="flex items-start justify-between pb-3 border-b border-stone-100 dark:border-line">
@@ -2192,15 +2401,15 @@ export const PatientDashboard = () => {
                 </div>
                 <div>
                   <h3 className="text-base font-extrabold text-ink dark:text-ink">
-                    Pase de Acceso Médico Seguro
+                    Pase de acceso temporal
                   </h3>
                   <p className="text-xs text-muted dark:text-muted">
-                    Consentimiento digital según Ley N° 21.668
+                    Comparte tu ficha durante el tiempo elegido
                   </p>
                 </div>
               </div>
               <button
-                aria-label="Cerrar diálogo" onClick={() => setShowQrModal(false)}
+                aria-label="Cerrar diálogo" onClick={closeQrModal}
                 className="p-1.5 text-muted hover:text-muted dark:hover:text-slate-200 rounded-xl hover:bg-surface-muted dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
@@ -2232,7 +2441,7 @@ export const PatientDashboard = () => {
                       <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                     </span>
                     <span className="text-xs font-bold text-emerald-900 dark:text-emerald-300">
-                      Pase Activo ({activeGrant.duration_hours || 12} Horas)
+                      Pase activo{activeGrant.duration_hours ? ` (${activeGrant.duration_hours} horas)` : ''}
                     </span>
                   </div>
                   <span className="text-xs font-mono font-bold text-emerald-800 dark:text-emerald-400 flex items-center gap-1">
@@ -2241,78 +2450,96 @@ export const PatientDashboard = () => {
                   </span>
                 </div>
 
+                <button
+                  type="button"
+                  onClick={() => setShowNewQrForm((visible) => !visible)}
+                  aria-expanded={showNewQrForm}
+                  className="w-full rounded-xl border border-teal-300 bg-teal-50 px-3 py-2.5 text-xs font-bold text-teal-900 transition-colors hover:bg-teal-100 dark:border-teal-700 dark:bg-teal-950/30 dark:text-teal-100 dark:hover:bg-teal-900/40 flex items-center justify-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  {showNewQrForm ? 'Ocultar nuevo pase' : 'Emitir otro pase para otro médico'}
+                </button>
+                {showNewQrForm && (
+                  <div className="space-y-3 rounded-xl border border-line bg-canvas p-3 dark:bg-surface-muted/60">
+                    <p className="text-xs text-body">El nuevo pase tendrá su propio código y vigencia. Este pase seguirá activo.</p>
+                    <div className="grid grid-cols-3 gap-2" role="group" aria-label="Duración del nuevo pase">
+                      {[2, 12, 24].map((hours) => (
+                        <button
+                          key={hours}
+                          type="button"
+                          onClick={() => setQrDuration(hours)}
+                          aria-pressed={qrDuration === hours}
+                          className={`rounded-lg border px-2 py-2 text-xs font-bold transition-colors ${qrDuration === hours ? 'border-teal-500 bg-teal-100 text-teal-950 dark:bg-teal-900/60 dark:text-teal-100' : 'border-line bg-surface text-body hover:border-teal-400'}`}
+                        >
+                          {hours} horas
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleGenerateGrant(qrDuration)}
+                      disabled={isGeneratingGrant}
+                      className="w-full rounded-lg bg-action px-3 py-2.5 text-xs font-bold text-on-action hover:bg-action-hover disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {isGeneratingGrant ? <RefreshCw className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}
+                      Generar nuevo pase
+                    </button>
+                  </div>
+                )}
+
                 {/* Código QR SVG Centrado */}
                 <div className="p-5 bg-canvas dark:bg-surface-muted/60 rounded-2xl border border-line dark:border-line flex flex-col items-center justify-center space-y-3">
                   <div className="bg-surface p-3.5 rounded-2xl shadow-md border border-line">
-                    <QRCodeSVG aria-label="Código QR de acceso temporal a tu ficha"
-                      id="patient-qr-svg"
-                      value={`${window.location.origin}/doctor/qr-access?token=${encodeURIComponent(activeGrant.token)}`}
-                      size={180}
-                      level="H"
-                      includeMargin={false}
-                    />
+                    {resolvingShareUrl ? (
+                      <div className="flex h-[180px] w-[180px] items-center justify-center text-center text-xs text-muted">Preparando QR…</div>
+                    ) : (
+                      <QRCodeSVG aria-label="Código QR de acceso temporal a tu ficha"
+                        id="patient-qr-svg"
+                        value={qrAccessUrl || activeGrant.token}
+                        size={180}
+                        level="H"
+                        includeMargin={false}
+                      />
+                    )}
                   </div>
 
-                  <div className="text-center">
+                  <div className="w-full min-w-0 text-center">
                     <span className="text-xs font-mono uppercase tracking-widest text-muted dark:text-muted block mb-0.5">
                       CÓDIGO DE ACCESO MÉDICO
                     </span>
-                    <span className="text-base font-mono font-black text-ink dark:text-teal-300 tracking-wider bg-surface dark:bg-surface px-3 py-1 rounded-lg border border-line dark:border-line inline-block">
-                      {activeGrant.token}
-                    </span>
+                    <button type="button" onClick={handleCopyQrToken} aria-label="Copiar código de acceso QR" className="group relative mt-1 flex min-h-14 w-full items-center justify-center overflow-hidden rounded-lg border border-line bg-surface px-3 py-2 text-base font-mono font-black tracking-wider text-ink transition-colors hover:border-accent-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink dark:text-teal-300">
+                      <span className={`break-all transition-opacity ${copiedQrToken ? 'opacity-0' : 'group-hover:opacity-0 group-focus-visible:opacity-0'}`}>{activeGrant.token}</span>
+                      <span className={`absolute inset-0 flex items-center justify-center gap-2 bg-surface text-sm font-semibold text-accent-ink transition-opacity ${copiedQrToken ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100'}`}>
+                        {copiedQrToken ? <Check size={17} aria-hidden="true" /> : <Copy size={17} aria-hidden="true" />}
+                        {copiedQrToken ? 'Código copiado' : 'Copiar código'}
+                      </span>
+                    </button>
                   </div>
                 </div>
 
+                {shareUrlError && <p role="status" className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">{shareUrlError}</p>}
+
                 {/* Acciones para Compartir y Guardar */}
                 <div className="space-y-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={handleCopyLink}
-                      type="button"
-                      className="py-2.5 px-3 rounded-xl border border-line dark:border-line bg-surface dark:bg-surface-muted hover:bg-canvas dark:hover:bg-slate-700 text-slate-700 dark:text-body font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs"
-                    >
-                      {copiedLink ? (
-                        <>
-                          <Check className="w-3.5 h-3.5 text-emerald-600" />
-                          <span className="text-emerald-700 dark:text-emerald-400">¡Copiado!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3.5 h-3.5 text-muted" />
-                          <span>Copiar Link</span>
-                        </>
-                      )}
-                    </button>
-
                     <button
                       onClick={handleDownloadQr}
+                      disabled={resolvingShareUrl}
                       type="button"
-                      className="py-2.5 px-3 rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-950/40 hover:bg-teal-100/80 dark:hover:bg-teal-900/60 text-teal-900 dark:text-teal-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                      className="w-full py-2.5 px-3 rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-950/40 hover:bg-teal-100/80 dark:hover:bg-teal-900/60 text-teal-900 dark:text-teal-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs"
                     >
                       <Download className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
-                      <span>Guardar / Descargar QR</span>
+                      <span>Descargar QR</span>
                     </button>
-                  </div>
-
-                  <a
-                    href={`/doctor/qr-access?token=${encodeURIComponent(activeGrant.token)}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-full py-2.5 px-3 rounded-xl border border-line dark:border-line bg-surface dark:bg-surface-muted hover:bg-canvas dark:hover:bg-slate-700 text-slate-700 dark:text-body font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs text-center"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5 text-muted" />
-                    <span>Abrir Visor de Consulta Directa</span>
-                  </a>
                 </div>
 
                 {/* Resumen Legal y Auditoría */}
                 <div className="p-3 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-accent-ink/40 rounded-xl text-xs text-ink dark:text-blue-200 space-y-1">
-                  <div className="flex items-center gap-1.5 font-bold">
+                  <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-teal-100">
                     <ShieldCheck className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
                     <span>Actividad de este acceso</span>
                   </div>
                   <p className="text-xs text-muted dark:text-muted leading-relaxed">
-                    El profesional debe identificarse con su RUT y nombre para consultar la ficha. La actividad que registre el sistema aparecerá en Accesos.
+                    Quien use el QR debe declarar su RUT y nombre. Esos datos quedan en la actividad de Accesos, pero el portal no verifica su identidad en esta modalidad.
                   </p>
                 </div>
 
@@ -2329,7 +2556,7 @@ export const PatientDashboard = () => {
                     ) : (
                       <Trash2 className="w-3.5 h-3.5" />
                     )}
-                    <span>Revocar Acceso Inmediato</span>
+                    <span>Revocar pase</span>
                   </button>
                 </div>
               </div>
@@ -2400,7 +2627,7 @@ export const PatientDashboard = () => {
             <div className="pt-2 border-t border-stone-100 dark:border-line flex justify-end">
               <button
                 type="button"
-                aria-label="Cerrar diálogo" onClick={() => setShowQrModal(false)}
+                aria-label="Cerrar diálogo" onClick={closeQrModal}
                 className="px-4 py-2 bg-surface-muted hover:bg-surface-muted dark:bg-surface-muted dark:hover:bg-slate-700 text-body dark:text-body font-bold rounded-xl text-xs cursor-pointer transition-colors"
               >
                 Cerrar

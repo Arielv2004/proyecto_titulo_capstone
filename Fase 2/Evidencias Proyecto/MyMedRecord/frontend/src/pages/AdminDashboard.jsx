@@ -12,7 +12,7 @@ export const AdminDashboard = () => {
 
   const sampleAuditLogs = [
     { id: 1, action: 'READ_PATIENT_RECORD', user: 'Dr. Ariel González', role: 'MEDICO', target: 'Ignacio Pérez (12.345.678-9)', ip: '192.168.1.84', time: 'Hace 5 min', status: 'AUTORIZADO (RUT)' },
-    { id: 2, action: 'UPLOAD_PRESCRIPTION_OCR', user: 'Ignacio Pérez', role: 'PACIENTE', target: 'Receta Médica PDF', ip: '192.168.1.84', time: 'Hace 18 min', status: 'CIFRADO AES-256' },
+    { id: 2, action: 'UPLOAD_PRESCRIPTION_OCR', user: 'Ignacio Pérez', role: 'PACIENTE', target: 'Receta Médica PDF', ip: '192.168.1.84', time: 'Hace 18 min', status: 'REGISTRADO' },
     { id: 3, action: 'GRANT_CONSENT_TEMPORAL', user: 'Ignacio Pérez', role: 'PACIENTE', target: 'Dr. Ariel González', ip: '192.168.1.84', time: 'Hace 25 min', status: 'VIGENTE 24H' },
     { id: 4, action: 'ADMIN_SYSTEM_DIAGNOSTIC', user: 'Sergio Silva', role: 'ADMIN', target: 'PostgreSQL 15', ip: '127.0.0.1', time: 'Hace 1 hora', status: 'SALUDABLE' },
   ];

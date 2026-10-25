@@ -6,6 +6,7 @@ import { ArrowLeft, Clock, Lock, AlertCircle } from 'lucide-react';
 import { Navbar } from '../components/common/Navbar';
 import api from '../services/api';
 import { ClinicalRecord } from '../components/doctor/ClinicalRecord';
+import { openDocumentBlob, prepareDocumentWindow } from '../services/documentsApi';
 
 export const SharedRecordPage = () => {
   const { token } = useParams();
@@ -16,6 +17,24 @@ export const SharedRecordPage = () => {
 
   const [isLoading, setIsLoading] = useState(true);
   const [accessError, setAccessError] = useState('');
+  const [fileError, setFileError] = useState('');
+  const [openingFileId, setOpeningFileId] = useState(null);
+
+  const handleOpenFile = async (documentId) => {
+    const tab = prepareDocumentWindow();
+    setFileError('');
+    setOpeningFileId(documentId);
+    try {
+      const response = await api.get(`/access-grants/direct/${encodeURIComponent(token)}/documents/${documentId}/file`, { responseType: 'blob' });
+      openDocumentBlob(response.data, tab);
+    } catch (error) {
+      tab?.close();
+      if ([401, 403, 410].includes(error.response?.status)) {
+        setClinicalData(null);
+        setAccessError('El permiso ya no está vigente.');
+      } else setFileError('No fue posible abrir el documento original. Intenta nuevamente.');
+    } finally { setOpeningFileId(null); }
+  };
 
   // ============================================================
   // CARGAR FICHA COMPARTIDA DIRECTAMENTE CON EL MÉDICO
@@ -79,6 +98,25 @@ export const SharedRecordPage = () => {
 
     loadDirectSharedRecord();
   }, [token]);
+
+  useEffect(() => {
+    if (!clinicalData || !token) return undefined;
+    let active = true;
+    const check = async () => {
+      try {
+        const { data } = await api.get(`/access-grants/direct/${encodeURIComponent(token)}/check`);
+        if (active) setTimeLeft(data.minutesRemaining);
+      } catch (error) {
+        if (active && [401, 403, 410].includes(error.response?.status)) {
+          setClinicalData(null);
+          setAccessError('El permiso fue revocado o expiró.');
+        }
+      }
+    };
+    const interval = window.setInterval(check, 30000);
+    window.addEventListener('focus', check);
+    return () => { active = false; window.clearInterval(interval); window.removeEventListener('focus', check); };
+  }, [clinicalData, token]);
 
   // ============================================================
   // CUENTA REGRESIVA
@@ -216,5 +254,5 @@ export const SharedRecordPage = () => {
   // MISMO VISOR CLÍNICO UTILIZADO POR EL ACCESO QR
   // ============================================================
 
-  return <div className="min-h-screen bg-canvas text-body"><Navbar roleTitle="Portal Médico" /><ClinicalRecord data={clinicalData} timeLeft={timeLeft} onFinish={handleFinishConsultation} /></div>;
+  return <div className="min-h-screen bg-canvas text-body"><Navbar roleTitle="Portal Médico" /><ClinicalRecord data={clinicalData} timeLeft={timeLeft} onFinish={handleFinishConsultation} onOpenFile={handleOpenFile} fileError={fileError} openingFileId={openingFileId} /></div>;
 };

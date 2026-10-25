@@ -7,6 +7,7 @@ import api from '../services/api';
 import { HeartHandshake, ShieldCheck, QrCode, Camera, Upload, AlertCircle, CheckCircle2, UserCheck, Info, ArrowLeft, RefreshCw, ChevronRight, Keyboard } from 'lucide-react';
 import { ClinicalRecord } from '../components/doctor/ClinicalRecord';
 import { ThemeToggle } from '../components/common/ThemeToggle';
+import { openDocumentBlob, prepareDocumentWindow } from '../services/documentsApi';
 
 export const DoctorQrAccessPage = () => {
   useMetaTags('Portal de Acceso Médico por QR', 'Acceso profesional temporal y auditado a fichas clínicas de pacientes bajo Ley N° 21.668 en MyMedRecord.');
@@ -23,7 +24,7 @@ export const DoctorQrAccessPage = () => {
   });
 
   const [rutTouched, setRutTouched] = useState(false);
-  const [activeScanTab, setActiveScanTab] = useState('CAMERA'); // 'CAMERA' | 'UPLOAD' | 'MANUAL'
+  const [activeScanTab, setActiveScanTab] = useState(tokenFromUrl ? 'MANUAL' : 'CAMERA'); // 'CAMERA' | 'UPLOAD' | 'MANUAL'
   const [isScanning, setIsScanning] = useState(false);
   const [scannerError, setScannerError] = useState('');
   const [isValidating, setIsValidating] = useState(false);
@@ -37,6 +38,45 @@ export const DoctorQrAccessPage = () => {
   // Datos desbloqueados de la Ficha
   const [clinicalData, setClinicalData] = useState(null);
   const [timeLeft, setTimeLeft] = useState(null);
+  const [fileError, setFileError] = useState('');
+  const [openingFileId, setOpeningFileId] = useState(null);
+
+  const handleOpenFile = async (documentId) => {
+    const tab = prepareDocumentWindow();
+    setFileError('');
+    setOpeningFileId(documentId);
+    try {
+      const { data } = await api.post('/access-grants/qr/document-file', {
+        token: doctorData.token, documentId, doctorRut: doctorData.rut, doctorName: doctorData.name,
+      }, { responseType: 'blob' });
+      openDocumentBlob(data, tab);
+    } catch (error) {
+      tab?.close();
+      if ([403, 410].includes(error.response?.status)) {
+        setClinicalData(null);
+        setApiError('El código QR fue revocado o expiró.');
+      } else setFileError('No fue posible abrir el documento original. Intenta nuevamente.');
+    } finally { setOpeningFileId(null); }
+  };
+
+  useEffect(() => {
+    if (!clinicalData || !doctorData.token) return undefined;
+    let active = true;
+    const check = async () => {
+      try {
+        const { data } = await api.post('/access-grants/qr/check', { token: doctorData.token });
+        if (active) setTimeLeft(data.minutesRemaining);
+      } catch (error) {
+        if (active && [403, 410].includes(error.response?.status)) {
+          setClinicalData(null);
+          setApiError('El código QR fue revocado o expiró.');
+        }
+      }
+    };
+    const interval = window.setInterval(check, 30000);
+    window.addEventListener('focus', check);
+    return () => { active = false; window.clearInterval(interval); window.removeEventListener('focus', check); };
+  }, [clinicalData, doctorData.token]);
 
   const html5QrCodeRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -320,7 +360,7 @@ export const DoctorQrAccessPage = () => {
         <div className="flex items-center gap-3">
           <div className="hidden sm:flex items-center gap-2 text-xs text-muted dark:text-body bg-surface-muted dark:bg-surface-muted px-3 py-1 rounded-full border border-line dark:border-line">
             <ShieldCheck className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
-            <span>Trazabilidad Legal Activa</span>
+            <span>Acceso temporal registrado</span>
           </div>
           <ThemeToggle compact />
         </div>
@@ -365,6 +405,7 @@ export const DoctorQrAccessPage = () => {
                   <UserCheck className="w-4 h-4 text-teal-600 dark:text-teal-400" />
                   1. Identificación profesional
                 </span>
+                <p className="text-xs text-muted">Estos datos los declara quien usa el QR y quedan registrados en la actividad. El portal no comprueba su identidad profesional en este acceso.</p>
 
                 <div className="mm-qr-fields grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
@@ -647,7 +688,7 @@ export const DoctorQrAccessPage = () => {
             </form>
           </div>
         </main>
-      ) : <ClinicalRecord data={clinicalData} timeLeft={timeLeft} onFinish={() => { setClinicalData(null); setTimeLeft(null); }} />}
+      ) : <ClinicalRecord data={clinicalData} timeLeft={timeLeft} onFinish={() => { setClinicalData(null); setTimeLeft(null); }} onOpenFile={handleOpenFile} fileError={fileError} openingFileId={openingFileId} backLabel="Volver al acceso QR" />}
 
       {/* Footer */}
       <footer className="py-4 text-center text-xs text-muted dark:text-muted border-t border-line dark:border-line bg-surface dark:bg-surface transition-colors mt-auto">

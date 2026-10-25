@@ -131,29 +131,6 @@ class AccessGrantRepository {
   }
 
   /**
-   * Revocar solamente los QR activos previos del paciente.
-   *
-   * IMPORTANTE:
-   * Los accesos DIRECTO entregados a médicos registrados
-   * no deben ser revocados al generar un nuevo QR.
-   */
-  static async revokeAllActiveByPatient(patientId) {
-    const query = `
-      UPDATE access_grants
-      SET is_revoked = TRUE
-      WHERE patient_id = $1
-        AND grant_type = 'QR_TEMPORAL'
-        AND is_revoked = FALSE
-        AND expires_at > NOW()
-      RETURNING *;
-    `;
-
-    const result = await db.query(query, [patientId]);
-
-    return result.rows;
-  }
-
-  /**
    * Obtener solamente el QR activo y vigente del paciente.
    *
    * Los accesos DIRECTO no deben ser considerados
@@ -330,6 +307,8 @@ class AccessGrantRepository {
           '[]'
         ) AS items
       FROM prescriptions p
+      INNER JOIN documents d ON d.id = p.document_id
+        AND d.status IN ('CONFIRMADO', 'PENDIENTE_REVISION')
       LEFT JOIN prescription_items pi
         ON p.id = pi.prescription_id
       WHERE p.patient_id = $1
@@ -339,6 +318,34 @@ class AccessGrantRepository {
 
     const prescriptionsRes = await db.query(
       prescriptionsQuery,
+      [patientId]
+    );
+
+    const labReportsRes = await db.query(
+      `SELECT lr.id, lr.document_id, lr.laboratory_name, lr.sample_date,
+              lr.observations, lr.created_at,
+              COALESCE(json_agg(json_build_object(
+                'id', li.id, 'test_name', li.test_name,
+                'result_value', li.result_value, 'unit', li.unit,
+                'reference_range', li.reference_range, 'is_abnormal', li.is_abnormal
+              )) FILTER (WHERE li.id IS NOT NULL), '[]') AS items
+       FROM lab_reports lr
+       INNER JOIN documents d ON d.id = lr.document_id
+         AND d.status IN ('CONFIRMADO', 'PENDIENTE_REVISION')
+       LEFT JOIN lab_test_items li ON li.lab_report_id = lr.id
+       WHERE lr.patient_id = $1
+       GROUP BY lr.id
+       ORDER BY lr.sample_date DESC NULLS LAST, lr.created_at DESC`,
+      [patientId]
+    );
+
+    const documentsRes = await db.query(
+      `SELECT id, document_type, title, file_name, mime_type,
+              document_date, issuing_doctor, issuing_institution,
+              status, created_at, updated_at
+       FROM documents
+       WHERE patient_id = $1 AND status IN ('CONFIRMADO', 'PENDIENTE_REVISION')
+       ORDER BY document_date DESC NULLS LAST, created_at DESC`,
       [patientId]
     );
 
@@ -352,8 +359,6 @@ class AccessGrantRepository {
         rut: user.rut,
         firstName: user.first_name,
         lastName: user.last_name,
-        email: user.email,
-        phone: user.phone,
       },
 
       profile: {
@@ -369,32 +374,11 @@ class AccessGrantRepository {
           profile.emergency_contact_name,
         emergencyContactPhone:
           profile.emergency_contact_phone,
+        updatedAt: profile.updated_at || null,
       },
-
-      vitalSigns: [
-        {
-          name: 'Presión Arterial',
-          value: '120/80 mmHg',
-          status: 'Normal',
-        },
-        {
-          name: 'Frecuencia Cardíaca',
-          value: '72 lpm',
-          status: 'Normal',
-        },
-        {
-          name: 'Glucosa en Ayunas',
-          value: '95 mg/dL',
-          status: 'Normal',
-        },
-        {
-          name: 'Saturación O2',
-          value: '98%',
-          status: 'Normal',
-        },
-      ],
-
       prescriptions: prescriptionsRes.rows,
+      labReports: labReportsRes.rows,
+      documents: documentsRes.rows,
     };
   }
 }

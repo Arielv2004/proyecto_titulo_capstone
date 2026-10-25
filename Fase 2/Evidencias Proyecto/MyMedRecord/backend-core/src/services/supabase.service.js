@@ -23,6 +23,28 @@ if (SUPABASE_URL && SUPABASE_KEY) {
 }
 
 class SupabaseService {
+  static objectPath(filePath) {
+    if (!filePath) return '';
+    const marker = `/${BUCKET}/`;
+    const index = filePath.indexOf(marker);
+    return decodeURIComponent((index >= 0 ? filePath.slice(index + marker.length) : filePath).split('?')[0].split('#')[0]);
+  }
+
+  static async downloadFile(filePath) {
+    if (!this.isConfigured()) {
+      const error = new Error('Almacenamiento remoto no disponible.');
+      error.statusCode = 503;
+      throw error;
+    }
+    const objectPath = this.objectPath(filePath);
+    const { data, error } = await supabaseClient.storage.from(BUCKET).download(objectPath);
+    if (error || !data) {
+      const missing = new Error('El archivo original no está disponible.');
+      missing.statusCode = 404;
+      throw missing;
+    }
+    return Buffer.from(await data.arrayBuffer());
+  }
   /**
    * Indica si el servicio de Supabase Storage está configurado y listo.
    */
@@ -85,7 +107,7 @@ class SupabaseService {
    * @param {string} filePath - URL completa o path relativo dentro del bucket
    */
   static async deleteFile(filePath) {
-    if (!this.isConfigured() || !filePath) return;
+    if (!this.isConfigured() || !filePath) return false;
 
     try {
       let relativePath = filePath;
@@ -100,7 +122,7 @@ class SupabaseService {
 
       relativePath = decodeURIComponent(relativePath.split('?')[0].split('#')[0]);
 
-      if (!relativePath) return;
+      if (!relativePath) return false;
 
       const { error } = await supabaseClient.storage
         .from(BUCKET)
@@ -108,9 +130,12 @@ class SupabaseService {
 
       if (error) {
         console.warn(`[SupabaseService] Aviso al eliminar archivo (${relativePath}):`, error.message);
+        return false;
       }
+      return true;
     } catch (err) {
       console.warn('[SupabaseService] Error no fatal al eliminar archivo:', err.message);
+      return false;
     }
   }
 }

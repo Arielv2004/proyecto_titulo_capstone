@@ -4,7 +4,7 @@
 
 Aplicar la dirección visual clínica humana acordada al portal paciente y al portal médico, conservando los contratos existentes. El paciente debe reconocer su ficha, encontrar documentos y gestionar permisos; el médico debe identificar al paciente autorizado y la procedencia de la información disponible.
 
-Base de trabajo: `8983274` de `main`. Rama: `codex/clinical-ui-redesign`.
+Base de trabajo: `8983274` de `main`. Rama: `IgnacioRuiz`.
 
 No se modifican servicios backend, endpoints, esquema de PostgreSQL ni reglas de extracción clínica. Las llamadas de registro, autenticación, análisis/confirmación/descarte de documentos y permisos conservan sus contratos.
 

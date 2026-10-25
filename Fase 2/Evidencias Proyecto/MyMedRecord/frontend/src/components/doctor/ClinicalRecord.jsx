@@ -1,18 +1,17 @@
 import React from 'react';
 import { formatClinicalDate } from '../../utils/clinicalDate';
-import { ArrowLeft, Clock, FileText, Phone, Printer } from 'lucide-react';
+import { ArrowLeft, Clock, FileText, Phone, Printer, ExternalLink } from 'lucide-react';
 import { Button, Card, EmptyState, Notice, PageHeader, StatusBadge } from '../ui/ClinicalUI';
 
-// The shared-record endpoint supplies patient-declared history and prescriptions.
-// Its sample vitalSigns are deliberately excluded from clinical presentation.
-export function ClinicalRecord({ data, timeLeft, onFinish }) {
-  const { patient = {}, profile = {}, prescriptions = [] } = data;
+export function ClinicalRecord({ data, timeLeft, onFinish, onOpenFile, fileError, openingFileId, backLabel = 'Volver a pacientes' }) {
+  const { patient = {}, profile = {}, prescriptions = [], labReports = [], documents = [] } = data;
+  const sourceDate = profile.updatedAt ? formatClinicalDate(profile.updatedAt) : 'Fecha no informada';
   return (
     <main id="main-content" tabIndex={-1} className="mm-shell mm-stack">
       <div className="mm-actions">
         <Button variant="ghost" onClick={onFinish}>
           <ArrowLeft size={17} />
-          Volver a pacientes
+          {backLabel}
         </Button>
       </div>
       <PageHeader
@@ -42,7 +41,7 @@ export function ClinicalRecord({ data, timeLeft, onFinish }) {
       <div className="mm-clinical-summary">
         <Card
           title="Antecedentes"
-          description="Información declarada por el paciente. Fecha de actualización no disponible."
+          description={`Información declarada por el paciente. Actualización: ${sourceDate}.`}
         >
           <dl className="mm-summary-list">
             <div>
@@ -66,22 +65,20 @@ export function ClinicalRecord({ data, timeLeft, onFinish }) {
         <Card title="Datos de la ficha">
           <dl className="mm-summary-list">
             <div>
-              <dt>Grupo sanguíneo</dt>
+              <dt>Fecha de nacimiento</dt>
+              <dd>{formatClinicalDate(profile.birthDate)}</dd>
+            </div>
+            <div>
+              <dt>Género registrado</dt>
+              <dd>{profile.gender || 'Sin registrar'}</dd>
+            </div>
+            <div>
+              <dt>Grupo sanguíneo declarado</dt>
               <dd>{profile.bloodType || 'Sin registrar'}</dd>
             </div>
             <div>
               <dt>Previsión</dt>
               <dd>{profile.healthInsurance || 'Sin registrar'}</dd>
-            </div>
-            <div>
-              <dt>Donación de órganos declarada</dt>
-              <dd>
-                {profile.isOrganDonor === true
-                  ? 'Sí'
-                  : profile.isOrganDonor === false
-                    ? 'No'
-                    : 'Sin registrar'}
-              </dd>
             </div>
           </dl>
         </Card>
@@ -191,12 +188,23 @@ export function ClinicalRecord({ data, timeLeft, onFinish }) {
           </div>
         )}
       </Card>
-      <Card title="Documentos y resultados" description="Disponibilidad en la ficha compartida">
-        <EmptyState
-          icon={FileText}
-          title="Esta vista aún no incluye documentos ni resultados de exámenes"
-          description="La información disponible para esta consulta comprende los antecedentes y las recetas mostrados arriba."
-        />
+      <Card title="Resultados de laboratorio" description="Valores extraídos de documentos guardados; compara siempre con el informe original y sus rangos.">
+        {labReports.length === 0 ? <EmptyState title="Sin exámenes registrados" description="No hay resultados de laboratorio en esta ficha." /> : (
+          <div className="mm-stack">
+            {labReports.map((report) => <article className="mm-prescription" key={report.id}>
+              <div className="mm-card-heading"><div><h3>{report.laboratory_name || 'Examen de laboratorio'}</h3><p>Muestra: {formatClinicalDate(report.sample_date)}</p></div>
+                {report.document_id && onOpenFile && <Button variant="secondary" disabled={openingFileId === report.document_id} onClick={() => onOpenFile(report.document_id)}><ExternalLink size={15} /> Ver original</Button>}</div>
+              {report.observations && <p className="mm-muted">Observaciones: {report.observations}</p>}
+              {report.items?.length ? <div className="mm-table-scroll" role="region" aria-label={`Resultados de ${report.laboratory_name || 'laboratorio'}`} tabIndex={0}><table className="mm-clinical-table"><thead><tr><th scope="col">Parámetro</th><th scope="col">Resultado</th><th scope="col">Referencia</th></tr></thead><tbody>{report.items.map((item, index) => <tr key={item.id || index}><th scope="row">{item.test_name || 'No informado'}</th><td>{item.result_value || 'No informado'} {item.unit || ''}{item.is_abnormal && <span className="text-rose-600 dark:text-rose-300">Marcado como alterado</span>}</td><td>{item.reference_range || 'No informado'}</td></tr>)}</tbody></table></div> : <p className="mm-muted">El documento no contiene resultados estructurados.</p>}
+            </article>)}
+          </div>
+        )}
+      </Card>
+      <Card title="Documentos originales" description="Archivos compartidos durante la vigencia de este permiso. La disponibilidad no equivale a revisión médica.">
+        {fileError && <Notice title="No se pudo abrir el archivo">{fileError}</Notice>}
+        {documents.length === 0 ? <EmptyState icon={FileText} title="Sin documentos compartidos" description="El paciente todavía no tiene documentos guardados en esta ficha." /> : (
+          <div className="mm-stack">{documents.map((document) => <article className="mm-prescription" key={document.id}><div className="mm-card-heading"><div><h3>{document.title || document.file_name || 'Documento'}</h3><p>{({ RECETA: 'Receta médica', EXAMEN_LAB: 'Examen de laboratorio', INFORME: 'Informe', IMAGEN: 'Imagen' })[document.document_type] || 'Otro documento'} · {document.document_date ? 'Emitido' : 'Subido'} {formatClinicalDate(document.document_date || document.created_at)}</p></div>{onOpenFile && <Button variant="secondary" disabled={openingFileId === document.id} onClick={() => onOpenFile(document.id)}><ExternalLink size={15} /> {openingFileId === document.id ? 'Abriendo...' : 'Ver archivo'}</Button>}</div><dl className="mm-source-grid"><div><dt>Institución</dt><dd>{document.issuing_institution || 'No informada'}</dd></div><div><dt>Profesional</dt><dd>{document.issuing_doctor || 'No informado'}</dd></div><div><dt>Estado del registro</dt><dd>{document.status === 'PENDIENTE_REVISION' ? 'Pendiente de revisión' : 'Confirmado por el paciente'}</dd></div></dl></article>)}</div>
+        )}
       </Card>
     </main>
   );

@@ -41,14 +41,14 @@ export const PrivacyPolicyPage = () => {
               Política de Privacidad y Confidencialidad Médica
             </h1>
             <p className="text-xs text-muted mt-1">
-              Última actualización: Agosto 2026 · Cumplimiento de Leyes N° 19.628, N° 20.584 y N° 21.668.
+              Información sobre los datos y accesos del prototipo MyMedRecord.
             </p>
           </div>
 
           <div className="p-4 bg-accent-soft border border-line rounded-2xl flex items-start gap-3">
             <ShieldCheck className="w-6 h-6 text-accent-ink shrink-0 mt-0.5" />
             <div className="text-sm text-body leading-relaxed">
-              <strong>Compromiso de Soberanía del Paciente:</strong> En MyMedRecord, tú eres el único dueño de tu información de salud. Ninguna entidad ni médico puede visualizar tu historial sin tu autorización explícita (vía QR o verificación por RUT).
+              <strong>Control de acceso del paciente:</strong> Puedes compartir temporalmente tu ficha mediante un QR o un permiso directo a un médico registrado, y revocar esos permisos desde tu portal. Quien tenga un QR vigente puede usarlo sin cuenta.
             </div>
           </div>
 
@@ -63,7 +63,7 @@ export const PrivacyPolicyPage = () => {
               </p>
               <ul className="list-disc pl-5 space-y-1 text-muted text-xs">
                 <li><strong>Identificación Oficial:</strong> Nombre completo, Rol Único Tributario (RUT) y correo electrónico.</li>
-                <li><strong>Información Médica Sensible:</strong> Recetas médicas, diagnósticos, resultados de exámenes de laboratorio y registros de signos vitales.</li>
+                <li><strong>Información Médica Sensible:</strong> Documentos, recetas, diagnósticos, resultados de laboratorio y antecedentes declarados en el perfil.</li>
                 <li><strong>Registros Técnicos de Auditoría:</strong> Dirección IP, fecha, hora e identificación del usuario que realiza cada acción en la plataforma.</li>
               </ul>
             </section>
@@ -71,10 +71,10 @@ export const PrivacyPolicyPage = () => {
             <section className="space-y-2">
               <h2 className="text-base font-bold text-ink flex items-center gap-2">
                 <Lock className="w-4 h-4 text-accent-ink" />
-                2. Medidas de Seguridad y Cifrado (AES-256-GCM)
+                2. Medidas de seguridad del acceso
               </h2>
               <p>
-                En conformidad con los estándares de ciberseguridad sanitaria, todos los datos médicos sensibles son almacenados encriptados en reposo mediante el algoritmo criptográfico militar <strong>AES-256-GCM</strong>. Las credenciales de acceso se protegen con funciones hash unidireccionales (Bcrypt) y las sesiones se gestionan mediante cookies <strong>HttpOnly</strong> y <strong>SameSite=Strict</strong>.
+                Las contraseñas se almacenan como hashes mediante Bcrypt. La sesión usa una cookie <strong>HttpOnly</strong> y <strong>SameSite=Strict</strong>. Los permisos temporales permiten al paciente compartir su ficha y revocar el acceso. En el acceso por QR sin cuenta, los datos del profesional son declarados por quien ingresa el código; su identidad no se verifica automáticamente.
               </p>
             </section>
 
@@ -90,7 +90,7 @@ export const PrivacyPolicyPage = () => {
                 <li><strong>Acceso:</strong> Conocer en todo momento qué datos clínicos están registrados a tu nombre.</li>
                 <li><strong>Rectificación:</strong> Solicitar la actualización de datos erróneos o desactualizados.</li>
                 <li><strong>Cancelación y Revocación:</strong> Revocar en cualquier momento los permisos temporales otorgados a profesionales médicos.</li>
-                <li><strong>Trazabilidad:</strong> Revisar la bitácora inmutable de quién y cuándo ha consultado tu información de salud.</li>
+                <li><strong>Actividad:</strong> Revisar los registros de accesos y acciones disponibles en tu portal.</li>
               </ul>
             </section>
           </div>

@@ -8,6 +8,9 @@ const AccessGrantController = require(
 const authMiddleware = require(
   '../middlewares/auth.middleware'
 );
+const rbacMiddleware = require('../middlewares/rbac.middleware');
+const patientOnly = rbacMiddleware('PACIENTE');
+const doctorOnly = rbacMiddleware('MEDICO');
 
 /**
  * =====================================================
@@ -20,6 +23,7 @@ const authMiddleware = require(
 router.post(
   '/generate',
   authMiddleware,
+  patientOnly,
   AccessGrantController.generate
 );
 
@@ -27,8 +31,10 @@ router.post(
 router.get(
   '/active',
   authMiddleware,
+  patientOnly,
   AccessGrantController.getActive
 );
+router.get('/share-url', authMiddleware, patientOnly, AccessGrantController.shareUrl);
 
 /**
  * =====================================================
@@ -41,6 +47,7 @@ router.get(
 router.post(
   '/share',
   authMiddleware,
+  patientOnly,
   AccessGrantController.shareWithDoctor
 );
 
@@ -49,6 +56,7 @@ router.post(
 router.get(
   '/shared-with-me',
   authMiddleware,
+  doctorOnly,
   AccessGrantController.getSharedWithMe
 );
 
@@ -61,8 +69,11 @@ router.get(
 router.get(
   '/direct/:token',
   authMiddleware,
+  doctorOnly,
   AccessGrantController.accessDirect
 );
+router.get('/direct/:token/documents/:documentId/file', authMiddleware, doctorOnly, AccessGrantController.directFile);
+router.get('/direct/:token/check', authMiddleware, doctorOnly, AccessGrantController.directCheck);
 
 /**
  * =====================================================
@@ -75,6 +86,7 @@ router.get(
 router.get(
   '/my-grants',
   authMiddleware,
+  patientOnly,
   AccessGrantController.getMyGrants
 );
 
@@ -83,6 +95,7 @@ router.get(
 router.patch(
   '/:id/revoke',
   authMiddleware,
+  patientOnly,
   AccessGrantController.revoke
 );
 
@@ -99,5 +112,7 @@ router.post(
   '/validate',
   AccessGrantController.validate
 );
+router.post('/qr/document-file', AccessGrantController.qrFile);
+router.post('/qr/check', AccessGrantController.qrCheck);
 
 module.exports = router;

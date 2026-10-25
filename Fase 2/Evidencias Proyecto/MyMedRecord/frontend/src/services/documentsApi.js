@@ -71,14 +71,6 @@ export const documentsApi = {
   },
 
   /**
-   * Ejecuta la limpieza de documentos temporales antiguos (>24h).
-   */
-  async cleanupTemps() {
-    const { data } = await api.post('/documents/cleanup-temps');
-    return data;
-  },
-
-  /**
    * Lista los documentos del paciente autenticado.
    * @param {{ document_type?: string }} [filters]
    */
@@ -96,14 +88,50 @@ export const documentsApi = {
     return data;
   },
 
+  async update(id, changes) {
+    const { data } = await api.patch(`/documents/${id}`, changes);
+    return data;
+  },
+
+  async fileBlob(id) {
+    const { data } = await api.get(`/documents/${id}/file`, { responseType: 'blob' });
+    return data;
+  },
+
   /**
-   * Elimina (soft delete) un documento con estado ERROR o PROCESANDO.
+   * Retira un documento guardado de la ficha.
    * @param {string} id
    */
   async remove(id) {
     const { data } = await api.delete(`/documents/${id}`);
     return data;
   },
+};
+
+export const prepareDocumentWindow = () => {
+  const tab = window.open('', '_blank');
+  if (tab) {
+    tab.opener = null;
+    tab.document.title = 'Abriendo documento · MyMedRecord';
+    tab.document.body.textContent = 'Abriendo documento…';
+  }
+  return tab;
+};
+
+export const openDocumentBlob = (blob, tab = null) => {
+  const url = URL.createObjectURL(blob);
+  if (tab && !tab.closed) {
+    tab.location.replace(url);
+    window.setTimeout(() => URL.revokeObjectURL(url), 300000);
+    return;
+  }
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'documento';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 300000);
 };
 
 /**
@@ -132,10 +160,13 @@ export const mapDocumentFromApi = (doc) => {
   });
 
   const structured = doc.structured || {};
-  const meds = structured.items || [];
+  const meds = doc.document_type === 'RECETA' ? (structured.items || []) : [];
+  const metrics = doc.document_type === 'EXAMEN_LAB' ? (structured.items || []) : [];
   const isOther = doc.document_type === 'OTRO';
   const summary = meds.length
     ? `${meds.length} medicamento${meds.length > 1 ? 's' : ''} prescrito${meds.length > 1 ? 's' : ''}`
+    : metrics.length
+      ? `${metrics.length} resultado${metrics.length > 1 ? 's' : ''} registrado${metrics.length > 1 ? 's' : ''}`
     : isOther
       ? 'Sin información médica clínica detectada'
       : doc.ocr_raw_text
@@ -150,8 +181,9 @@ export const mapDocumentFromApi = (doc) => {
       })
     : null;
 
-  const issueDateStr = structured.issue_date
-    ? new Date(String(structured.issue_date).slice(0, 10) + 'T00:00:00').toLocaleDateString('es-CL', {
+  const issueDateRaw = structured.issue_date || structured.sample_date || doc.document_date;
+  const issueDateStr = issueDateRaw
+    ? new Date(String(issueDateRaw).slice(0, 10) + 'T00:00:00').toLocaleDateString('es-CL', {
         day: '2-digit',
         month: 'long',
         year: 'numeric',
@@ -160,6 +192,9 @@ export const mapDocumentFromApi = (doc) => {
 
   return {
     id: doc.id,
+    documentType: doc.document_type,
+    documentDateRaw: doc.document_date ? String(doc.document_date).slice(0, 10) : null,
+    structured,
     category: typeMap[doc.document_type] || 'CONSULTA',
     title: doc.title || (isOther ? 'Documento no médico' : 'Documento sin título'),
     institution: doc.issuing_institution || (isOther ? '—' : 'Institución no especificada'),
@@ -182,21 +217,21 @@ export const mapDocumentFromApi = (doc) => {
         horario: m.instructions || '—',
         instructions: m.instructions || '—',
       })),
-      parametros: (structured.items || []).map((it) => ({
-        nombre: it.test_name || it.medication_name,
-        valor: it.result_value || it.dosage,
+      parametros: metrics.map((it) => ({
+        nombre: it.test_name,
+        valor: it.result_value,
+        unidad: it.unit || '',
         rangoRef: it.reference_range || '—',
+        alterado: Boolean(it.is_abnormal),
       })),
       diagnostico: isOther ? 'Sin diagnóstico clínico' : (structured.diagnosis_text || 'Sin diagnóstico registrado'),
       indicaciones: structured.observations || '—',
       vigenciaHasta: validUntilStr,
       fechaEmision: issueDateStr,
       validUntilRaw: structured.valid_until || null,
-      issueDateRaw: structured.issue_date || null,
+      issueDateRaw: issueDateRaw || null,
     },
-    encryption: 'AES-256-GCM',
     confidence: doc.ocr_confidence ? `${doc.ocr_confidence}%` : '—',
-    filePath: doc.file_path || null,
     fileName: doc.file_name || null,
     mimeType: doc.mime_type || null,
   };

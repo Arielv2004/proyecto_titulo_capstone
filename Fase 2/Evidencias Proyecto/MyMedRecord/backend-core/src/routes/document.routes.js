@@ -6,6 +6,7 @@ const router = express.Router();
 
 const DocumentController = require('../controllers/document.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
+const rbacMiddleware = require('../middlewares/rbac.middleware');
 
 // ─── Configuración de multer (Almacenamiento en memoria RAM) ──────────────
 const storage = multer.memoryStorage();
@@ -20,7 +21,9 @@ const fileFilter = (req, file, cb) => {
     if (allowed.includes(file.mimetype)) {
         cb(null, true);
     } else {
-        cb(new Error('Formato no permitido. Solo JPG, PNG, WEBP o PDF.'), false);
+        const error = new Error('Formato no permitido. Solo JPG, PNG, WEBP o PDF.');
+        error.statusCode = 400;
+        cb(error, false);
     }
 };
 
@@ -31,16 +34,17 @@ const upload = multer({
 });
 
 // ─── Middleware de autenticación ──────────────────────────────────────────
-router.use(authMiddleware);
+router.use(authMiddleware, rbacMiddleware('PACIENTE'));
 
 // ─── Rutas ────────────────────────────────────────────────────────────────
 router.post('/upload', upload.single('file'), DocumentController.upload);
 router.post('/analyze', upload.single('file'), DocumentController.analyze);
 router.post('/confirm', DocumentController.confirm);
 router.post('/discard', DocumentController.discard);
-router.post('/cleanup-temps', DocumentController.cleanupTemps);
 router.get('/', DocumentController.list);
+router.patch('/:id', DocumentController.update);
 router.delete('/:id', DocumentController.remove);
+router.get('/:id/file', DocumentController.file);
 router.get('/:id', DocumentController.getById);
 
 module.exports = router;

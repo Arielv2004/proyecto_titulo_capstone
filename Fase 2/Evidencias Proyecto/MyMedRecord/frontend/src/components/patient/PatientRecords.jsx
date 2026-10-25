@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { FileText, Search, Upload, ArrowUpRight, Trash2 } from 'lucide-react';
+import { FileText, Search, Upload, ArrowUpRight, Trash2, Pencil } from 'lucide-react';
 import {
   Button,
   Card,
@@ -22,6 +22,7 @@ export function PatientRecords({
   error,
   onUpload,
   onDocument,
+  onEdit,
   onDelete,
 }) {
   const filterListRef = useRef(null);
@@ -156,17 +157,21 @@ export function PatientRecords({
                       Vigencia registrada: {doc.extractedData.vigenciaHasta}
                     </span>
                   )}
-                  {doc.status === 'ERROR' ? (
+                  <div className="mm-record-actions">
+                    {doc.status !== 'ERROR' && (
+                      <>
+                        <Button className="mm-record-view-button" variant="secondary" onClick={() => onDocument(doc)}>
+                          Ver documento <ArrowUpRight size={16} />
+                        </Button>
+                        <Button variant="secondary" onClick={() => onEdit(doc)}>
+                          <Pencil size={16} /> Actualizar
+                        </Button>
+                      </>
+                    )}
                     <Button variant="secondary" onClick={() => onDelete(doc)}>
-                      <Trash2 size={16} />
-                      Eliminar documento con error
+                      <Trash2 size={16} /> Eliminar
                     </Button>
-                  ) : (
-                    <Button className="mm-record-view-button" variant="secondary" onClick={() => onDocument(doc)}>
-                      Ver documento
-                      <ArrowUpRight size={16} />
-                    </Button>
-                  )}
+                  </div>
                 </div>
               </article>
             ))}

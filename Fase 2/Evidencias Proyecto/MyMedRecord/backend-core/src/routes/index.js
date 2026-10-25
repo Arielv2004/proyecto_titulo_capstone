@@ -10,7 +10,6 @@ const patientProfileRoutes = require('./patient-profile.routes');
 const auditRoutes = require('./audit.routes');
 const doctorRoutes = require('./doctor.routes');
 
-const db = require('../config/db');
 
 // Verificación de salud de API
 router.get('/health', (req, res) => {
@@ -19,23 +18,6 @@ router.get('/health', (req, res) => {
     service: 'backend-core',
     timestamp: new Date().toISOString(),
   });
-});
-
-// Inspección del estado y tablas de la Base de Datos
-router.get('/db/overview', async (req, res) => {
-  try {
-    const data = await db.getSchemaOverview();
-
-    res.status(200).json({
-      success: true,
-      data,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
 });
 
 // Enrutadores principales

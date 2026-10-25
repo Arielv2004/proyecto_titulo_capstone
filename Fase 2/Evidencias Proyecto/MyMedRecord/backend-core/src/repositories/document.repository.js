@@ -79,7 +79,7 @@ class DocumentRepository {
     let query = `
       SELECT
         d.id, d.patient_id, d.uploaded_by, d.document_type, d.title,
-        d.file_name, d.file_path, d.mime_type, d.file_size_bytes,
+        d.file_name, d.mime_type, d.file_size_bytes,
         d.document_date, d.issuing_doctor, d.issuing_institution,
         d.status, d.created_at, d.updated_at,
         CASE
