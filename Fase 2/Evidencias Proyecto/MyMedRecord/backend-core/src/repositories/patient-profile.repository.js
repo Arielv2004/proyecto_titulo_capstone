@@ -1,98 +1,26 @@
-const db = require('../config/db');
-
+const db=require('../config/db');
+const clinical=require('../security/clinical-store');
 class PatientProfileRepository {
-  /**
-   * Obtener el perfil clínico completo de un paciente por su user_id
-   */
-  static async findByUserId(userId) {
-    const query = `
-      SELECT 
-        u.id as user_id,
-        u.rut,
-        u.first_name,
-        u.last_name,
-        u.email,
-        u.phone,
-        pp.id as profile_id,
-        pp.birth_date,
-        pp.gender,
-        pp.blood_type,
-        pp.health_insurance,
-        pp.is_organ_donor,
-        pp.allergies,
-        pp.chronic_conditions,
-        pp.emergency_contact_name,
-        pp.emergency_contact_phone,
-        pp.updated_at
-      FROM users u
-      LEFT JOIN patient_profiles pp ON u.id = pp.user_id
-      WHERE u.id = $1 AND u.role = 'PACIENTE';
-    `;
-    const result = await db.query(query, [userId]);
-    return result.rows[0] || null;
+  static async findByUserId(id) {
+    const user=(await db.query("SELECT id AS user_id,rut,first_name,last_name,email,phone FROM users WHERE id=$1 AND role='PACIENTE'",[id])).rows[0];
+    if(!user) return null;
+    const row=(await db.query('SELECT * FROM patient_profiles WHERE user_id=$1',[id])).rows[0];
+    const profile=row?await clinical.decode('patient_profiles',row):{};
+    const {id:profile_id,...fields}=profile;
+    return {...user,...fields,profile_id};
   }
-
-  /**
-   * Actualizar o insertar (upsert) el perfil clínico del paciente
-   */
-  static async upsertProfile(userId, data) {
-    const {
-      bloodType = null,
-      healthInsurance = null,
-      isOrganDonor = true,
-      allergies = [],
-      chronicConditions = [],
-      emergencyContactName = null,
-      emergencyContactPhone = null,
-      birthDate = null,
-      gender = null,
-    } = data;
-
-    const query = `
-      INSERT INTO patient_profiles (
-        user_id,
-        birth_date,
-        gender,
-        blood_type,
-        health_insurance,
-        is_organ_donor,
-        allergies,
-        chronic_conditions,
-        emergency_contact_name,
-        emergency_contact_phone,
-        updated_at
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
-      ON CONFLICT (user_id) DO UPDATE SET
-        birth_date = COALESCE(EXCLUDED.birth_date, patient_profiles.birth_date),
-        gender = COALESCE(EXCLUDED.gender, patient_profiles.gender),
-        blood_type = EXCLUDED.blood_type,
-        health_insurance = EXCLUDED.health_insurance,
-        is_organ_donor = EXCLUDED.is_organ_donor,
-        allergies = EXCLUDED.allergies,
-        chronic_conditions = EXCLUDED.chronic_conditions,
-        emergency_contact_name = EXCLUDED.emergency_contact_name,
-        emergency_contact_phone = EXCLUDED.emergency_contact_phone,
-        updated_at = CURRENT_TIMESTAMP
-      RETURNING *;
-    `;
-
-    const values = [
-      userId,
-      birthDate,
-      gender,
-      bloodType,
-      healthInsurance,
-      isOrganDonor,
-      Array.isArray(allergies) ? allergies : [],
-      Array.isArray(chronicConditions) ? chronicConditions : [],
-      emergencyContactName,
-      emergencyContactPhone,
-    ];
-
-    const result = await db.query(query, values);
-    return result.rows[0];
+  static async upsertProfile(id,data) {
+    return db.transaction(async()=>{
+      await db.query('SELECT id FROM users WHERE id=$1 FOR UPDATE',[id]);
+      const row=(await db.query('SELECT * FROM patient_profiles WHERE user_id=$1',[id])).rows[0];
+      const fields={blood_type:data.bloodType??null,health_insurance:data.healthInsurance??null,is_organ_donor:data.isOrganDonor??false,
+        allergies:Array.isArray(data.allergies)?data.allergies:[],chronic_conditions:Array.isArray(data.chronicConditions)?data.chronicConditions:[],
+        emergency_contact_name:data.emergencyContactName??null,emergency_contact_phone:data.emergencyContactPhone??null,
+        ...(data.birthDate?{birth_date:data.birthDate}:{}),...(data.gender?{gender:data.gender}:{}),updated_at:new Date()};
+      const result=row?await clinical.update('patient_profiles',row.id,fields):await clinical.create('patient_profiles',{user_id:id,...fields});
+      await db.query("INSERT INTO audit_logs(user_id,patient_id,action,details,ip_address) VALUES($1,$1,'UPDATE_PROFILE','{}','0.0.0.0')",[id]);
+      return result;
+    });
   }
 }
-
-module.exports = PatientProfileRepository;
+module.exports=PatientProfileRepository;

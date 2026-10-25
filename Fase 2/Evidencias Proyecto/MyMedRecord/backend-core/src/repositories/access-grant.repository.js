@@ -1,63 +1,27 @@
 const db = require('../config/db');
+const {randomUUID}=require('node:crypto');
+const {seal,open,digest}=require('../security/crypto');
+const DocumentRepository=require('./document.repository');
+const ProfileRepository=require('./patient-profile.repository');
+function decodeGrant(row) {
+  if(!row) return null;
+  const {token_cipher,token_hash,...result}=row;
+  result.token=token_cipher?open(token_cipher,'grant:'+row.id+':'+row.patient_id):row.token;
+  return result;
+}
 
 class AccessGrantRepository {
   /**
    * Crear un nuevo acceso temporal por código QR
    */
-  static async createGrant({ patientId, token, expiresAt }) {
-    const query = `
-      INSERT INTO access_grants (
-        patient_id,
-        token,
-        grant_type,
-        expires_at,
-        is_revoked
-      )
-      VALUES ($1, $2, 'QR_TEMPORAL', $3, FALSE)
-      RETURNING *;
-    `;
-
-    const result = await db.query(query, [
-      patientId,
-      token,
-      expiresAt,
-    ]);
-
-    return result.rows[0];
+  static async createGrant({patientId,token,expiresAt}) { return this.create({patientId,token,expiresAt,type:'QR_TEMPORAL'}); }
+  static async createDirectGrant({patientId,doctorId,token,expiresAt}) { return this.create({patientId,doctorId,token,expiresAt,type:'DIRECTO'}); }
+  static async create({patientId,doctorId=null,token,expiresAt,type}) {
+    const id=randomUUID();
+    const result=await db.query('INSERT INTO access_grants(id,patient_id,doctor_id,token,token_hash,token_cipher,grant_type,expires_at,is_revoked) VALUES($1,$2,$3,$4,$5,$6,$7,$8,FALSE) RETURNING *',
+      [id,patientId,doctorId,'sealed:'+id,digest(token),seal(token,'grant:'+id+':'+patientId),type,expiresAt]);
+    return decodeGrant(result.rows[0]);
   }
-
-  /**
-   * Crear acceso directo para un médico registrado
-   */
-  static async createDirectGrant({
-    patientId,
-    doctorId,
-    token,
-    expiresAt,
-  }) {
-    const query = `
-      INSERT INTO access_grants (
-        patient_id,
-        doctor_id,
-        token,
-        grant_type,
-        expires_at,
-        is_revoked
-      )
-      VALUES ($1, $2, $3, 'DIRECTO', $4, FALSE)
-      RETURNING *;
-    `;
-
-    const result = await db.query(query, [
-      patientId,
-      doctorId,
-      token,
-      expiresAt,
-    ]);
-
-    return result.rows[0];
-  }
-
   /**
    * Buscar un grant por su token
    */
@@ -71,12 +35,12 @@ class AccessGrantRepository {
       FROM access_grants ag
       JOIN users u
         ON ag.patient_id = u.id
-      WHERE ag.token = $1;
+      WHERE (ag.token_hash = $1 OR (ag.grant_type='DIRECTO' AND ag.id::text=$2)) AND u.is_active=TRUE;
     `;
 
-    const result = await db.query(query, [token]);
+    const result = await db.query(query, [digest(token),String(token)]);
 
-    return result.rows[0] || null;
+    return decodeGrant(result.rows[0]);
   }
 
   /**
@@ -96,7 +60,7 @@ class AccessGrantRepository {
         doctor_name = $2,
         doctor_institution = $3,
         access_count = access_count + 1
-      WHERE token = $4
+      WHERE token_hash = $4
       RETURNING *;
     `;
 
@@ -104,10 +68,10 @@ class AccessGrantRepository {
       doctorRut,
       doctorName,
       doctorInstitution,
-      token,
+      digest(token),
     ]);
 
-    return result.rows[0];
+    return decodeGrant(result.rows[0]);
   }
 
   /**
@@ -127,7 +91,7 @@ class AccessGrantRepository {
       patientId,
     ]);
 
-    return result.rows[0] || null;
+    return decodeGrant(result.rows[0]);
   }
 
   /**
@@ -150,7 +114,7 @@ class AccessGrantRepository {
 
     const result = await db.query(query, [patientId]);
 
-    return result.rows[0] || null;
+    return decodeGrant(result.rows[0]);
   }
 
   /**
@@ -182,7 +146,7 @@ class AccessGrantRepository {
 
     const result = await db.query(query, [patientId]);
 
-    return result.rows;
+    return result.rows.map(decodeGrant);
   }
 
   /**
@@ -234,7 +198,7 @@ class AccessGrantRepository {
 
     const result = await db.query(query, [doctorId]);
 
-    return result.rows;
+    return result.rows.map(decodeGrant);
   }
 
   /**
@@ -242,117 +206,13 @@ class AccessGrantRepository {
    * del paciente para el Visor Médico
    */
   static async getPatientClinicalData(patientId) {
-    // =====================================================
-    // 1. DATOS DEL USUARIO
-    // =====================================================
-
-    const userQuery = `
-      SELECT
-        id,
-        rut,
-        first_name,
-        last_name,
-        email,
-        phone,
-        created_at
-      FROM users
-      WHERE id = $1;
-    `;
-
-    const userRes = await db.query(userQuery, [patientId]);
-
-    const user = userRes.rows[0];
-
-    if (!user) {
-      return null;
-    }
-
-    // =====================================================
-    // 2. PERFIL CLÍNICO
-    // =====================================================
-
-    const profileQuery = `
-      SELECT *
-      FROM patient_profiles
-      WHERE user_id = $1;
-    `;
-
-    const profileRes = await db.query(
-      profileQuery,
-      [patientId]
-    );
-
-    const profile = profileRes.rows[0] || {};
-
-    // =====================================================
-    // 3. RECETAS CON SUS MEDICAMENTOS
-    // =====================================================
-
-    const prescriptionsQuery = `
-      SELECT
-        p.*,
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'id', pi.id,
-              'medication_name', pi.medication_name,
-              'dosage', pi.dosage,
-              'frequency', pi.frequency,
-              'duration', pi.duration,
-              'instructions', pi.instructions
-            )
-          ) FILTER (
-            WHERE pi.id IS NOT NULL
-          ),
-          '[]'
-        ) AS items
-      FROM prescriptions p
-      INNER JOIN documents d ON d.id = p.document_id
-        AND d.status IN ('CONFIRMADO', 'PENDIENTE_REVISION')
-      LEFT JOIN prescription_items pi
-        ON p.id = pi.prescription_id
-      WHERE p.patient_id = $1
-      GROUP BY p.id
-      ORDER BY p.issue_date DESC;
-    `;
-
-    const prescriptionsRes = await db.query(
-      prescriptionsQuery,
-      [patientId]
-    );
-
-    const labReportsRes = await db.query(
-      `SELECT lr.id, lr.document_id, lr.laboratory_name, lr.sample_date,
-              lr.observations, lr.created_at,
-              COALESCE(json_agg(json_build_object(
-                'id', li.id, 'test_name', li.test_name,
-                'result_value', li.result_value, 'unit', li.unit,
-                'reference_range', li.reference_range, 'is_abnormal', li.is_abnormal
-              )) FILTER (WHERE li.id IS NOT NULL), '[]') AS items
-       FROM lab_reports lr
-       INNER JOIN documents d ON d.id = lr.document_id
-         AND d.status IN ('CONFIRMADO', 'PENDIENTE_REVISION')
-       LEFT JOIN lab_test_items li ON li.lab_report_id = lr.id
-       WHERE lr.patient_id = $1
-       GROUP BY lr.id
-       ORDER BY lr.sample_date DESC NULLS LAST, lr.created_at DESC`,
-      [patientId]
-    );
-
-    const documentsRes = await db.query(
-      `SELECT id, document_type, title, file_name, mime_type,
-              document_date, issuing_doctor, issuing_institution,
-              status, created_at, updated_at
-       FROM documents
-       WHERE patient_id = $1 AND status IN ('CONFIRMADO', 'PENDIENTE_REVISION')
-       ORDER BY document_date DESC NULLS LAST, created_at DESC`,
-      [patientId]
-    );
-
-    // =====================================================
-    // RESPUESTA CLÍNICA
-    // =====================================================
-
+    const user=(await db.query('SELECT id,rut,first_name,last_name FROM users WHERE id=$1 AND is_active=TRUE',[patientId])).rows[0];
+    if(!user) return null;
+    const profile=await ProfileRepository.findByUserId(patientId)||{};
+    const documents=(await DocumentRepository.findByPatient(patientId)).filter(doc=>['CONFIRMADO','PENDIENTE_REVISION'].includes(doc.status));
+    const prescriptionsRes={rows:documents.filter(doc=>doc.document_type==='RECETA' && doc.structured).map(doc=>doc.structured)};
+    const labReportsRes={rows:documents.filter(doc=>doc.document_type==='EXAMEN_LAB' && doc.structured).map(doc=>doc.structured)};
+    const documentsRes={rows:documents.map(({structured,...doc})=>doc)};
     return {
       patient: {
         id: user.id,

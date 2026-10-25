@@ -58,7 +58,7 @@ class PatientProfileController {
         gender,
       });
 
-      // Registrar acción en la bitácora legal inmutable (Ley N° 21.668)
+      // Registrar acción en la bitácora protegida de actividad
       try {
         const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
         const userAgent = req.headers['user-agent'] || 'Desconocido';
@@ -70,8 +70,6 @@ class PatientProfileController {
             userId,
             JSON.stringify({
               message: 'Actualización de antecedentes clínicos en Mi Ficha',
-              bloodType,
-              healthInsurance,
               allergiesCount: Array.isArray(allergies) ? allergies.length : 0,
               chronicConditionsCount: Array.isArray(chronicConditions) ? chronicConditions.length : 0,
             }),

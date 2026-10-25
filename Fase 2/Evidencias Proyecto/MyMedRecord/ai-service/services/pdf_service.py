@@ -1,13 +1,11 @@
 import io
 from pdfminer.high_level import extract_text
+from pdfminer.pdfpage import PDFPage
 
 class PDFService:
     @staticmethod
     def extract_text_from_bytes(file_bytes: bytes) -> str:
-        """Extrae texto plano directamente del stream de bytes de un archivo PDF nativo."""
-        try:
-            with io.BytesIO(file_bytes) as pdf_file:
-                text = extract_text(pdf_file)
-                return text.strip()
-        except Exception as e:
-            raise RuntimeError(f"Error al procesar PDF con pdfminer: {str(e)}")
+        for index, _ in enumerate(PDFPage.get_pages(io.BytesIO(file_bytes), check_extractable=True)):
+            if index >= 20:
+                raise ValueError("Máximo 20 páginas")
+        return extract_text(io.BytesIO(file_bytes), maxpages=20).strip()

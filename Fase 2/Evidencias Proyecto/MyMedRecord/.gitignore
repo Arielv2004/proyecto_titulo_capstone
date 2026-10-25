@@ -4,6 +4,7 @@
 
 # 1. Secretos y Variables de Entorno (CRÍTICO para Repositorios)
 .env
+.private/
 .env.local
 .env.*.local
 *.env

@@ -1,10 +1,12 @@
 const AuthService = require('../services/auth.service');
 const config = require('../config/env');
+const sessions = require('../security/sessions');
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: config.NODE_ENV === 'production',
   sameSite: 'strict',
+  path: '/',
   maxAge: 24 * 60 * 60 * 1000, // 24 horas
 };
 
@@ -75,7 +77,8 @@ class AuthController {
     }
   }
 
-  static async logout(req, res) {
+  static async logout(req, res, next) {
+    try { await sessions.revoke(req); } catch(error) { return next(error); }
     res.clearCookie(config.JWT.COOKIE_NAME, COOKIE_OPTIONS);
 
     return res.status(200).json({

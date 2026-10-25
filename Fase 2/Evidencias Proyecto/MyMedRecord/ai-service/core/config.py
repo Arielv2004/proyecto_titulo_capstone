@@ -9,7 +9,9 @@ class Settings(BaseSettings):
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
     PORT: int = 8000
-    HOST: str = "0.0.0.0"
+    HOST: str = "127.0.0.1"
+    AI_SERVICE_TOKEN: str = ""
+    EXTERNAL_AI_ENABLED: bool = False
 
     # Restringir CORS solo para backend-core (aislamiento)
     BACKEND_CORE_ORIGIN: str = os.getenv("BACKEND_CORE_ORIGIN", "http://localhost:5000")

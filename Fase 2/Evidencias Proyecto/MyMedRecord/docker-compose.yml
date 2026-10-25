@@ -1,6 +1,40 @@
 name: mymedrecord
 
 services:
+  ocr:
+    build: ./ai-service
+    container_name: mymedrecord_ocr
+    env_file: ./ai-service/.env
+    environment:
+      EXTERNAL_AI_ENABLED: "false"
+      LLM_API_KEY: ""
+    networks:
+      - ocr_private
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    mem_limit: 768m
+    cpus: 2
+    pids_limit: 64
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+  ocr-gateway:
+    image: nginx:alpine
+    container_name: mymedrecord_ocr_gateway
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./ai-service/gateway.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - ocr_private
+      - mymedrecord_network
+    depends_on:
+      - ocr
+    restart: unless-stopped
+
   # 1. Base de Datos Relacional PostgreSQL
   db:
     image: postgres:15-alpine
@@ -10,7 +44,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: mymedrecord
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -31,7 +65,7 @@ services:
       PGADMIN_DEFAULT_EMAIL: admin@mymedrecord.cl
       PGADMIN_DEFAULT_PASSWORD: admin
     ports:
-      - "5050:80"
+      - "127.0.0.1:5050:80"
     depends_on:
       db:
         condition: service_healthy
@@ -40,6 +74,8 @@ services:
     restart: unless-stopped
 
 networks:
+  ocr_private:
+    internal: true
   mymedrecord_network:
     driver: bridge
 

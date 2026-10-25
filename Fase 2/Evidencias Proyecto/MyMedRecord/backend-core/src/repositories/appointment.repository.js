@@ -13,6 +13,7 @@ class AppointmentRepository {
         a.access_expires_at,
         a.status,
         a.reason,
+        a.encrypted_payload,
 
         u.rut AS patient_rut,
         u.first_name AS patient_first_name,
@@ -42,7 +43,7 @@ class AppointmentRepository {
 
     const result = await db.query(query, [doctorId]);
 
-    return result.rows;
+    return Promise.all(result.rows.map(row=>require('../security/clinical-store').decode('appointments',row)));
   }
 
   // Buscar una cita específica
@@ -62,7 +63,7 @@ class AppointmentRepository {
 
     const result = await db.query(query, [appointmentId]);
 
-    return result.rows[0] || null;
+    return require('../security/clinical-store').decode('appointments',result.rows[0]);
   }
 
   // Comprobar si el médico tiene acceso vigente a un paciente

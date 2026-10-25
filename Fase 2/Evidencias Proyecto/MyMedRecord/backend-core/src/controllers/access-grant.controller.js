@@ -25,12 +25,15 @@ function localAppAddress() {
 }
 
 async function sendAuthorizedFile(req, res, grant, documentId, actor) {
+  require('../security/access-policy').requireLiveGrant(grant);
   if (!grant || grant.is_revoked || new Date(grant.expires_at) <= new Date()) {
     return res.status(403).json({ success: false, message: 'El permiso no está vigente.' });
   }
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(documentId || '')) {
     return res.status(400).json({ success: false, message: 'Documento no válido.' });
   }
+  const active=(await db.query('SELECT id FROM users WHERE id=$1 AND is_active=TRUE',[grant.patient_id])).rowCount;
+  if(!active) return res.status(403).json({success:false,message:'Permiso no disponible.'});
   const document = await DocumentRepository.findById(documentId);
   if (!document || document.patient_id !== grant.patient_id || !['CONFIRMADO', 'PENDIENTE_REVISION'].includes(document.status)) {
     return res.status(404).json({ success: false, message: 'Documento no disponible en esta ficha.' });
@@ -72,19 +75,10 @@ class AccessGrantController {
   static async directCheck(req, res, next) {
     try {
       const grant = await AccessGrantRepository.findByToken(req.params.token);
+      require('../security/access-policy').requireLiveGrant(grant);
       const valid = grant && grant.grant_type === 'DIRECTO' && String(grant.doctor_id) === String(req.user.id)
         && !grant.is_revoked && new Date(grant.expires_at) > new Date();
       if (!valid) return res.status(403).json({ success: false, message: 'El permiso ya no está vigente.' });
-      res.set('Cache-Control', 'no-store');
-      return res.json({ success: true, minutesRemaining: Math.max(0, Math.ceil((new Date(grant.expires_at) - new Date()) / 60000)) });
-    } catch (error) { next(error); }
-  }
-
-  static async qrCheck(req, res, next) {
-    try {
-      const grant = await AccessGrantRepository.findByToken(String(req.body?.token || '').trim());
-      const valid = grant && grant.grant_type === 'QR_TEMPORAL' && !grant.is_revoked && new Date(grant.expires_at) > new Date();
-      if (!valid) return res.status(403).json({ success: false, message: 'El código QR ya no está vigente.' });
       res.set('Cache-Control', 'no-store');
       return res.json({ success: true, minutesRemaining: Math.max(0, Math.ceil((new Date(grant.expires_at) - new Date()) / 60000)) });
     } catch (error) { next(error); }
@@ -100,19 +94,6 @@ class AccessGrantController {
     } catch (error) { next(error); }
   }
 
-  static async qrFile(req, res, next) {
-    try {
-      const { token, documentId, doctorRut, doctorName } = req.body || {};
-      if (!token || !isValidRut(doctorRut) || !doctorName?.trim()) {
-        return res.status(400).json({ success: false, message: 'Código e identificación declarada requeridos.' });
-      }
-      const grant = await AccessGrantRepository.findByToken(String(token).trim());
-      if (!grant || grant.grant_type !== 'QR_TEMPORAL') {
-        return res.status(403).json({ success: false, message: 'Código QR no válido.' });
-      }
-      return await sendAuthorizedFile(req, res, grant, documentId, { rut: doctorRut.trim() });
-    } catch (error) { next(error); }
-  }
   /**
    * POST /api/v1/access-grants/generate
    * Paciente autenticado genera un QR temporal
@@ -248,46 +229,6 @@ class AccessGrantController {
    *
    * Este flujo corresponde al QR temporal.
    */
-  static async validate(req, res, next) {
-    try {
-      const {
-        token,
-        doctorRut,
-        doctorName,
-        doctorInstitution,
-      } = req.body;
-
-      const ipAddress =
-        req.ip ||
-        req.headers['x-forwarded-for'] ||
-        req.socket?.remoteAddress ||
-        '127.0.0.1';
-
-      const userAgent =
-        req.headers['user-agent'] ||
-        'Visor Medico QR Web';
-
-      const result =
-        await AccessGrantService.validateAndAccess({
-          token,
-          doctorRut,
-          doctorName,
-          doctorInstitution,
-          ipAddress,
-          userAgent,
-        });
-
-      return res.status(200).json({
-        success: true,
-        message:
-          'Acceso autorizado. Ficha clínica recuperada exitosamente.',
-        data: result,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
   /**
    * PATCH /api/v1/access-grants/:id/revoke
    *

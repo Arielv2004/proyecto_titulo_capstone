@@ -1,47 +1,39 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, status
-from services.pdf_service import PDFService
-from services.ocr_service import OCRService
-from services.llm_service import LLMService
+from fastapi import APIRouter, UploadFile, File, HTTPException
 from models.schemas import DocumentExtractionResponse
+from starlette.concurrency import run_in_threadpool
+import asyncio
+import subprocess
+import sys
+from pathlib import Path
+slots = asyncio.Semaphore(2)
+
+def local_process(content, kind):
+    result = subprocess.run([sys.executable, '-m', 'services.local_worker', kind], input=content, capture_output=True, timeout=40, cwd=Path(__file__).resolve().parent.parent, check=True)
+    return result.stdout.decode('utf-8')
 
 router = APIRouter()
 
 @router.post("/process-document", response_model=DocumentExtractionResponse)
 async def process_document(file: UploadFile = File(...)):
-    """
-    Endpoint de procesamiento documental:
-    - PDFs: extracción nativa de texto con pdfminer.six
-    - Imágenes (JPG, PNG): OCR con Tesseract
-    - Envío al LLM para estructuración de entidades médicas
-    """
+    content = await file.read(10 * 1024 * 1024 + 1)
+    if not content or len(content) > 10 * 1024 * 1024:
+        raise HTTPException(413, "El archivo supera el tamaño permitido.")
+    is_pdf = content.startswith(b"%PDF-")
+    is_image = content.startswith(b"\x89PNG\r\n\x1a\n") or content.startswith(b"\xff\xd8\xff") or (content.startswith(b"RIFF") and content[8:12] == b"WEBP")
+    if not is_pdf and not is_image:
+        raise HTTPException(400, "Formato de archivo no admitido.")
     try:
-        content = await file.read()
-        filename = (file.filename or "").lower()
-        
-        raw_text = ""
-        if filename.endswith(".pdf") or file.content_type == "application/pdf":
-            raw_text = PDFService.extract_text_from_bytes(content)
-        elif any(filename.endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".webp"]) or "image/" in (file.content_type or ""):
-            raw_text = OCRService.extract_text_from_image_bytes(content)
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Formato no soportado. Debe ser PDF o Imagen (PNG, JPG, JPEG)."
-            )
-            
+        await asyncio.wait_for(slots.acquire(), timeout=2)
+        try:
+            raw_text = await run_in_threadpool(local_process, content, 'pdf' if is_pdf else 'image')
+        finally:
+            slots.release()
         if not raw_text.strip():
-            # Si el PDF era escaneado (sin texto nativo), intentar OCR en las páginas si aplica
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="No se pudo extraer texto legible del documento."
-            )
-            
-        result = await LLMService.extract_clinical_entities(raw_text)
-        return result
+            raise HTTPException(422, "No se encontró texto legible. Puedes completar los datos manualmente.")
+        # OCR local: no importa ni invoca proveedores externos.
+        return DocumentExtractionResponse(document_type="OTRO", raw_text=raw_text[:100000],
+            summary=None, diagnoses=[], medications=[], lab_metrics=[], is_medical_document=True)
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error en procesamiento de IA: {str(e)}"
-        )
+    except Exception:
+        raise HTTPException(422, "No fue posible procesar el documento dentro de los límites permitidos.")

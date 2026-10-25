@@ -54,6 +54,7 @@ class DocumentController {
     static async confirm(req, res, next) {
         try {
             const { tempId, editedData, wasReviewed } = req.body;
+            if(wasReviewed!==undefined && typeof wasReviewed!=='boolean')return res.status(400).json({success:false,message:'Confirma explícitamente la revisión del documento.'});
             const result = await DocumentService.confirmDocument({
                 tempId,
                 editedData,

@@ -31,8 +31,8 @@ export function PatientHome({
           <div className="mm-ai-spotlight">
             <span className="mm-ai-spotlight-icon"><Sparkles size={21} aria-hidden="true" /></span>
             <div>
-              <strong>Digitaliza con IA + OCR</strong>
-              <p>El OCR lee el texto y la IA ayuda a ordenar los datos extraídos. Tú los revisas antes de guardarlos.</p>
+              <strong>Digitaliza con OCR local</strong>
+              <p>El OCR lee el texto sin enviarlo a una IA externa. Completa y revisa los datos antes de guardarlos.</p>
             </div>
           </div>
         </div>
@@ -55,7 +55,7 @@ export function PatientHome({
         </div>
         <InfoPopover label="Cómo crear y compartir tu ficha">
           <ol>
-            <li>Sube una receta, examen o informe. El OCR lee el texto y la IA ayuda a organizar los datos.</li>
+            <li>Sube una receta, examen o informe. El OCR lee el texto localmente para que revises y completes los datos.</li>
             <li>Revísalo en Mi ficha y compara los datos extraídos con el documento original.</li>
             <li>Cuando lo necesites, elige un médico o muestra un QR para dar acceso temporal.</li>
           </ol>

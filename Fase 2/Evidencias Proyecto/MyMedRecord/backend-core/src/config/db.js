@@ -1,5 +1,7 @@
 const { Pool } = require('pg');
 const config = require('./env');
+const { AsyncLocalStorage } = require('node:async_hooks');
+const transactions = new AsyncLocalStorage();
 
 const pool = new Pool({
   host: config.DB.HOST,
@@ -21,7 +23,15 @@ pool.on('error', (err) => {
 });
 
 module.exports = {
-  query: (text, params) => pool.query(text, params),
+  query: (text, params) => (transactions.getStore() || pool).query(text, params),
+  currentClient: () => transactions.getStore(),
+  async transaction(fn) {
+    if (transactions.getStore()) return fn();
+    const client = await pool.connect();
+    try { await client.query('BEGIN'); const result = await transactions.run(client, fn); await client.query('COMMIT'); return result; }
+    catch(error) { await client.query('ROLLBACK'); throw error; }
+    finally { client.release(); }
+  },
   pool,
   async getSchemaOverview() {
     try {

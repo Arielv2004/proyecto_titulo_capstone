@@ -1,0 +1,15 @@
+require('dotenv').config({quiet:true});
+const fs=require('node:fs');
+const path=require('node:path');
+const {spawnSync}=require('node:child_process');
+const {seal,open}=require('../src/security/crypto');
+const name='database-'+new Date().toISOString().replace(/[:.]/g,'-')+'.json.enc';
+const result=spawnSync('docker',['exec','mymedrecord_db','pg_dump','-U','postgres','--no-owner','--no-acl','mymedrecord'],{maxBuffer:128*1024*1024});
+if(result.status!==0) throw new Error('No se pudo respaldar PostgreSQL.');
+const backup={dump:result.stdout.toString('base64'),createdAt:new Date().toISOString()};
+const encrypted=seal(backup,'backup:'+name);
+if(open(encrypted,'backup:'+name).dump!==backup.dump) throw new Error('El respaldo no superó la verificación.');
+const directory=path.resolve(__dirname,'../../.private/backups');
+fs.mkdirSync(directory,{recursive:true});
+fs.writeFileSync(path.join(directory,name),JSON.stringify(encrypted));
+console.log('Respaldo cifrado verificado: '+name);

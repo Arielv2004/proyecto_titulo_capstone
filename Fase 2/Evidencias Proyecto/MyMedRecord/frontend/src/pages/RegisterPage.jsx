@@ -88,7 +88,7 @@ export const RegisterPage = () => {
 
         setInstitutions(list);
       } catch (err) {
-        console.error(err);
+        console.warn('No fue posible completar la operación.');
 
         setInstitutionsError(
           'No se pudieron cargar las instituciones. Verifica que el backend esté ejecutándose.'
@@ -613,10 +613,10 @@ export const RegisterPage = () => {
                   type={showPassword ? 'text' : 'password'}
                   name="password"
                   required
-                  minLength={8}
+                  minLength={12}
                   value={formData.password}
                   onChange={handleChange}
-                  placeholder="Mínimo 8 caracteres"
+                  placeholder="Mínimo 12 caracteres"
                   className="w-full pl-3.5 pr-11 py-2.5 bg-canvas/80 dark:bg-surface-muted/80 border border-line dark:border-line rounded-xl text-body dark:text-ink text-sm focus:outline-none focus:border-blue-700 dark:focus:border-teal-400 focus:ring-2 focus:ring-blue-100 transition-all"
                 />
 

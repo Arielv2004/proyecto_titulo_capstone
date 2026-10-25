@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const sessions = require('../security/sessions');
+const { isValidRut } = require('../utils/rut.util');
 const UserRepository = require('../repositories/user.repository');
 const config = require('../config/env');
 
@@ -16,6 +17,10 @@ class AuthService {
     institutionId,
     institutionNameOther,
   }) {
+    if (!isValidRut(rut) || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 150 || typeof password !== 'string' || password.length < 12 || Buffer.byteLength(password) > 72 || typeof firstName !== 'string' || !String(firstName || '').trim() || typeof lastName !== 'string' || !String(lastName || '').trim() || firstName.length > 100 || lastName.length > 100) {
+      const error = new Error('Revisa tus datos. La contraseña debe tener al menos 12 caracteres y un máximo de 72 bytes.'); error.statusCode = 400; throw error;
+    }
+    email = email.trim().toLowerCase();
     // =====================================================
     // VALIDAR EMAIL
     // =====================================================
@@ -49,7 +54,7 @@ class AuthService {
     const allowedRoles = ['PACIENTE', 'MEDICO'];
 
     const assignedRole =
-      role && allowedRoles.includes(role.toUpperCase())
+      typeof role === 'string' && allowedRoles.includes(role.toUpperCase())
         ? role.toUpperCase()
         : 'PACIENTE';
 
@@ -142,7 +147,7 @@ class AuthService {
           : null,
     });
 
-    const token = this.generateToken(user);
+    const token = await sessions.issue(user);
 
     return {
       user,
@@ -155,9 +160,10 @@ class AuthService {
   // =====================================================
 
   static async login({ email, password }) {
-    const user = await UserRepository.findByIdentifier(email);
+    if (typeof email !== 'string' || typeof password !== 'string' || email.length > 150 || Buffer.byteLength(password) > 72) { const error=new Error('Credenciales inválidas.'); error.statusCode=401; throw error; }
+    const user = await UserRepository.findByIdentifier(email.trim());
 
-    if (!user) {
+    if (!user || !user.is_active) {
       const error = new Error(
         'Credenciales inválidas. Verifica tu correo o RUT y tu contraseña.'
       );
@@ -176,7 +182,7 @@ class AuthService {
       throw error;
     }
 
-    const token = this.generateToken(user);
+    const token = await sessions.issue(user);
 
     const {
       password_hash,
@@ -193,20 +199,6 @@ class AuthService {
   // JWT
   // =====================================================
 
-  static generateToken(user) {
-    return jwt.sign(
-      {
-        id: user.id,
-        rut: user.rut,
-        email: user.email,
-        role: user.role,
-      },
-      config.JWT.SECRET,
-      {
-        expiresIn: config.JWT.EXPIRES_IN,
-      }
-    );
-  }
 }
 
 module.exports = AuthService;

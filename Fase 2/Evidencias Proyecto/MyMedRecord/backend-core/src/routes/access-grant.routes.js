@@ -10,7 +10,7 @@ const authMiddleware = require(
 );
 const rbacMiddleware = require('../middlewares/rbac.middleware');
 const patientOnly = rbacMiddleware('PACIENTE');
-const doctorOnly = rbacMiddleware('MEDICO');
+const doctorOnly = [rbacMiddleware('MEDICO'), require('../security/access-policy').doctorMiddleware];
 
 /**
  * =====================================================
@@ -110,9 +110,16 @@ router.patch(
 // permite acceso a profesionales sin cuenta MyMedRecord.
 router.post(
   '/validate',
-  AccessGrantController.validate
+  require('../security/http').rateLimit('qr',10,300),
+  require('../security/consultations').request
 );
-router.post('/qr/document-file', AccessGrantController.qrFile);
-router.post('/qr/check', AccessGrantController.qrCheck);
+router.post('/qr/document-file', require('../security/consultations').file);
+router.post('/qr/check', require('../security/consultations').check);
 
+const consultations=require('../security/consultations');
+router.get('/qr/status',consultations.status);
+router.get('/qr/record',consultations.record);
+router.post('/qr/end',consultations.end);
+router.get('/qr/requests',authMiddleware,patientOnly,consultations.pending);
+router.post('/qr/requests/:id/decision',authMiddleware,patientOnly,consultations.decide);
 module.exports = router;

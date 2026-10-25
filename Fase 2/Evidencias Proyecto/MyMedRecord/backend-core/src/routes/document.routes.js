@@ -37,7 +37,7 @@ const upload = multer({
 router.use(authMiddleware, rbacMiddleware('PACIENTE'));
 
 // ─── Rutas ────────────────────────────────────────────────────────────────
-router.post('/upload', upload.single('file'), DocumentController.upload);
+router.post('/upload', require('../security/http').rateLimit('document',15,3600), upload.single('file'), DocumentController.upload);
 router.post('/analyze', upload.single('file'), DocumentController.analyze);
 router.post('/confirm', DocumentController.confirm);
 router.post('/discard', DocumentController.discard);

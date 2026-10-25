@@ -16,7 +16,7 @@ class AccessGrantService {
     const finalHours = validHours.includes(hours) ? hours : 2;
 
     const randomHex = crypto
-      .randomBytes(12)
+      .randomBytes(32)
       .toString('hex')
       .toUpperCase();
 
@@ -78,6 +78,7 @@ class AccessGrantService {
     doctorId,
     durationHours = 24,
   }) {
+    await require('../security/access-policy').requireVerifiedDoctor(doctorId);
     if (!doctorId) {
       const error = new Error(
         'Debe seleccionar un médico para compartir la ficha.'
@@ -305,189 +306,6 @@ class AccessGrantService {
    * Este método corresponde EXCLUSIVAMENTE
    * al flujo mediante código QR.
    */
-  static async validateAndAccess({
-    token,
-    doctorRut,
-    doctorName,
-    doctorInstitution,
-    ipAddress,
-    userAgent,
-  }) {
-    // -----------------------------------------------------
-    // 1. Validar token
-    // -----------------------------------------------------
-
-    if (!token || !token.trim()) {
-      const error = new Error(
-        'Se requiere un token de Código QR válido.'
-      );
-
-      error.statusCode = 400;
-      throw error;
-    }
-
-    // -----------------------------------------------------
-    // 2. Validar identificación profesional
-    // -----------------------------------------------------
-
-    if (!isValidRut(doctorRut) || !String(doctorName || '').trim() || String(doctorName).trim().length > 150 || String(doctorInstitution || '').length > 150) {
-      const error = new Error(
-        'Ingresa un RUT válido y tu nombre profesional para acceder con el QR.'
-      );
-
-      error.statusCode = 400;
-      throw error;
-    }
-
-    const cleanToken = token.trim();
-
-    // -----------------------------------------------------
-    // 3. Buscar autorización por token
-    // -----------------------------------------------------
-
-    const grant =
-      await AccessGrantRepository.findByToken(cleanToken);
-
-    if (!grant) {
-      const error = new Error(
-        'Código QR no encontrado o inválido.'
-      );
-
-      error.statusCode = 404;
-      throw error;
-    }
-
-    // -----------------------------------------------------
-    // 4. Debe ser QR_TEMPORAL
-    // -----------------------------------------------------
-
-    if (grant.grant_type !== 'QR_TEMPORAL') {
-      const error = new Error(
-        'El código proporcionado no corresponde a un acceso QR.'
-      );
-
-      error.statusCode = 400;
-      throw error;
-    }
-
-    // -----------------------------------------------------
-    // 5. Comprobar revocación
-    // -----------------------------------------------------
-
-    if (grant.is_revoked) {
-      const error = new Error(
-        'Este acceso ha sido revocado directamente por el paciente.'
-      );
-
-      error.statusCode = 403;
-      throw error;
-    }
-
-    // -----------------------------------------------------
-    // 6. Comprobar expiración
-    // -----------------------------------------------------
-
-    const now = new Date();
-    const expiry = new Date(grant.expires_at);
-
-    if (now >= expiry) {
-      const error = new Error(
-        `El tiempo de validez de este Código QR expiró el ${expiry.toLocaleString(
-          'es-CL'
-        )}.`
-      );
-
-      error.statusCode = 410;
-      throw error;
-    }
-
-    // -----------------------------------------------------
-    // 7. Registrar profesional que consultó
-    // -----------------------------------------------------
-
-    await AccessGrantRepository.recordDoctorAccess({
-      token: grant.token,
-      doctorRut: doctorRut.trim(),
-      doctorName: doctorName.trim(),
-      doctorInstitution: (
-        doctorInstitution || 'No especificada'
-      ).trim(),
-    });
-
-    // -----------------------------------------------------
-    // 8. Auditoría
-    // -----------------------------------------------------
-
-    await db.query(
-      `INSERT INTO audit_logs (
-        patient_id,
-        action,
-        details,
-        ip_address,
-        user_agent
-      )
-      VALUES ($1, 'CONSULTA_MEDICA_QR', $2, $3, $4);`,
-      [
-        grant.patient_id,
-
-        JSON.stringify({
-          doctor_rut: doctorRut.trim(),
-          doctor_name: doctorName.trim(),
-          doctor_institution:
-            doctorInstitution ||
-            'Centro de Salud / Consulta Médica',
-          expires_at: grant.expires_at,
-        }),
-
-        ipAddress || '127.0.0.1',
-        userAgent || 'Visor Medico QR Web',
-      ]
-    );
-
-    // -----------------------------------------------------
-    // 9. Obtener ficha clínica
-    // -----------------------------------------------------
-
-    const clinicalData =
-      await AccessGrantRepository.getPatientClinicalData(
-        grant.patient_id
-      );
-
-    if (!clinicalData) {
-      const error = new Error(
-        'No se encontró la ficha clínica del paciente.'
-      );
-
-      error.statusCode = 404;
-      throw error;
-    }
-
-    // -----------------------------------------------------
-    // 10. Tiempo restante
-    // -----------------------------------------------------
-
-    const minutesRemaining = Math.max(
-      0,
-      Math.round((expiry - now) / (1000 * 60))
-    );
-
-    return {
-      grant: {
-        id: grant.id,
-        token: grant.token,
-        grantType: grant.grant_type,
-        expiresAt: grant.expires_at,
-        minutesRemaining,
-        doctorRut: doctorRut.trim(),
-        doctorName: doctorName.trim(),
-        doctorInstitution:
-          doctorInstitution || 'No especificada',
-      },
-
-      clinicalData,
-    };
-  }
-
   /**
    * =====================================================
    * REVOCAR ACCESO
@@ -769,6 +587,7 @@ class AccessGrantService {
       throw error;
     }
 
+    await require('../security/access-policy').requireVerifiedDoctor(doctorId);
     const cleanToken = String(token).trim();
 
     // -----------------------------------------------------
@@ -800,6 +619,7 @@ class AccessGrantService {
     // 4. Verificar tipo DIRECTO
     // -----------------------------------------------------
 
+    require('../security/access-policy').requireLiveGrant(grant);
     if (grant.grant_type !== 'DIRECTO') {
       const error = new Error(
         'Este token no corresponde a un acceso directo.'

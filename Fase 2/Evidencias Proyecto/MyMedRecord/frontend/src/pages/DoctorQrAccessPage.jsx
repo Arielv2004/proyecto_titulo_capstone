@@ -13,7 +13,9 @@ export const DoctorQrAccessPage = () => {
   useMetaTags('Portal de Acceso Médico por QR', 'Acceso profesional temporal y auditado a fichas clínicas de pacientes bajo Ley N° 21.668 en MyMedRecord.');
 
   const [searchParams] = useSearchParams();
-  const tokenFromUrl = searchParams.get('token') || '';
+  const [tokenFromUrl] = useState(() => new URLSearchParams(window.location.hash.slice(1)).get('token') || searchParams.get('token') || '');
+  useEffect(() => { window.history.replaceState(window.history.state, '', window.location.pathname); }, []);
+  const [pendingRequest, setPendingRequest] = useState(null);
 
   // Formulario del Médico
   const [doctorData, setDoctorData] = useState({
@@ -38,6 +40,24 @@ export const DoctorQrAccessPage = () => {
   // Datos desbloqueados de la Ficha
   const [clinicalData, setClinicalData] = useState(null);
   const [timeLeft, setTimeLeft] = useState(null);
+  const finishConsultation=async()=>{
+    try {await api.post('/access-grants/qr/end');setClinicalData(null);setPendingRequest(null);setTimeLeft(null);}
+    catch {setFileError('No se pudo finalizar la sesión. Intenta nuevamente.');}
+  };
+  useEffect(()=>{
+    if(tokenFromUrl)return;
+    let active=true;
+    api.get('/access-grants/qr/status').then(async({data})=>{
+      if(!active)return;
+      if(data.data.status==='PENDING')setPendingRequest(data.data);
+      if(data.data.status==='APPROVED'){
+        const record=await api.get('/access-grants/qr/record');
+        if(active){setClinicalData(record.data.data.clinicalData);setTimeLeft(record.data.data.grant.minutesRemaining);}
+      }
+    }).catch(()=>{});
+    return()=>{active=false;};
+  },[tokenFromUrl]);
+  useEffect(()=>{if(clinicalData)window.scrollTo({top:0,behavior:'instant'});},[clinicalData]);
   const [fileError, setFileError] = useState('');
   const [openingFileId, setOpeningFileId] = useState(null);
 
@@ -47,7 +67,7 @@ export const DoctorQrAccessPage = () => {
     setOpeningFileId(documentId);
     try {
       const { data } = await api.post('/access-grants/qr/document-file', {
-        token: doctorData.token, documentId, doctorRut: doctorData.rut, doctorName: doctorData.name,
+        documentId,
       }, { responseType: 'blob' });
       openDocumentBlob(data, tab);
     } catch (error) {
@@ -60,11 +80,11 @@ export const DoctorQrAccessPage = () => {
   };
 
   useEffect(() => {
-    if (!clinicalData || !doctorData.token) return undefined;
+    if (!clinicalData) return undefined;
     let active = true;
     const check = async () => {
       try {
-        const { data } = await api.post('/access-grants/qr/check', { token: doctorData.token });
+        const { data } = await api.post('/access-grants/qr/check', {});
         if (active) setTimeLeft(data.minutesRemaining);
       } catch (error) {
         if (active && [403, 410].includes(error.response?.status)) {
@@ -130,7 +150,7 @@ export const DoctorQrAccessPage = () => {
       );
       setIsScanning(true);
     } catch (err) {
-      console.warn('Error al iniciar cámara:', err);
+      console.warn("Error al iniciar cámara:");
       setScannerError('No se pudo abrir la cámara en vivo. Puedes usar «Tomar foto del QR».');
       setIsScanning(false);
     }
@@ -153,7 +173,7 @@ export const DoctorQrAccessPage = () => {
 
   // Inicializar o detener escáner de cámara en vivo
   useEffect(() => {
-    if (activeScanTab === 'CAMERA' && !clinicalData && isSecureEnv) {
+    if (activeScanTab === 'CAMERA' && !clinicalData && !pendingRequest && isSecureEnv) {
       startCamera();
     } else {
       stopCamera();
@@ -161,7 +181,7 @@ export const DoctorQrAccessPage = () => {
     return () => {
       stopCamera();
     };
-  }, [activeScanTab, clinicalData, isSecureEnv]);
+  }, [activeScanTab, clinicalData, pendingRequest, isSecureEnv]);
 
   // Manejar cuando un QR es detectado (cámara o foto)
   async function handleQrDecoded(text) {
@@ -304,8 +324,7 @@ export const DoctorQrAccessPage = () => {
       });
 
       if (res.data.success) {
-        setClinicalData(res.data.data.clinicalData);
-        setTimeLeft(res.data.data.grant.minutesRemaining);
+        setPendingRequest(res.data.data);
         await stopCamera();
       }
     } catch (err) {
@@ -332,6 +351,27 @@ export const DoctorQrAccessPage = () => {
     }, 60000); // cada 1 minuto
     return () => clearInterval(interval);
   }, [timeLeft]);
+
+  useEffect(() => {
+    if (!pendingRequest) return undefined;
+    let active=true;
+    const poll=async()=>{
+      try {
+        const {data}=await api.get('/access-grants/qr/status');
+        if(!active) return;
+        if(data.data.status==='APPROVED') {
+          const record=await api.get('/access-grants/qr/record');
+          if(active){setClinicalData(record.data.data.clinicalData);setTimeLeft(record.data.data.grant.minutesRemaining);setPendingRequest(null);}
+        } else if(data.data.status==='REJECTED') {
+          setPendingRequest(null);setApiError('El paciente rechazó esta solicitud.');
+        }
+      } catch(error) {
+        if(active && [401,403,410].includes(error.response?.status)){setPendingRequest(null);setApiError('La solicitud caducó o el permiso dejó de estar disponible.');}
+      }
+    };
+    const interval=window.setInterval(poll,3000);
+    return ()=>{active=false;window.clearInterval(interval);};
+  },[pendingRequest]);
 
   return (
     <div className="min-h-screen flex flex-col bg-canvas dark:bg-canvas text-body dark:text-ink transition-colors">
@@ -676,19 +716,23 @@ export const DoctorQrAccessPage = () => {
                 )}
               </div>
 
-              {/* Botón de Desbloqueo */}
+              {pendingRequest && <div role="status" className="rounded-xl border border-line bg-surface p-4 space-y-2">
+                  <strong className="text-ink">Esperando aprobación del paciente</strong>
+                  <p className="text-sm text-muted">Pídele que acepte la solicitud en su portal. Caduca en cinco minutos. Tu nombre y RUT son datos declarados, no una acreditación profesional.</p>
+                </div>}
+                {/* Botón de Desbloqueo */}
               <button
                 type="submit"
-                disabled={isValidating || !doctorData.token}
+                disabled={isValidating || !!pendingRequest || !doctorData.token}
                 className="mm-qr-submit w-full py-3.5 bg-action hover:bg-action-hover active:scale-[0.99] text-on-action font-bold rounded-2xl transition-all shadow-xs flex items-center justify-center gap-2 text-sm cursor-pointer disabled:opacity-50"
               >
-                <span>{isValidating ? 'Validando vigencia y registrando auditoría...' : 'Validar y Consultar Ficha Clínica'}</span>
+                <span>{isValidating ? 'Validando vigencia y registrando auditoría...' : 'Solicitar aprobación al paciente'}</span>
                 <ChevronRight className="w-4 h-4 text-teal-300" />
               </button>
             </form>
           </div>
         </main>
-      ) : <ClinicalRecord data={clinicalData} timeLeft={timeLeft} onFinish={() => { setClinicalData(null); setTimeLeft(null); }} onOpenFile={handleOpenFile} fileError={fileError} openingFileId={openingFileId} backLabel="Volver al acceso QR" />}
+      ) : <ClinicalRecord data={clinicalData} timeLeft={timeLeft} onFinish={finishConsultation} onOpenFile={handleOpenFile} fileError={fileError} openingFileId={openingFileId} backLabel="Volver al acceso QR" />}
 
       {/* Footer */}
       <footer className="py-4 text-center text-xs text-muted dark:text-muted border-t border-line dark:border-line bg-surface dark:bg-surface transition-colors mt-auto">

@@ -155,12 +155,7 @@ class UserRepository {
       // =================================================
 
       if (userRole === 'PACIENTE') {
-        await client.query(
-          `INSERT INTO patient_profiles (user_id)
-           VALUES ($1)
-           ON CONFLICT (user_id) DO NOTHING`,
-          [user.id]
-        );
+        await require('../security/clinical-store').create('patient_profiles',{user_id:user.id},client);
       }
 
       // =================================================
@@ -298,6 +293,7 @@ static async findAvailableDoctors() {
      WHERE u.role = 'MEDICO'
        AND u.is_active = TRUE
        AND dp.is_available_for_sharing = TRUE
+       AND dp.verification_status = 'VERIFICADO'
      ORDER BY u.first_name, u.last_name`
   );
 

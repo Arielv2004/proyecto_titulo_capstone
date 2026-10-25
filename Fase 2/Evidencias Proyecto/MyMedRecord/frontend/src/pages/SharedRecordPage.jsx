@@ -79,10 +79,7 @@ export const SharedRecordPage = () => {
 
         setTimeLeft(minutes);
       } catch (error) {
-        console.error(
-          'Error al abrir ficha compartida:',
-          error
-        );
+        console.warn("Error al abrir ficha compartida:");
 
         setClinicalData(null);
 

@@ -34,7 +34,7 @@ export const DoctorDashboard = () => {
 
       setDirectShares(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Error cargando accesos directos:', error);
+      console.warn("Error cargando accesos directos:");
       setDirectSharesError(
         error.response?.data?.message ||
           'No fue posible cargar las fichas compartidas directamente contigo.'
@@ -61,12 +61,12 @@ export const DoctorDashboard = () => {
   const handleOpenDirectShare = (grant) => {
     if (grant.status !== 'ACTIVO' || grant.isRevoked) return;
 
-    if (!grant.token) {
+    if (!grant.id) {
       setDirectSharesError('Este acceso no tiene un token válido.');
       return;
     }
 
-    navigate(`/shared-record/${grant.token}`);
+    navigate(`/shared-record/${grant.id}`);
   };
 
   // ============================================================

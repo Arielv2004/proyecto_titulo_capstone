@@ -22,6 +22,7 @@ router.get('/health', (req, res) => {
 
 // Enrutadores principales
 router.use('/auth', authRoutes);
+router.use('/privacy', require('../security/privacy'));
 router.use('/appointments', appointmentRoutes);
 router.use('/documents', documentRoutes);
 router.use('/access-grants', accessGrantRoutes);

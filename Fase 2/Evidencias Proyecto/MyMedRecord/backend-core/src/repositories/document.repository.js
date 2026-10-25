@@ -1,389 +1,53 @@
 const db = require('../config/db');
-
+const clinical = require('../security/clinical-store');
 class DocumentRepository {
-  // ─── DOCUMENTO PRINCIPAL ────────────────────────────────────────────────
-  static async createDocument({
-    patient_id,
-    uploaded_by,
-    document_type,
-    title,
-    file_name,
-    file_path,
-    mime_type,
-    file_size_bytes,
-    ocr_raw_text,
-    status = 'PROCESANDO',
-  }) {
-    const query = `
-      INSERT INTO documents (
-        patient_id, uploaded_by, document_type, title,
-        file_name, file_path, mime_type, file_size_bytes,
-        ocr_raw_text, status
-      )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-      RETURNING *;
-    `;
-    const values = [
-      patient_id, uploaded_by, document_type, title,
-      file_name, file_path, mime_type, file_size_bytes,
-      ocr_raw_text, status,
-    ];
-    const result = await db.query(query, values);
-    return result.rows[0];
+  static createDocument(data) { return clinical.create('documents', { ...data, status: data.status || 'PROCESANDO' }); }
+  static updateDocumentStatus(id,status,ocrConfidence=null) {
+    return clinical.update('documents',id,{status,...(ocrConfidence===null?{}:{ocr_confidence:ocrConfidence}),updated_at:new Date()});
   }
-
-  static async updateDocumentStatus(documentId, status, ocrConfidence = null) {
-    const query = `
-      UPDATE documents
-      SET status = $1,
-          ocr_confidence = COALESCE($2, ocr_confidence),
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = $3
-      RETURNING *;
-    `;
-    const result = await db.query(query, [status, ocrConfidence, documentId]);
-    return result.rows[0];
-  }
-
-  static async findById(documentId) {
-    const query = `
-      SELECT
-        d.*,
-        p.rut AS patient_rut,
-        p.first_name AS patient_first_name,
-        p.last_name AS patient_last_name
-      FROM documents d
-      INNER JOIN users p ON p.id = d.patient_id
-      WHERE d.id = $1;
-    `;
-    const result = await db.query(query, [documentId]);
-    return result.rows[0] || null;
-  }
-
-  static async findTempById(documentId) {
-    const query = `
-      SELECT
-        d.*,
-        p.rut AS patient_rut,
-        p.first_name AS patient_first_name,
-        p.last_name AS patient_last_name
-      FROM documents d
-      INNER JOIN users p ON p.id = d.patient_id
-      WHERE d.id = $1 AND d.status = 'TEMP';
-    `;
-    const result = await db.query(query, [documentId]);
-    return result.rows[0] || null;
-  }
-
-  static async findByPatient(patientId, { document_type = null } = {}) {
-    let query = `
-      SELECT
-        d.id, d.patient_id, d.uploaded_by, d.document_type, d.title,
-        d.file_name, d.mime_type, d.file_size_bytes,
-        d.document_date, d.issuing_doctor, d.issuing_institution,
-        d.status, d.created_at, d.updated_at,
-        CASE
-          WHEN d.document_type = 'RECETA' THEN (
-            SELECT json_build_object(
-              'id', rx.id,
-              'document_id', rx.document_id,
-              'doctor_name', rx.doctor_name,
-              'diagnosis_text', rx.diagnosis_text,
-              'issue_date', rx.issue_date,
-              'valid_until', rx.valid_until,
-              'is_chronic', rx.is_chronic,
-              'status', rx.status,
-              'items', COALESCE((
-                SELECT json_agg(json_build_object(
-                  'id', ri.id,
-                  'prescription_id', ri.prescription_id,
-                  'medication_name', ri.medication_name,
-                  'dosage', ri.dosage,
-                  'frequency', ri.frequency,
-                  'duration', ri.duration,
-                  'instructions', ri.instructions
-                ))
-                FROM prescription_items ri
-                WHERE ri.prescription_id = rx.id
-              ), '[]'::json)
-            )
-            FROM prescriptions rx
-            WHERE rx.document_id = d.id
-            LIMIT 1
-          )
-          WHEN d.document_type = 'EXAMEN_LAB' THEN (
-            SELECT json_build_object(
-              'id', lr.id,
-              'document_id', lr.document_id,
-              'laboratory_name', lr.laboratory_name,
-              'sample_date', lr.sample_date,
-              'observations', lr.observations,
-              'items', COALESCE((
-                SELECT json_agg(json_build_object(
-                  'id', li.id,
-                  'lab_report_id', li.lab_report_id,
-                  'test_name', li.test_name,
-                  'result_value', li.result_value,
-                  'unit', li.unit,
-                  'reference_range', li.reference_range,
-                  'is_abnormal', li.is_abnormal
-                ))
-                FROM lab_test_items li
-                WHERE li.lab_report_id = lr.id
-              ), '[]'::json)
-            )
-            FROM lab_reports lr
-            WHERE lr.document_id = d.id
-            LIMIT 1
-          )
-          ELSE NULL
-        END AS structured
-      FROM documents d
-      WHERE d.patient_id = $1
-        AND d.status <> 'ELIMINADO'
-        AND d.status <> 'TEMP'
-    `;
-    const values = [patientId];
-
-    if (document_type) {
-      values.push(document_type);
-      query += ` AND d.document_type = $${values.length}`;
+  static async findById(id) { return clinical.decode('documents',(await db.query('SELECT * FROM documents WHERE id=$1',[id])).rows[0]); }
+  static async findTempById(id) { return clinical.decode('documents',(await db.query("SELECT * FROM documents WHERE id=$1 AND status='TEMP' FOR UPDATE",[id])).rows[0]); }
+  static async findByPatient(patientId,{document_type=null}={}) {
+    const result=await db.query("SELECT * FROM documents WHERE patient_id=$1 AND status NOT IN ('TEMP','ELIMINADO') AND ($2::text IS NULL OR document_type=$2) ORDER BY created_at DESC",[patientId,document_type]);
+    const documents=[];
+    for(const row of result.rows) {
+      const {file_path,ocr_raw_text,encrypted_notes,...doc}=await clinical.decode('documents',row);
+      doc.structured=doc.document_type==='RECETA'?await this.findPrescriptionByDocumentId(doc.id):doc.document_type==='EXAMEN_LAB'?await this.findLabReportByDocumentId(doc.id):null;
+      documents.push(doc);
     }
-
-    query += ` ORDER BY d.created_at DESC;`;
-
-    const result = await db.query(query, values);
-    return result.rows;
+    return documents;
   }
-
-  // ─── RECETAS ────────────────────────────────────────────────────────────
-  static async createPrescription({
-    document_id,
-    patient_id,
-    doctor_name = null,
-    diagnosis_code = null,
-    diagnosis_text = null,
-    issue_date = null,
-    valid_until = null,
-    is_chronic = false,
-  }) {
-    const query = `
-      INSERT INTO prescriptions (
-        document_id, patient_id, doctor_name, diagnosis_code,
-        diagnosis_text, issue_date, valid_until, is_chronic, status
-      )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'ACTIVA')
-      RETURNING *;
-    `;
-    const values = [
-      document_id, patient_id, doctor_name, diagnosis_code,
-      diagnosis_text, issue_date, valid_until, is_chronic,
-    ];
-    const result = await db.query(query, values);
-    return result.rows[0];
+  static createPrescription(data) { return clinical.create('prescriptions',{...data,status:'ACTIVA'}); }
+  static createPrescriptionItem(data) { return clinical.create('prescription_items',data); }
+  static createLabReport(data) { return clinical.create('lab_reports',data); }
+  static createLabTestItem(data) { return clinical.create('lab_test_items',data); }
+  static async structured(table,itemsTable,foreignKey,documentId) {
+    const row=(await db.query('SELECT * FROM '+table+' WHERE document_id=$1',[documentId])).rows[0];
+    if(!row) return null;
+    const parent=await clinical.decode(table,row);
+    const items=(await db.query('SELECT * FROM '+itemsTable+' WHERE '+foreignKey+'=$1 ORDER BY created_at,id',[row.id])).rows;
+    return {...parent,items:await Promise.all(items.map(item=>clinical.decode(itemsTable,item)))};
   }
-
-  static async createPrescriptionItem({
-    prescription_id,
-    medication_name,
-    dosage = null,
-    frequency = null,
-    duration = null,
-    instructions = null,
-  }) {
-    const query = `
-      INSERT INTO prescription_items (
-        prescription_id, medication_name, dosage,
-        frequency, duration, instructions
-      )
-      VALUES ($1,$2,$3,$4,$5,$6)
-      RETURNING *;
-    `;
-    const values = [
-      prescription_id, medication_name, dosage,
-      frequency, duration, instructions,
-    ];
-    const result = await db.query(query, values);
-    return result.rows[0];
+  static findPrescriptionByDocumentId(id) { return this.structured('prescriptions','prescription_items','prescription_id',id); }
+  static findLabReportByDocumentId(id) { return this.structured('lab_reports','lab_test_items','lab_report_id',id); }
+  static async logAudit({userId=null,patientId=null,action,details=null,ipAddress='0.0.0.0',userAgent=null}) {
+    return (await db.query('INSERT INTO audit_logs(user_id,patient_id,action,details,ip_address,user_agent) VALUES($1,$2,$3,$4,$5,$6) RETURNING *',[userId,patientId,action,details?JSON.stringify(details):null,ipAddress,userAgent])).rows[0];
   }
-
-  static async findPrescriptionByDocumentId(documentId) {
-    const query = `
-      SELECT * FROM prescriptions WHERE document_id = $1;
-    `;
-    const result = await db.query(query, [documentId]);
-    if (!result.rows[0]) return null;
-
-    const prescription = result.rows[0];
-
-    const itemsQuery = `
-      SELECT * FROM prescription_items
-      WHERE prescription_id = $1
-      ORDER BY created_at ASC;
-    `;
-    const items = await db.query(itemsQuery, [prescription.id]);
-
-    return { ...prescription, items: items.rows };
+  static async softDelete(id) {
+    return db.transaction(async()=>{
+      const existing=await this.findById(id);
+      if(!existing) return null;
+      require('../security/deletion-ledger').record(id,existing.patient_id);
+      const doc=await clinical.update('documents',id,{status:'ELIMINADO',ocr_raw_text:null,updated_at:new Date()});
+      await db.query('INSERT INTO document_deletions(document_id,patient_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[id,doc.patient_id]);
+      return doc;
+    });
   }
-
-  // ─── EXÁMENES DE LABORATORIO ────────────────────────────────────────────
-  static async createLabReport({
-    document_id,
-    patient_id,
-    laboratory_name = null,
-    sample_date = null,
-    observations = null,
-  }) {
-    const query = `
-      INSERT INTO lab_reports (
-        document_id, patient_id, laboratory_name,
-        sample_date, observations
-      )
-      VALUES ($1,$2,$3,$4,$5)
-      RETURNING *;
-    `;
-    const values = [document_id, patient_id, laboratory_name, sample_date, observations];
-    const result = await db.query(query, values);
-    return result.rows[0];
+  static updateDocumentOnConfirm(id,data={}) { return clinical.update('documents',id,{...data,ocr_raw_text:null,updated_at:new Date()}); }
+  static async findExpiredTemps(hours=24) {
+    const result=await db.query("SELECT * FROM documents WHERE status='TEMP' AND created_at<now()-$1*interval '1 hour'",[hours]);
+    return Promise.all(result.rows.map(row=>clinical.decode('documents',row)));
   }
-
-  static async createLabTestItem({
-    lab_report_id,
-    test_name,
-    result_value,
-    unit = null,
-    reference_range = null,
-    is_abnormal = false,
-  }) {
-    const query = `
-      INSERT INTO lab_test_items (
-        lab_report_id, test_name, result_value,
-        unit, reference_range, is_abnormal
-      )
-      VALUES ($1,$2,$3,$4,$5,$6)
-      RETURNING *;
-    `;
-    const values = [
-      lab_report_id, test_name, result_value,
-      unit, reference_range, is_abnormal,
-    ];
-    const result = await db.query(query, values);
-    return result.rows[0];
-  }
-
-  static async findLabReportByDocumentId(documentId) {
-    const query = `SELECT * FROM lab_reports WHERE document_id = $1;`;
-    const result = await db.query(query, [documentId]);
-    if (!result.rows[0]) return null;
-
-    const report = result.rows[0];
-
-    const itemsQuery = `
-      SELECT * FROM lab_test_items
-      WHERE lab_report_id = $1
-      ORDER BY created_at ASC;
-    `;
-    const items = await db.query(itemsQuery, [report.id]);
-
-    return { ...report, items: items.rows };
-  }
-
-  // ─── AUDITORÍA ──────────────────────────────────────────────────────────
-  static async logAudit({
-    userId = null,
-    patientId = null,
-    action,
-    details = null,
-    ipAddress = '0.0.0.0',
-    userAgent = null,
-  }) {
-    const query = `
-      INSERT INTO audit_logs (
-        user_id, patient_id, action, details, ip_address, user_agent
-      )
-      VALUES ($1,$2,$3,$4,$5,$6)
-      RETURNING *;
-    `;
-    const values = [
-      userId,
-      patientId,
-      action,
-      details ? JSON.stringify(details) : null,
-      ipAddress,
-      userAgent,
-    ];
-    const result = await db.query(query, values);
-    return result.rows[0];
-  }
-
-
-  static async softDelete(documentId) {
-    const query = `
-      UPDATE documents
-      SET status = 'ELIMINADO',
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1
-      RETURNING *;
-    `;
-    const result = await db.query(query, [documentId]);
-    return result.rows[0] || null;
-  }
-
-  static async updateDocumentOnConfirm(documentId, {
-    status = 'PENDIENTE_REVISION',
-    title = null,
-    document_type = null,
-    issuing_doctor = null,
-    issuing_institution = null,
-    document_date = null,
-  } = {}) {
-    const query = `
-      UPDATE documents
-      SET status = $1,
-          title = COALESCE($2, title),
-          document_type = COALESCE($3, document_type),
-          issuing_doctor = COALESCE($4, issuing_doctor),
-          issuing_institution = COALESCE($5, issuing_institution),
-          document_date = COALESCE($6, document_date),
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = $7
-      RETURNING *;
-    `;
-    const values = [
-      status,
-      title,
-      document_type,
-      issuing_doctor,
-      issuing_institution,
-      document_date,
-      documentId,
-    ];
-    const result = await db.query(query, values);
-    return result.rows[0] || null;
-  }
-
-  static async findExpiredTemps(hours = 24) {
-    const query = `
-      SELECT id, file_path, patient_id, status, created_at
-      FROM documents
-      WHERE status = 'TEMP'
-        AND created_at < NOW() - ($1 || ' hours')::INTERVAL;
-    `;
-    const result = await db.query(query, [hours]);
-    return result.rows;
-  }
-
-  static async markManyAsEliminado(documentIds) {
-    if (!documentIds || !documentIds.length) return [];
-    const query = `
-      UPDATE documents
-      SET status = 'ELIMINADO',
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ANY($1::uuid[])
-      RETURNING *;
-    `;
-    const result = await db.query(query, [documentIds]);
-    return result.rows;
-  }
+  static async markManyAsEliminado(ids) { return Promise.all(ids.map(id=>this.softDelete(id))); }
 }
-module.exports = DocumentRepository;
+module.exports=DocumentRepository;

@@ -1,4 +1,6 @@
 import { PatientRecords } from '../components/patient/PatientRecords';
+import { QrApprovalRequests } from '../components/patient/QrApprovalRequests';
+import { PrivacyControls } from '../components/patient/PrivacyControls';
 import { GrantTokenButton } from '../components/patient/GrantTokenButton';
 import { PatientHelp } from '../components/patient/PatientHelp';
 import { DialogFrame } from '../components/ui/DialogFrame';
@@ -37,7 +39,7 @@ const clearLegacyPatientProfileCache = () => {
       .filter((key) => key === 'mymedrecord_saved_patient_profile' || key.startsWith('mymedrecord_saved_patient_profile_'))
       .forEach((key) => localStorage.removeItem(key));
   } catch (error) {
-    console.warn('No se pudo limpiar la copia local anterior del perfil:', error);
+    console.warn("No se pudo limpiar la copia local anterior del perfil:");
   }
 };
 
@@ -173,7 +175,7 @@ export const PatientDashboard = () => {
     ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname),
   );
   const qrAccessUrl = shareBaseUrl && activeGrant?.token
-    ? `${shareBaseUrl}/doctor/qr-access?token=${encodeURIComponent(activeGrant.token)}` : '';
+    ? `${shareBaseUrl}/doctor/qr-access#token=${encodeURIComponent(activeGrant.token)}` : '';
 
   // Estado para Lista de Pases QR y Accesos (Punto 2)
   const [myGrants, setMyGrants] = useState([]);
@@ -213,7 +215,7 @@ export const PatientDashboard = () => {
           clearLegacyPatientProfileCache();
         }
       } catch (err) {
-        console.warn('Error cargando perfil del paciente desde backend:', err);
+        console.warn("Error cargando perfil del paciente desde backend:");
         if (mounted) setProfileError('Intenta actualizar la página para volver a consultar tus antecedentes.');
       } finally {
         if (mounted) setProfileLoading(false);
@@ -232,7 +234,7 @@ export const PatientDashboard = () => {
         setMyGrants(res.data.data || []);
       }
     } catch (err) {
-      console.warn('Error cargando pases de acceso:', err);
+      console.warn("Error cargando pases de acceso:");
       setGrantsError('Intenta actualizar para volver a consultar los permisos.');
     } finally {
       setLoadingGrants(false);
@@ -253,7 +255,7 @@ export const PatientDashboard = () => {
         setAuditLogs(res.data.data || []);
       }
     } catch (err) {
-      console.warn('Error cargando bitácora de auditoría:', err);
+      console.warn("Error cargando bitácora de auditoría:");
       setAuditError('Intenta actualizar para volver a consultar la actividad.');
     } finally {
       setLoadingAudit(false);
@@ -399,7 +401,7 @@ export const PatientDashboard = () => {
         : '';
 
       const unreadableFlag =
-        isMedicalDoc && (Boolean(isUnreadable) || (initialMeds.length === 0 && !initialDiag.trim() && !(analysis?.lab_metrics?.length)));
+        isMedicalDoc && Boolean(isUnreadable);
 
       setTempDocument({
         tempId,
@@ -551,7 +553,7 @@ export const PatientDashboard = () => {
       try {
         await documentsApi.discard(tempDocument.tempId);
       } catch (err) {
-        console.warn('Error al descartar documento temporal:', err);
+        console.warn("Error al descartar documento temporal:");
       } finally {
         setIsSubmittingDiscard(false);
       }
@@ -802,7 +804,7 @@ export const PatientDashboard = () => {
       clearLegacyPatientProfileCache();
       fetchAuditLogs();
     } catch (err) {
-      console.error('Error guardando perfil en backend:', err);
+      console.warn("Error guardando perfil en backend:");
       setProfileSaveError('No pudimos guardar los cambios. Conservamos lo que ingresaste para que puedas intentarlo otra vez.');
       return;
     } finally {
@@ -912,7 +914,7 @@ export const PatientDashboard = () => {
       const list = Array.isArray(payload) ? payload : (payload.doctors || []);
       setDoctors(list);
     } catch (err) {
-      console.error('Error cargando médicos:', err);
+      console.warn("Error cargando médicos:");
       setDoctors([]);
       setDirectShareError(err.response?.data?.message || 'No fue posible cargar la lista de médicos.');
     } finally {
@@ -959,7 +961,7 @@ export const PatientDashboard = () => {
       await fetchMyGrants();
       fetchAuditLogs();
     } catch (err) {
-      console.error('Error compartiendo ficha directamente:', err);
+      console.warn("Error compartiendo ficha directamente:");
       setDirectShareError(
         err.response?.data?.message || err.message || 'No fue posible compartir la ficha con el médico.'
       );
@@ -1012,7 +1014,7 @@ export const PatientDashboard = () => {
         setActiveGrant(null);
       }
     } catch (err) {
-      console.error('Error fetching active grant:', err);
+      console.warn("Error fetching active grant:");
       setActiveGrant(null);
     } finally {
       setIsLoadingGrant(false);
@@ -1100,7 +1102,7 @@ export const PatientDashboard = () => {
         fetchAuditLogs();
       }
     } catch (err) {
-      console.error('Error generating grant:', err);
+      console.warn("Error generating grant:");
       setGrantError(err.response?.data?.message || 'Error al generar código QR de acceso');
     } finally {
       setIsGeneratingGrant(false);
@@ -1128,7 +1130,7 @@ export const PatientDashboard = () => {
       if (needsRefresh) await fetchActiveGrant();
       fetchAuditLogs();
     } catch (err) {
-      console.error('Error revoking grant:', err);
+      console.warn("Error revoking grant:");
       setGrantError(err.response?.data?.message || 'Error al revocar el acceso');
     } finally {
       setIsRevokingGrant(false);
@@ -1152,7 +1154,7 @@ export const PatientDashboard = () => {
       }
       fetchAuditLogs();
     } catch (err) {
-      console.error('Error revoking grant:', err);
+      console.warn("Error revoking grant:");
       alert(err.response?.data?.message || 'Error al revocar el acceso');
     }
   };
@@ -1187,7 +1189,7 @@ export const PatientDashboard = () => {
       setCopiedQrToken(true);
       setTimeout(() => setCopiedQrToken(false), 2500);
     } catch (error) {
-      console.warn('No se pudo copiar el código:', error);
+      console.warn("No se pudo copiar el código:");
       setGrantError('No se pudo copiar el código. Puedes mostrar el QR al profesional.');
     }
   };
@@ -1266,7 +1268,7 @@ export const PatientDashboard = () => {
         // Información al médico y paciente
         ctx.fillStyle = '#536b70';
         ctx.font = '13px "DM Sans", system-ui, sans-serif';
-        ctx.fillText('Quien use el QR debe declarar su RUT y nombre para abrir la ficha.', canvas.width / 2, 805);
+        ctx.fillText('La consulta requiere identificación declarada y aprobación del paciente.', canvas.width / 2, 805);
 
         ctx.fillStyle = '#536b70';
         ctx.font = 'italic 12px "DM Sans", system-ui, sans-serif';
@@ -1283,7 +1285,7 @@ export const PatientDashboard = () => {
 
       img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
     } catch (err) {
-      console.error('Error descargando QR:', err);
+      console.warn("Error descargando QR:");
     }
   };
 
@@ -1301,6 +1303,8 @@ export const PatientDashboard = () => {
       ]} /></div>
 
       <main id="main-content" tabIndex={-1} className={`mm-shell mm-patient-shell space-y-6${currentTab === 'home' ? ' mm-patient-shell--home' : ''}`}>
+        <QrApprovalRequests />
+        {currentTab === 'profile' && <PrivacyControls />}
         {/* ========================================================================= */}
         {/* PESTAÑA 1: INICIO (HOME PRINCIPAL) */}
         {/* ========================================================================= */}
@@ -1881,7 +1885,7 @@ export const PatientDashboard = () => {
                       </div>
                       <input ref={galleryInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" tabIndex={-1} onChange={handleUploadInputChange} />
                       <input ref={pdfInputRef} type="file" accept="application/pdf,.pdf" className="hidden" tabIndex={-1} onChange={handleUploadInputChange} />
-                      <p className="mm-upload-source-note">La IA y el OCR ayudan a extraer y organizar los datos. Podrás revisarlos antes de guardarlos. Máximo 10 MB.</p>
+                      <p className="mm-upload-source-note">El OCR lee el texto localmente. Completa y revisa los datos antes de guardarlos. Máximo 10 MB y 20 páginas por PDF.</p>
                     </>
                   )}
                   {uploadError && (
@@ -1899,7 +1903,7 @@ export const PatientDashboard = () => {
 
                   <div className="space-y-1">
                     <span className="font-extrabold text-ink dark:text-ink text-sm block">
-                      Analizando tu documento con IA...
+                      Leyendo tu documento con OCR local...
                     </span>
                     <p className="text-xs text-muted dark:text-muted max-w-xs mx-auto">
                       Extrayendo la información disponible. Puede tardar unos momentos.
@@ -1908,7 +1912,7 @@ export const PatientDashboard = () => {
 
                   <div className="space-y-2 max-w-sm mx-auto">
                     <div className="flex items-center justify-between text-xs font-mono text-muted dark:text-muted">
-                      <span>Procesando OCR + LLM</span>
+                      <span>Procesando OCR local</span>
                       <span className="font-bold text-teal-600 dark:text-teal-400">{uploadProgress}%</span>
                     </div>
                     <div className="w-full h-2.5 bg-surface-muted dark:bg-surface-muted rounded-full overflow-hidden p-0.5">
@@ -1924,6 +1928,11 @@ export const PatientDashboard = () => {
               {/* ESTADO 3: PREVIEW (Revisión editable) */}
               {uploadModalState === 'preview' && (
                 <div className="space-y-4">
+                  {tempDocument?.analysis?.raw_text && <details className="rounded-xl border border-line p-4">
+                    <summary className="cursor-pointer font-semibold">Texto leído con OCR local</summary>
+                    <p className="my-2 text-sm text-muted">Compara este texto con el original y completa los campos. No se envió a una IA externa.</p>
+                    <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap break-words text-sm">{tempDocument.analysis.raw_text}</pre>
+                  </details>}
                   {/* CASO A0: DOCUMENTO NO MÉDICO */}
                   {tempDocument?.analysis?.is_medical_document === false ? (
                     <div className="space-y-4 py-2">
@@ -1982,6 +1991,7 @@ export const PatientDashboard = () => {
                     </div>
                   ) : tempDocument?.isUnreadable ? (
                     <div className="space-y-4 py-2">
+                      <button type="button" className="mm-button mm-button--primary" onClick={() => setTempDocument({ ...tempDocument, isUnreadable: false })}>Completar los datos manualmente</button>
                       <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-2xl flex items-start gap-3">
                         <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                         <div className="space-y-1">
@@ -2539,7 +2549,7 @@ export const PatientDashboard = () => {
                     <span>Actividad de este acceso</span>
                   </div>
                   <p className="text-xs text-muted dark:text-muted leading-relaxed">
-                    Quien use el QR debe declarar su RUT y nombre. Esos datos quedan en la actividad de Accesos, pero el portal no verifica su identidad en esta modalidad.
+                    Quien use el QR declara su RUT y nombre y solicita tu aprobación. Aprueba la consulta desde tu portal solo si esperas a esa persona. Estos datos no acreditan su identidad profesional.
                   </p>
                 </div>
 
@@ -2599,7 +2609,8 @@ export const PatientDashboard = () => {
                   </span>
                   <ul className="text-xs text-muted dark:text-muted space-y-1 list-disc list-inside">
                     <li>El médico escanea tu QR desde su celular o sube una foto.</li>
-                    <li>Ingresa su RUT y Centro de Salud / Consulta para identificarse legalmente.</li>
+                    <li>Declara su nombre, RUT e institución; estos datos no acreditan su identidad profesional.</li>
+                    <li>Recibes una solicitud en tu portal y decides si apruebas esa consulta.</li>
                     <li>Tiene acceso de solo lectura únicamente durante las {qrDuration} horas elegidas.</li>
                     <li>Válido para cualquier médico: consultas privadas, CESFAM, clínicas u hospitales.</li>
                     <li>Puedes anular el permiso en cualquier momento con el botón de revocar.</li>

@@ -41,25 +41,31 @@ export const PrivacyPolicyPage = () => {
               Política de Privacidad y Confidencialidad Médica
             </h1>
             <p className="text-xs text-muted mt-1">
-              Información sobre los datos y accesos del prototipo MyMedRecord.
+              Versión 2026-10-25.1 · Prototipo en verificación, exclusivamente con datos ficticios.
             </p>
           </div>
 
           <div className="p-4 bg-accent-soft border border-line rounded-2xl flex items-start gap-3">
             <ShieldCheck className="w-6 h-6 text-accent-ink shrink-0 mt-0.5" />
             <div className="text-sm text-body leading-relaxed">
-              <strong>Control de acceso del paciente:</strong> Puedes compartir temporalmente tu ficha mediante un QR o un permiso directo a un médico registrado, y revocar esos permisos desde tu portal. Quien tenga un QR vigente puede usarlo sin cuenta.
+              <strong>Control de acceso del paciente:</strong> Puedes compartir temporalmente tu ficha mediante un QR o un permiso directo a un médico registrado, y revocar esos permisos desde tu portal. El QR sin cuenta requiere tu aprobación antes de mostrar datos. La identidad del visitante es declarada y no acredita su condición profesional. Revocar bloquea nuevas consultas, pero no recupera archivos ya descargados.
             </div>
           </div>
 
           <div className="space-y-4 text-xs sm:text-sm text-muted leading-relaxed">
+            <section className="space-y-2">
+              <h2 className="text-base font-bold text-ink">Procesamiento y conservación</h2>
+              <p>El OCR de imágenes y PDF se realiza localmente; esta versión no envía contenido a Gemini ni a otro proveedor de IA. Los archivos se guardan en un bucket privado de Supabase y se consultan mediante el backend autorizado. Los campos clínicos se cifran en la aplicación; los identificadores de cuenta siguen disponibles para autenticación y búsqueda.</p>
+              <p>El texto OCR temporal se elimina al confirmar o descartar. Los temporales abandonados se limpian cada hora cuando superan 24 horas. Al eliminar un documento se oculta de inmediato; si falla el borrado físico se conserva pendiente de reintento. Los plazos de conservación de documentos confirmados, auditoría y respaldos se definirán antes de un piloto con datos reales.</p>
+              <p>Puedes exportar tus datos y registrar la aceptación de esta versión desde Mi perfil. Antes de un piloto se publicarán el responsable del tratamiento y su canal de contacto.</p>
+            </section>
             <section className="space-y-2">
               <h2 className="text-base font-bold text-ink flex items-center gap-2">
                 <FileText className="w-4 h-4 text-accent-ink" />
                 1. Datos Personales y Sensibles Recolectados
               </h2>
               <p>
-                MyMedRecord recopila exclusivamente la información requerida para la prestación y continuidad del servicio de salud:
+                MyMedRecord utiliza estos datos para organizar documentos y permitir su consulta autorizada:
               </p>
               <ul className="list-disc pl-5 space-y-1 text-muted text-xs">
                 <li><strong>Identificación Oficial:</strong> Nombre completo, Rol Único Tributario (RUT) y correo electrónico.</li>

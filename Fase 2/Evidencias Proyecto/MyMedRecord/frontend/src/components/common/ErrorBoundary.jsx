@@ -11,8 +11,8 @@ export class ErrorBoundary extends React.Component {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error, errorInfo) {
-    console.error('[ErrorBoundary] Error capturado:', error, errorInfo);
+  componentDidCatch() {
+    console.error('[ErrorBoundary] No se pudo mostrar esta vista.');
   }
 
   render() {

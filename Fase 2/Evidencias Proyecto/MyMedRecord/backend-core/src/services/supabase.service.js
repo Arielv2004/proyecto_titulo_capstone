@@ -1,143 +1,50 @@
 const { createClient } = require('@supabase/supabase-js');
-const path = require('path');
-const crypto = require('crypto');
 const config = require('../config/env');
-
-const SUPABASE_URL = config.SUPABASE?.URL;
-const SUPABASE_KEY = config.SUPABASE?.SERVICE_ROLE_KEY;
-const BUCKET = config.SUPABASE?.BUCKET || 'medical-documents';
-
-let supabaseClient = null;
-
-if (SUPABASE_URL && SUPABASE_KEY) {
-  try {
-    supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-    });
-  } catch (err) {
-    console.error('[SupabaseService] Error inicializando cliente de Supabase:', err.message);
-  }
-}
-
+const bucket = config.SUPABASE?.BUCKET || 'medical-documents';
+const url = config.SUPABASE?.URL;
+const key = config.SUPABASE?.SERVICE_ROLE_KEY;
+const client = url && key ? createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}}) : null;
 class SupabaseService {
-  static objectPath(filePath) {
-    if (!filePath) return '';
-    const marker = `/${BUCKET}/`;
-    const index = filePath.indexOf(marker);
-    return decodeURIComponent((index >= 0 ? filePath.slice(index + marker.length) : filePath).split('?')[0].split('#')[0]);
+  static isConfigured() { return Boolean(client); }
+  static isSupabaseUrl(ref) { return typeof ref==='string' && (ref.startsWith('supabase://'+bucket+'/') || (url && ref.startsWith(url+'/storage/v1/object/'))); }
+  static objectPath(ref) {
+    if(!this.isSupabaseUrl(ref)) throw new Error('Referencia de almacenamiento no válida.');
+    const prefix='supabase://'+bucket+'/';
+    const value=ref.startsWith(prefix)?ref.slice(prefix.length):ref.slice(ref.indexOf('/'+bucket+'/')+bucket.length+2).split('?')[0];
+    const path=decodeURIComponent(value);
+    if(!path || path.split('/').includes('..')) throw new Error('Referencia no válida.');
+    return path;
   }
-
-  static async downloadFile(filePath) {
-    if (!this.isConfigured()) {
-      const error = new Error('Almacenamiento remoto no disponible.');
-      error.statusCode = 503;
-      throw error;
-    }
-    const objectPath = this.objectPath(filePath);
-    const { data, error } = await supabaseClient.storage.from(BUCKET).download(objectPath);
-    if (error || !data) {
-      const missing = new Error('El archivo original no está disponible.');
-      missing.statusCode = 404;
-      throw missing;
-    }
-    return Buffer.from(await data.arrayBuffer());
+  static async assertPrivate() {
+    if(!client) throw new Error('Storage no configurado.');
+    const {data,error}=await client.storage.getBucket(bucket);
+    if(error || !data || data.public) throw new Error('El bucket debe ser privado antes de iniciar.');
   }
-  /**
-   * Indica si el servicio de Supabase Storage está configurado y listo.
-   */
-  static isConfigured() {
-    return Boolean(supabaseClient && SUPABASE_URL && SUPABASE_KEY);
+  static async makePrivate() {
+    if(!client) throw new Error('Storage no configurado.');
+    const {error}=await client.storage.updateBucket(bucket,{public:false});
+    if(error) throw new Error('No se pudo configurar el bucket privado.');
+    await this.assertPrivate();
   }
-
-  /**
-   * Determina si una ruta corresponde a una URL almacenada en Supabase Storage.
-   * @param {string} filePath
-   */
-  static isSupabaseUrl(filePath) {
-    if (!filePath || typeof filePath !== 'string') return false;
-    if (SUPABASE_URL && filePath.startsWith(SUPABASE_URL)) return true;
-    return (
-      (filePath.startsWith('http://') || filePath.startsWith('https://')) &&
-      filePath.includes('/storage/v1/object/')
-    );
+  static async uploadFile(buffer,name,type) {
+    await this.assertPrivate();
+    const {error}=await client.storage.from(bucket).upload(name,buffer,{contentType:type,upsert:false,cacheControl:'0'});
+    if(error) {const e=new Error('No se pudo guardar el archivo. Intenta nuevamente.');e.statusCode=503;throw e;}
+    return {objectRef:'supabase://'+bucket+'/'+name,fileName:name};
   }
-
-  /**
-   * Sube un buffer a Supabase Storage en el bucket de documentos médicos.
-   * @param {Buffer} fileBuffer
-   * @param {string} originalName
-   * @param {string} mimeType
-   * @returns {Promise<{ publicUrl: string, fileName: string }>}
-   */
-  static async uploadFile(fileBuffer, originalName, mimeType) {
-    if (!this.isConfigured()) {
-      throw new Error('Supabase Storage no está configurado.');
-    }
-
-    const ext = path.extname(originalName || '').toLowerCase() || '.png';
-    const random = crypto.randomBytes(8).toString('hex');
-    const uniqueName = `${Date.now()}-${random}${ext}`;
-
-    const { data, error } = await supabaseClient.storage
-      .from(BUCKET)
-      .upload(uniqueName, fileBuffer, {
-        contentType: mimeType,
-        upsert: false,
-      });
-
-    if (error) {
-      throw new Error(`Error subiendo a Supabase Storage: ${error.message}`);
-    }
-
-    // Construir URL pública según especificación
-    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${uniqueName}`;
-
-    return {
-      publicUrl,
-      fileName: uniqueName,
-    };
+  static async downloadFile(ref) {
+    if(!client) throw new Error('Storage no configurado.');
+    const object=this.objectPath(ref).split('/').map(encodeURIComponent).join('/');
+    const nonce=require('node:crypto').randomUUID();
+    const response=await fetch(url+'/storage/v1/object/authenticated/'+encodeURIComponent(bucket)+'/'+object+'?fresh='+nonce,{
+      headers:{apikey:key,Authorization:'Bearer '+key,'Cache-Control':'no-cache'},cache:'no-store',signal:AbortSignal.timeout(30000)
+    });
+    if(!response.ok) {const e=new Error('Archivo no disponible.');e.statusCode=response.status===404?404:503;throw e;}
+    return Buffer.from(await response.arrayBuffer());
   }
-
-  /**
-   * Elimina un archivo de Supabase Storage.
-   * No lanza error si el archivo no existe (manejo silencioso).
-   * @param {string} filePath - URL completa o path relativo dentro del bucket
-   */
-  static async deleteFile(filePath) {
-    if (!this.isConfigured() || !filePath) return false;
-
-    try {
-      let relativePath = filePath;
-      const bucketMarker = `/${BUCKET}/`;
-
-      if (filePath.includes(bucketMarker)) {
-        relativePath = filePath.split(bucketMarker)[1];
-      } else if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
-        const parts = filePath.split('/');
-        relativePath = parts[parts.length - 1];
-      }
-
-      relativePath = decodeURIComponent(relativePath.split('?')[0].split('#')[0]);
-
-      if (!relativePath) return false;
-
-      const { error } = await supabaseClient.storage
-        .from(BUCKET)
-        .remove([relativePath]);
-
-      if (error) {
-        console.warn(`[SupabaseService] Aviso al eliminar archivo (${relativePath}):`, error.message);
-        return false;
-      }
-      return true;
-    } catch (err) {
-      console.warn('[SupabaseService] Error no fatal al eliminar archivo:', err.message);
-      return false;
-    }
+  static async deleteFile(ref) {
+    if(!client) return false;
+    try {const {error}=await client.storage.from(bucket).remove([this.objectPath(ref)]);return !error;} catch {return false;}
   }
 }
-
-module.exports = SupabaseService;
+module.exports=SupabaseService;

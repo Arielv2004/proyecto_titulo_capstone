@@ -9,7 +9,7 @@ const rbacMiddleware = require('../middlewares/rbac.middleware');
 router.use(authMiddleware);
 
 // Todas las rutas de agenda médica requieren rol MEDICO
-router.use(rbacMiddleware('MEDICO'));
+router.use(rbacMiddleware('MEDICO'), require('../security/access-policy').doctorMiddleware);
 
 // Agenda del día del médico autenticado
 router.get(
