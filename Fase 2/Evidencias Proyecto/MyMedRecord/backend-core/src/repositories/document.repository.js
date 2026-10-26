@@ -385,5 +385,50 @@ class DocumentRepository {
     const result = await db.query(query, [documentIds]);
     return result.rows;
   }
+
+  static async findPrescriptionById(id) {
+    const query = `
+      SELECT
+        p.id,
+        p.document_id,
+        p.patient_id,
+        p.doctor_name,
+        p.diagnosis_code,
+        p.diagnosis_text,
+        p.issue_date,
+        p.valid_until,
+        p.is_chronic,
+        p.status,
+        p.created_at,
+        COALESCE((
+          SELECT json_agg(json_build_object(
+            'id', pi.id,
+            'prescription_id', pi.prescription_id,
+            'medication_name', pi.medication_name,
+            'dosage', pi.dosage,
+            'frequency', pi.frequency,
+            'duration', pi.duration,
+            'instructions', pi.instructions
+          ))
+          FROM prescription_items pi
+          WHERE pi.prescription_id = p.id
+        ), '[]'::json) AS items
+      FROM prescriptions p
+      WHERE p.id = $1;
+    `;
+    const result = await db.query(query, [id]);
+    return result.rows[0] || null;
+  }
+
+  static async updatePrescriptionStatus(id, status) {
+    const query = `
+      UPDATE prescriptions
+      SET status = $1
+      WHERE id = $2
+      RETURNING *;
+    `;
+    const result = await db.query(query, [status, id]);
+    return result.rows[0] || null;
+  }
 }
 module.exports = DocumentRepository;

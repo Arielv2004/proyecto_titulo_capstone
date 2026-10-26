@@ -106,6 +106,16 @@ export const documentsApi = {
     const { data } = await api.delete(`/documents/${id}`);
     return data;
   },
+
+  /**
+   * Actualiza el estado de una receta médica (PAUSADO, ACTIVA, ELIMINADO).
+   * @param {string} id
+   * @param {'PAUSADO' | 'ACTIVA' | 'ELIMINADO'} status
+   */
+  async updatePrescriptionStatus(id, status) {
+    const { data } = await api.patch(`/documents/prescriptions/${id}/status`, { status });
+    return data;
+  },
 };
 
 export const prepareDocumentWindow = () => {

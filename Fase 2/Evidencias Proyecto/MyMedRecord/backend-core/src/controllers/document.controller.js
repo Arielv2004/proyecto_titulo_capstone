@@ -176,5 +176,32 @@ class DocumentController {
             next(error);
         }
     }
+
+    static async updatePrescriptionStatus(req, res, next) {
+        try {
+            const { status } = req.body;
+            const result = await DocumentService.updatePrescriptionStatus({
+                prescriptionId: req.params.id,
+                status,
+                user: req.user,
+                ipAddress: req.ip || req.connection?.remoteAddress || '0.0.0.0',
+                userAgent: req.headers['user-agent'] || null,
+            });
+
+            return res.status(200).json({
+                success: true,
+                message: 'Estado del tratamiento actualizado.',
+                data: result,
+            });
+        } catch (error) {
+            if (error.statusCode) {
+                return res.status(error.statusCode).json({
+                    success: false,
+                    message: error.message,
+                });
+            }
+            next(error);
+        }
+    }
 }
 module.exports = DocumentController;

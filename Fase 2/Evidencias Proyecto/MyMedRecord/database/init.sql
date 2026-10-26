@@ -291,8 +291,10 @@ CREATE TABLE prescriptions (
         CHECK (
             status IN (
                 'ACTIVA',
+                'PAUSADO',
                 'FINALIZADA',
-                'VENCIDA'
+                'VENCIDA',
+                'ELIMINADO'
             )
         ),
 

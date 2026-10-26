@@ -111,11 +111,13 @@ class DocumentService {
         // 4. Normalizar tipo de documento
         const isMedicalDoc = aiResult?.is_medical_document !== false;
         const documentType = isMedicalDoc ? this._normalizeDocumentType(aiResult.document_type) : 'OTRO';
+        const suggestedTitle = (aiResult?.suggested_title || '').trim().slice(0, 50) || (isMedicalDoc ? 'Documento Médico' : 'Documento');
 
-        // 5. Actualizar documento con el tipo real y el texto OCR
+        // 5. Actualizar documento con el tipo real, título generado por IA y el texto OCR
         await this._updateDocumentAfterAi(doc.id, {
             document_type: documentType,
             ocr_raw_text: aiResult.raw_text,
+            title: suggestedTitle,
         });
 
         // 6. Guardar datos estructurados según tipo (solo si es documento médico)
@@ -237,18 +239,21 @@ class DocumentService {
             ? this._normalizeDocumentType(aiResult?.document_type)
             : 'OTRO';
 
+        const suggestedTitle = (aiResult?.suggested_title || '').trim().slice(0, 50) || (isMedicalDoc ? 'Documento Médico' : 'Documento');
+
         // 3. Actualizar metadatos detectados manteniendo status = 'TEMP'
         await this._updateDocumentAfterAi(doc.id, {
             document_type: documentType,
             ocr_raw_text: aiResult?.raw_text || null,
             document_date: aiResult?.document_date || null,
+            title: suggestedTitle,
         });
 
         return {
             tempId: doc.id,
             document: {
                 id: doc.id,
-                title: doc.title,
+                title: suggestedTitle,
                 file_name: doc.file_name,
                 mime_type: doc.mime_type,
                 document_type: documentType,
@@ -256,6 +261,7 @@ class DocumentService {
             },
             analysis: {
                 ...aiResult,
+                suggested_title: suggestedTitle,
                 is_medical_document: isMedicalDoc,
             },
             isUnreadable,
@@ -292,7 +298,7 @@ class DocumentService {
         const documentType = isMedicalDoc
             ? this._normalizeDocumentType(editedData.document_type || doc.document_type)
             : 'OTRO';
-        const title = editedData.title || doc.title || (isMedicalDoc ? 'Documento Clínico' : 'Documento no médico');
+        const title = editedData.title || editedData.suggested_title || doc.title || (isMedicalDoc ? 'Documento Clínico' : 'Documento no médico');
         const issuingDoctor = isMedicalDoc ? (editedData.issuing_doctor || doc.issuing_doctor || null) : null;
         const issuingInstitution = isMedicalDoc ? (editedData.issuing_institution || doc.issuing_institution || null) : null;
 
@@ -694,6 +700,74 @@ class DocumentService {
         return { id: documentId, deleted: true, fileDeleted };
     }
 
+    /**
+     * Actualiza el estado de una receta médica (PAUSADO, ACTIVA, ELIMINADO).
+     * Valida que el paciente sea dueño de la receta y registra trazabilidad en audit_logs.
+     */
+    static async updatePrescriptionStatus({ prescriptionId, status, user, ipAddress, userAgent }) {
+        const allowedStatuses = ['PAUSADO', 'ACTIVA', 'ELIMINADO'];
+        if (!status || !allowedStatuses.includes(status)) {
+            const error = new Error(`Estado no válido. Debe ser uno de: ${allowedStatuses.join(', ')}.`);
+            error.statusCode = 400;
+            throw error;
+        }
+
+        if (!isDocumentId(prescriptionId)) {
+            const error = new Error('Identificador de receta no válido.');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const prescription = await DocumentRepository.findPrescriptionById(prescriptionId);
+        if (!prescription) {
+            const error = new Error('Receta médica no encontrada.');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        // Validar propiedad del paciente
+        if (user.role !== 'PACIENTE' || prescription.patient_id !== user.id) {
+            const error = new Error('No tienes permiso para modificar este tratamiento.');
+            error.statusCode = 403;
+            throw error;
+        }
+
+        const previousStatus = prescription.status;
+        const updated = await DocumentRepository.updatePrescriptionStatus(prescriptionId, status);
+
+        // Determinar acción de auditoría según Ley N° 21.668
+        let auditAction = 'UPDATE_PRESCRIPTION_STATUS';
+        if (status === 'PAUSADO') {
+            auditAction = 'PAUSE_PRESCRIPTION';
+        } else if (status === 'ELIMINADO') {
+            auditAction = 'DELETE_PRESCRIPTION';
+        } else if (status === 'ACTIVA') {
+            auditAction = 'RESUME_PRESCRIPTION';
+        }
+
+        await DocumentRepository.logAudit({
+            userId: user.id,
+            patientId: prescription.patient_id,
+            action: auditAction,
+            details: {
+                prescriptionId,
+                documentId: prescription.document_id,
+                doctorName: prescription.doctor_name,
+                diagnosis: prescription.diagnosis_text,
+                medications: (prescription.items || []).map(it => it.medication_name),
+                previousStatus,
+                newStatus: status,
+            },
+            ipAddress: ipAddress || '0.0.0.0',
+            userAgent: userAgent || null,
+        });
+
+        return {
+            ...updated,
+            items: prescription.items || [],
+        };
+    }
+
     // ─── PRIVADOS ───────────────────────────────────────────────────────────
 
     static async _sendToAiService(fileInput, fileName, mimeType) {
@@ -821,18 +895,25 @@ class DocumentService {
         return maxDays;
     }
 
-    static async _updateDocumentAfterAi(documentId, { document_type, ocr_raw_text, document_date }) {
+    static async _updateDocumentAfterAi(documentId, { document_type, ocr_raw_text, document_date, title }) {
         const db = require('../config/db');
         const query = `
       UPDATE documents
       SET document_type = $1,
           ocr_raw_text = $2,
           document_date = COALESCE($3, document_date),
+          title = COALESCE($4, title),
           updated_at = CURRENT_TIMESTAMP
-      WHERE id = $4
+      WHERE id = $5
       RETURNING *;
     `;
-        const result = await db.query(query, [document_type, ocr_raw_text, document_date || null, documentId]);
+        const result = await db.query(query, [
+            document_type,
+            ocr_raw_text,
+            document_date || null,
+            title || null,
+            documentId,
+        ]);
         return result.rows[0];
     }
 

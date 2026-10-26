@@ -67,6 +67,30 @@ class AuditController {
             category = 'SISTEMA';
             iconType = 'shield';
             break;
+          case 'PAUSE_PRESCRIPTION':
+            title = 'Tratamiento Pausado';
+            description = (Array.isArray(details.medications) && details.medications.length)
+              ? `Pausaste el tratamiento de: ${details.medications.join(', ')}.`
+              : 'Pausaste una receta médica activa.';
+            category = 'TRATAMIENTOS';
+            iconType = 'pause';
+            break;
+          case 'DELETE_PRESCRIPTION':
+            title = 'Tratamiento Retirado';
+            description = (Array.isArray(details.medications) && details.medications.length)
+              ? `Retiraste de tus tratamientos activos: ${details.medications.join(', ')}.`
+              : 'Retiraste una receta médica de tus tratamientos activos.';
+            category = 'TRATAMIENTOS';
+            iconType = 'trash';
+            break;
+          case 'RESUME_PRESCRIPTION':
+            title = 'Tratamiento Reactivado';
+            description = (Array.isArray(details.medications) && details.medications.length)
+              ? `Reanudaste el tratamiento de: ${details.medications.join(', ')}.`
+              : 'Reanudaste una receta médica previamente pausada.';
+            category = 'TRATAMIENTOS';
+            iconType = 'play';
+            break;
           default:
             title = log.action.replace(/_/g, ' ');
             description = details.message || 'Registro de actividad del sistema.';

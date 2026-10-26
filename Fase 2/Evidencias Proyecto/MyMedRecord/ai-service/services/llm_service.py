@@ -31,6 +31,7 @@ Marca is_medical_document=false si el texto es:
 Cuando is_medical_document=false:
 - diagnoses, medications y lab_metrics DEBEN ser listas vacías [].
 - document_type DEBE ser 'OTRO'.
+- suggested_title DEBE ser 'Doc. No Médico'.
 - summary DEBE ser: 'El documento no contiene información médica legible.'
 - NUNCA intentes interpretar mensajes de error técnico, código o texto genérico como diagnósticos ni medicamentos.
 
@@ -55,6 +56,7 @@ REGLAS DE EXTRACCIÓN (cuando is_medical_document=true):
    - Si no está visible en el texto, déjala en null.
 6. Para diagnósticos, corrige tildes y errores de OCR.
 7. El "summary" debe ser un resumen clínico breve en español (2-3 frases).
+8. Genera un `suggested_title` de máximo 20 caracteres. Usa el formato '[Tipo] - [Diagnóstico corto]'. Ejemplo: 'Receta - Diabetes', 'Examen - Sangre'. Si no hay diagnóstico explícito, usa el fármaco o prueba principal (ej: 'Receta - Paracetamol', 'Examen - Orina'). NUNCA superes los 20 caracteres.
 
 Clasifica el documento con estas reglas, en este orden de prioridad:
 
@@ -93,6 +95,7 @@ class LLMService:
         if not settings.LLM_API_KEY or settings.LLM_API_KEY == "tu_api_key_de_llm_aqui":
             h_type = _heuristic_type(raw_text)
             return DocumentExtractionResponse(
+                suggested_title=f"{h_type.capitalize()[:10]} - General"[:20],
                 is_medical_document=(h_type != "OTRO"),
                 document_type=h_type,
                 raw_text=raw_text,
@@ -153,6 +156,7 @@ class LLMService:
         # Si todos los modelos fallaron, fallback heurístico
         h_type = _heuristic_type(raw_text)
         return DocumentExtractionResponse(
+            suggested_title=f"{h_type.capitalize()[:10]} - General"[:20],
             is_medical_document=(h_type != "OTRO"),
             document_type=h_type,
             raw_text=raw_text,

@@ -42,6 +42,7 @@ router.post('/analyze', upload.single('file'), DocumentController.analyze);
 router.post('/confirm', DocumentController.confirm);
 router.post('/discard', DocumentController.discard);
 router.get('/', DocumentController.list);
+router.patch('/prescriptions/:id/status', DocumentController.updatePrescriptionStatus);
 router.patch('/:id', DocumentController.update);
 router.delete('/:id', DocumentController.remove);
 router.get('/:id/file', DocumentController.file);

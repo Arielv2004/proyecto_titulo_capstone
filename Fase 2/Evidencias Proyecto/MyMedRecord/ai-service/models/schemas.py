@@ -18,6 +18,11 @@ class LabMetricEntity(BaseModel):
 
 class ClinicalExtractionData(BaseModel):
     """Schema estructurado para la respuesta del LLM (sin campos de transporte como raw_text)."""
+    suggested_title: str = Field(
+        ...,
+        max_length=20,
+        description="Título corto para el documento, ej: 'Receta - Faringitis'"
+    )
     is_medical_document: bool = Field(
         True,
         description="Indica si el texto corresponde a un documento médico clínico (receta, examen, informe). False para errores de sistema, código, texto genérico o contenido no clínico."

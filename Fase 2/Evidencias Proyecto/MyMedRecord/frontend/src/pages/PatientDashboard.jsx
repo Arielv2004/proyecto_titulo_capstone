@@ -652,6 +652,12 @@ export const PatientDashboard = () => {
       alert(err.response?.data?.message || 'Error al eliminar el documento');
     }
   };
+
+  const handleUpdatePrescriptionStatus = async (prescriptionId, status) => {
+    await documentsApi.updatePrescriptionStatus(prescriptionId, status);
+    await refreshDocuments();
+    fetchAuditLogs?.();
+  };
   // Pilares clínicos (categorías del dashboard con conteos y badges dinámicos)
   const clinicalPillars = useMemo(() => {
     const today = new Date();
@@ -1306,6 +1312,8 @@ export const PatientDashboard = () => {
         {/* ========================================================================= */}
         {currentTab === 'home' && <PatientHome
           loading={loadingDocs} error={docsError}
+          documents={documents}
+          onStatusChange={handleUpdatePrescriptionStatus}
           grants={myGrants} loadingGrants={loadingGrants} grantsError={grantsError} categories={clinicalPillars}
           onUpload={handleOpenUploadModal} onShare={handleOpenDirectShare} onQr={() => openQrModal()}
           onRecords={() => { setSearchQuery(''); setSelectedCategory('ALL'); setCurrentTab('records'); }}

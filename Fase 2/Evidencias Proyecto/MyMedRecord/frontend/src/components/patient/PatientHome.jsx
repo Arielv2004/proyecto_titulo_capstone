@@ -1,10 +1,13 @@
 import React from 'react';
 import { ArrowRight, ArrowUpRight, QrCode, Share2, ShieldCheck, Sparkles, Upload } from 'lucide-react';
 import { Button, Card, InfoPopover, LoadingState, Notice } from '../ui/ClinicalUI';
+import { ActiveTreatmentsBanner } from './ActiveTreatmentsBanner';
 
 export function PatientHome({
   loading,
   error,
+  documents = [],
+  onStatusChange,
   grants,
   loadingGrants,
   grantsError,
@@ -61,6 +64,13 @@ export function PatientHome({
           </ol>
         </InfoPopover>
       </section>
+
+      <ActiveTreatmentsBanner
+        documents={documents}
+        loading={loading}
+        onStatusChange={onStatusChange}
+        onUpload={onUpload}
+      />
 
       <div className="mm-content-grid">
         <Card
