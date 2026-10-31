@@ -1,6 +1,8 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('node:crypto');
 const UserRepository = require('../repositories/user.repository');
+const EmailService = require('./email.service');
 const config = require('../config/env');
 
 class AuthService {
@@ -187,6 +189,105 @@ class AuthService {
       user: userProfile,
       token,
     };
+  }
+  
+  // =====================================================
+  // SOLICITAR RECUPERACIÓN DE CONTRASEÑA
+  // =====================================================
+
+  static async forgotPassword({ email }) {
+    const user = await UserRepository.findByEmail(email);
+
+    // No revelar si el correo existe o no.
+    if (!user || !user.is_active) {
+      return;
+    }
+
+    // Token aleatorio de 32 bytes.
+    const token = crypto.randomBytes(32).toString('hex');
+
+    // Guardar solamente el hash del token.
+    const tokenHash = crypto
+      .createHash('sha256')
+      .update(token)
+      .digest('hex');
+
+    // Duración de 30 minutos.
+    const expiresAt = new Date(
+      Date.now() + 30 * 60 * 1000
+    );
+
+    await UserRepository.savePasswordResetToken(
+      user.id,
+      tokenHash,
+      expiresAt
+    );
+
+    // =====================================================
+    // ENVIAR ENLACE DE RECUPERACIÓN AL CORREO
+    // =====================================================
+
+    await EmailService.sendPasswordResetEmail(
+      user.email,
+      token
+    );
+  }
+
+  // =====================================================
+  // RESTABLECER CONTRASEÑA
+  // =====================================================
+
+  static async resetPassword({ token, password }) {
+    // Validación básica de contraseña.
+    if (
+      typeof password !== 'string' ||
+      password.length < 8 ||
+      Buffer.byteLength(password, 'utf8') > 72
+    ) {
+      const error = new Error(
+        'La contraseña debe tener al menos 8 caracteres y no superar 72 bytes.'
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // Validar formato del token.
+    if (
+      typeof token !== 'string' ||
+      !/^[a-f0-9]{64}$/i.test(token)
+    ) {
+      const error = new Error(
+        'El enlace de recuperación no es válido.'
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const tokenHash = crypto
+      .createHash('sha256')
+      .update(token)
+      .digest('hex');
+
+    // Generar hash de la nueva contraseña.
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Actualizar contraseña y consumir el token
+    // mediante una transacción.
+    const updated =
+      await UserRepository.resetPasswordWithToken(
+        tokenHash,
+        passwordHash
+      );
+
+    if (!updated) {
+      const error = new Error(
+        'El enlace de recuperación es inválido o ha expirado.'
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
+    return true;
   }
 
   // =====================================================

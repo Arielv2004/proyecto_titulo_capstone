@@ -75,6 +75,67 @@ class AuthController {
     }
   }
 
+  // Solicitar recuperación de contraseña
+  static async forgotPassword(req, res, next) {
+    try {
+      const { email } = req.body;
+
+      if (typeof email !== 'string' || !email.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Debes ingresar un correo electrónico válido.',
+        });
+      }
+
+      await AuthService.forgotPassword({
+        email: email.trim().toLowerCase(),
+      });
+
+      return res.status(200).json({
+        success: true,
+        message:
+          'Si el correo está registrado, recibirás un enlace para restablecer tu contraseña.',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Restablecer contraseña mediante token temporal
+  static async resetPassword(req, res, next) {
+    try {
+      const { token, password } = req.body;
+
+      if (
+        typeof token !== 'string' ||
+        !token.trim() ||
+        typeof password !== 'string' ||
+        !password
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: 'El enlace y la nueva contraseña son obligatorios.',
+        });
+      }
+
+      await AuthService.resetPassword({
+        token,
+        password,
+      });
+
+      // Cerrar la sesión actual en este navegador
+      res.clearCookie(config.JWT.COOKIE_NAME, COOKIE_OPTIONS);
+
+      return res.status(200).json({
+        success: true,
+        message:
+          'Contraseña actualizada correctamente. Ya puedes iniciar sesión.',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async logout(req, res) {
     res.clearCookie(config.JWT.COOKIE_NAME, COOKIE_OPTIONS);
 

@@ -10,6 +10,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- 2. Limpieza de tablas previas
+DROP TABLE IF EXISTS password_reset_tokens CASCADE;
 DROP TABLE IF EXISTS audit_logs CASCADE;
 DROP TABLE IF EXISTS appointments CASCADE;
 DROP TABLE IF EXISTS access_grants CASCADE;
@@ -41,6 +42,20 @@ CREATE TABLE users (
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ==============================================================================
+-- TABLA: password_reset_tokens
+-- Tokens de recuperación de contraseña: solo se almacena el hash SHA-256.
+-- Cada usuario mantiene como máximo una solicitud vigente.
+-- ==============================================================================
+CREATE TABLE password_reset_tokens (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    token_hash CHAR(64) NOT NULL UNIQUE,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CHECK (expires_at > created_at)
 );
 
 -- ==============================================================================
@@ -383,6 +398,9 @@ CREATE TABLE audit_logs (
 -- ==============================================================================
 -- ÍNDICES DE RENDIMIENTO
 -- ==============================================================================
+
+CREATE INDEX idx_password_reset_tokens_expires_at
+    ON password_reset_tokens(expires_at);
 
 CREATE INDEX idx_users_rut
     ON users(rut);

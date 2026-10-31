@@ -10,12 +10,13 @@ class UserRepository {
       `SELECT id, rut, first_name, last_name, email,
               password_hash, role, is_active, created_at
        FROM users
-       WHERE email = $1`,
+       WHERE LOWER(email) = LOWER($1)`,
       [email]
     );
 
     return result.rows[0];
   }
+
 
   // =====================================================
   // BUSCAR POR RUT
@@ -268,6 +269,99 @@ class UserRepository {
       client.release();
     }
   }
+
+
+  // =====================================================
+  // GUARDAR TOKEN DE RECUPERACIÓN
+  // =====================================================
+
+  static async savePasswordResetToken(userId, tokenHash, expiresAt) {
+    await db.query(
+      `INSERT INTO password_reset_tokens (
+         user_id, token_hash, expires_at
+       )
+       VALUES ($1, $2, $3)
+       ON CONFLICT (user_id)
+       DO UPDATE SET
+         token_hash = EXCLUDED.token_hash,
+         expires_at = EXCLUDED.expires_at,
+         created_at = CURRENT_TIMESTAMP`,
+      [userId, tokenHash, expiresAt]
+    );
+  }
+
+  // =====================================================
+  // CONSULTAR TOKEN DE RECUPERACIÓN
+  // =====================================================
+
+  static async findPasswordResetToken(tokenHash) {
+    const result = await db.query(
+      `SELECT prt.id, prt.user_id, prt.expires_at
+       FROM password_reset_tokens prt
+       INNER JOIN users u ON u.id = prt.user_id
+       WHERE prt.token_hash = $1
+         AND prt.expires_at > CURRENT_TIMESTAMP
+         AND u.is_active = TRUE`,
+      [tokenHash]
+    );
+
+    return result.rows[0];
+  }
+
+  // =====================================================
+  // ACTUALIZAR CONTRASEÑA Y CONSUMIR TOKEN
+  // =====================================================
+
+  static async resetPasswordWithToken(tokenHash, passwordHash) {
+    const client = await db.pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      const result = await client.query(
+        `SELECT prt.id, prt.user_id
+         FROM password_reset_tokens prt
+         INNER JOIN users u ON u.id = prt.user_id
+         WHERE prt.token_hash = $1
+           AND prt.expires_at > CURRENT_TIMESTAMP
+           AND u.is_active = TRUE
+         FOR UPDATE OF prt`,
+        [tokenHash]
+      );
+
+      const reset = result.rows[0];
+
+      if (!reset) {
+        await client.query('ROLLBACK');
+        return false;
+      }
+
+      await client.query(
+        `UPDATE users
+         SET password_hash = $1,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $2`,
+        [passwordHash, reset.user_id]
+      );
+
+      await client.query(
+        `DELETE FROM password_reset_tokens
+         WHERE user_id = $1`,
+        [reset.user_id]
+      );
+
+      await client.query('COMMIT');
+
+      return true;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+
   // =====================================================
 // LISTAR MÉDICOS DISPONIBLES PARA COMPARTIR FICHA
 // =====================================================

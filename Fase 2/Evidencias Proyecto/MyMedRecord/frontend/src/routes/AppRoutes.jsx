@@ -12,6 +12,8 @@ import { ProtectedRoute } from '../components/auth/ProtectedRoute';
 
 import { LoginPage } from '../pages/LoginPage';
 import { RegisterPage } from '../pages/RegisterPage';
+import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
+import { ResetPasswordPage } from '../pages/ResetPasswordPage';
 import { PatientDashboard } from '../pages/PatientDashboard';
 import { DoctorDashboard } from '../pages/DoctorDashboard';
 import { SharedRecordPage } from '../pages/SharedRecordPage';
@@ -54,6 +56,16 @@ export const AppRoutes = () => {
       <Route
         path="/register"
         element={<RegisterPage />}
+      />
+      {/* Recuperación de contraseña */}
+      <Route
+        path="/forgot-password"
+        element={<ForgotPasswordPage />}
+      />
+
+      <Route
+        path="/reset-password"
+        element={<ResetPasswordPage />}
       />
 
       {/* Acceso médico mediante QR */}

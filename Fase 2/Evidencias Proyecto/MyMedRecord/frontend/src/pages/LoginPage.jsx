@@ -185,7 +185,15 @@ export const LoginPage = () => {
                 </button>
               </div>
             </div>
-
+            {/* Recuperación de contraseña */}
+            <div className="flex justify-end">
+              <Link
+                to="/forgot-password"
+                className="text-xs font-bold text-accent-ink dark:text-teal-300 hover:underline transition-colors"
+              >
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
             <button
               type="submit"
               disabled={isLoading}
@@ -252,6 +260,7 @@ export const LoginPage = () => {
           MyMedRecord · República de Chile · Plataforma de Salud Digital
           Interoperable
         </div>
+
       </footer>
     </div>
   );
