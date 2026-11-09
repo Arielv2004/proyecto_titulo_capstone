@@ -1,8 +1,12 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, status
 from services.pdf_service import PDFService
 from services.ocr_service import OCRService
-from services.llm_service import LLMService
-from models.schemas import DocumentExtractionResponse
+from services.llm_service import LLMService, LLMReportService
+from models.schemas import (
+    DocumentExtractionResponse,
+    ClinicalReportSummaryRequest,
+    ClinicalReportSummaryResponse,
+)
 
 router = APIRouter()
 
@@ -44,4 +48,18 @@ async def process_document(file: UploadFile = File(...)):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error en procesamiento de IA: {str(e)}"
+        )
+
+@router.post("/generate-report-summary", response_model=ClinicalReportSummaryResponse)
+async def generate_report_summary(payload: ClinicalReportSummaryRequest):
+    """
+    Genera una síntesis clínica narrativa en tono formal médico a partir
+    de los antecedentes consolidados del paciente (recetas, exámenes, diagnósticos).
+    """
+    try:
+        return await LLMReportService.generate_clinical_summary(payload)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al generar resumen clínico con IA: {str(e)}"
         )

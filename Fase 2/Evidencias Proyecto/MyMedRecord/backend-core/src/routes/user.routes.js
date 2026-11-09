@@ -12,6 +12,13 @@ router.get(
   UserController.exportMyData
 );
 
+router.get(
+  '/me/clinical-report',
+  authMiddleware,
+  rbacMiddleware('PACIENTE'),
+  UserController.getClinicalReportPDF
+);
+
 router.delete(
   '/me',
   authMiddleware,

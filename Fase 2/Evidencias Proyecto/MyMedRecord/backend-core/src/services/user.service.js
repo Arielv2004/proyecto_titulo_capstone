@@ -5,6 +5,8 @@ const UserDataRepository = require('../repositories/user-data.repository');
 const ClinicalRecordRepository = require('../repositories/clinical-record.repository');
 const DocumentService = require('./document.service');
 const SupabaseService = require('./supabase.service');
+const PDFService = require('./pdf.service');
+const axios = require('axios');
 
 class UserService {
   /**
@@ -244,6 +246,121 @@ class UserService {
       success: true,
       deletedFilesCount: filesToDelete.length - failedFiles.length,
       failedFilesCount: failedFiles.length,
+    };
+  }
+
+  /**
+   * Genera el Informe Clínico Unificado en PDF enriquecido con IA (Gemini).
+   */
+  static async generateClinicalReportPDF(userId, { ipAddress, userAgent }) {
+    const user = await UserDataRepository.findUserWithAuth(userId);
+    if (!user) {
+      const error = new Error('Usuario no encontrado.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    // 1. Obtener datos clínicos estructurados consolidados
+    const [profile, prescriptions, labReports, documentsRaw] = await Promise.all([
+      ClinicalRecordRepository.findPatientProfile(userId),
+      ClinicalRecordRepository.findPrescriptions(userId),
+      ClinicalRecordRepository.findLabReports(userId),
+      UserDataRepository.findExportDocuments(userId),
+    ]);
+
+    // 2. Solicitar síntesis narrativa al ai-service (con fallback preventivo)
+    let aiSummary = '';
+    try {
+      const aiPayload = {
+        patient_name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Paciente',
+        patient_rut: user.rut,
+        allergies: profile?.allergies || [],
+        chronic_conditions: profile?.chronic_conditions || [],
+        prescriptions: prescriptions.map((p) => ({
+          doctor: p.doctor_name,
+          diagnosis: p.diagnosis_text,
+          date: p.issue_date,
+          status: p.status,
+          medications: (p.items || []).map((m) => `${m.medication_name} ${m.dosage || ''} (${m.frequency || ''})`),
+        })),
+        lab_reports: labReports.map((l) => ({
+          laboratory: l.laboratory_name,
+          date: l.sample_date,
+          tests: (l.items || []).map((t) => `${t.test_name}: ${t.result_value} ${t.unit || ''} (Alterado: ${t.is_abnormal})`),
+        })),
+        documents_count: documentsRaw.length,
+      };
+
+      const aiUrl = `${config.AI_SERVICE_URL || 'http://localhost:8000'}/api/v1/ai/generate-report-summary`;
+      const aiResponse = await axios.post(aiUrl, aiPayload, { timeout: 15000 });
+      aiSummary = aiResponse.data?.summary_text || '';
+    } catch (aiErr) {
+      console.warn('[UserService] ai-service no disponible o tardó demasiado, usando síntesis estructurada local:', aiErr.message);
+      
+      const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'El paciente';
+      const docCount = documentsRaw.length;
+      const docPhrase = docCount === 1 ? '1 documento registrado' : `${docCount} documentos registrados`;
+
+      const rxCount = prescriptions.length;
+      const rxPhrase =
+        rxCount === 0
+          ? 'no registra prescripciones farmacológicas activas'
+          : rxCount === 1
+            ? 'cuenta con 1 receta médica vigente'
+            : `cuenta con ${rxCount} recetas médicas vigentes`;
+
+      const labCount = labReports.length;
+      const labPhrase =
+        labCount === 0
+          ? 'no presenta exámenes paraclínicos cargados'
+          : labCount === 1
+            ? '1 informe de laboratorio en seguimiento'
+            : `${labCount} informes de laboratorio en seguimiento`;
+
+      const allergiesText = profile?.allergies?.length ? profile.allergies.join(', ') : 'ninguna alergia conocida';
+      const chronicText = profile?.chronic_conditions?.length ? profile.chronic_conditions.join(', ') : 'sin condiciones crónicas informadas';
+
+      aiSummary =
+        `El paciente ${fullName} cuenta con ${docPhrase} en su historial clínico digital de MyMedRecord. ` +
+        `Registra antecedentes de ${allergiesText} y ${chronicText}.\n\n` +
+        `En cuanto a su esquema terapéutico, el paciente ${rxPhrase} y ${labPhrase} asistencial. ` +
+        `Se recomienda mantener controles periódicos con su profesional tratante conforme a los estándares clínicos.`;
+    }
+
+    // 3. Generar PDF con PDFKit
+    const pdfBuffer = await PDFService.generateClinicalReport({
+      patient: user,
+      profile: profile || {},
+      aiSummary,
+      prescriptions,
+      labReports,
+      documents: documentsRaw,
+    });
+
+    // 4. Registrar auditoría del reporte
+    await UserDataRepository.logAudit({
+      userId: user.id,
+      patientId: user.id,
+      action: 'CLINICAL_REPORT_GENERATED',
+      details: {
+        law: 'Ley 21.668 / Ley 21.719',
+        document_type: 'INFORME_CLINICO_PDF',
+        prescriptions_count: prescriptions.length,
+        lab_reports_count: labReports.length,
+        documents_count: documentsRaw.length,
+        ai_assisted: true,
+      },
+      ipAddress,
+      userAgent,
+    });
+
+    const cleanRut = (user.rut || 'paciente').replace(/[^0-9kK]/g, '');
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const filename = `informe-clinico-${cleanRut}-${dateStr}.pdf`;
+
+    return {
+      pdfBuffer,
+      filename,
     };
   }
 }
