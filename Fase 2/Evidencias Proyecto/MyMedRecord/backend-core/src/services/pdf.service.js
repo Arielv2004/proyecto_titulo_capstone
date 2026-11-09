@@ -253,19 +253,36 @@ class PDFService {
         // =====================================================================
         // 5. SÍNTESIS CLÍNICA NARRATIVA ASISTIDA POR IA (GEMINI)
         // =====================================================================
-        const startYAi = bgAntecedentes + 48;
+        const startYAi = bgAntecedentes + 44;
         doc
           .font('Helvetica-Bold')
-          .fontSize(10)
+          .fontSize(9.5)
           .fillColor(primaryColor)
           .text('SÍNTESIS CLÍNICA ASISTIDA POR INTELIGENCIA ARTIFICIAL (GEMINI)', leftMargin, startYAi);
 
-        const aiBoxY = startYAi + 14;
+        let aiBoxY = startYAi + 14;
         const aiText = aiSummary || 'No fue posible generar la síntesis automática en este momento.';
 
-        doc.font('Helvetica').fontSize(9);
-        const textHeight = doc.heightOfString(aiText, { width: pageWidth - 24, align: 'justify' });
-        const aiBoxHeight = Math.max(textHeight + 36, 68);
+        doc.font('Helvetica').fontSize(8.5);
+        const textOptions = {
+          width: pageWidth - 24,
+          align: 'justify',
+          lineGap: 2,
+        };
+        const textHeight = doc.heightOfString(aiText, textOptions);
+        const aiBoxHeight = Math.max(textHeight + 28, 54);
+
+        // Si la caja de IA excede el límite imprimible de la página 1, se ubica limpia en la página 2
+        if (aiBoxY + aiBoxHeight > 755) {
+          doc.addPage();
+          aiBoxY = 45;
+          doc
+            .font('Helvetica-Bold')
+            .fontSize(9.5)
+            .fillColor(primaryColor)
+            .text('SÍNTESIS CLÍNICA ASISTIDA POR INTELIGENCIA ARTIFICIAL (GEMINI)', leftMargin, aiBoxY);
+          aiBoxY += 14;
+        }
 
         doc
           .rect(leftMargin, aiBoxY, pageWidth, aiBoxHeight)
@@ -275,30 +292,28 @@ class PDFService {
           .font('Helvetica-Oblique')
           .fontSize(7.5)
           .fillColor('#0d9488')
-          .text('✨ Análisis contextual generado automáticamente a partir de los documentos clínicos digitalizados.', leftMargin + 12, aiBoxY + 8);
+          .text('✨ Análisis contextual generado automáticamente a partir de los documentos clínicos digitalizados.', leftMargin + 12, aiBoxY + 7);
 
         doc
           .font('Helvetica')
-          .fontSize(9)
+          .fontSize(8.5)
           .fillColor(darkColor)
-          .text(aiText, leftMargin + 12, aiBoxY + 22, {
-            width: pageWidth - 24,
-            align: 'justify',
-            lineGap: 2.5,
-          });
+          .text(aiText, leftMargin + 12, aiBoxY + 20, textOptions);
 
         doc.y = aiBoxY + aiBoxHeight + 14;
 
         // =====================================================================
         // 6. TRATAMIENTOS FARMACOLÓGICOS (AGRUPADOS POR RECETA)
         // =====================================================================
-        if (doc.y > 630) {
+        // Si queda poco espacio vertical (menos de 160pt), abrir una nueva página limpia
+        if (doc.y > 580) {
           doc.addPage();
+          doc.y = 45;
         }
 
         doc
           .font('Helvetica-Bold')
-          .fontSize(10)
+          .fontSize(9.5)
           .fillColor(primaryColor)
           .text('TRATAMIENTOS FARMACOLÓGICOS (RECETAS MÉDICAS)', leftMargin, doc.y);
 
@@ -316,57 +331,58 @@ class PDFService {
         const colDocX = colInstX + colInstW;
         const colDateX = colDocX + colDocW;
 
-        const tableY = doc.y;
-        doc.rect(leftMargin, tableY, pageWidth, 20).fill('#e2e8f0');
+        const drawPrescriptionHeader = (currentY) => {
+          doc.rect(leftMargin, currentY, pageWidth, 20).fill('#e2e8f0');
+          doc.font('Helvetica-Bold').fontSize(8.5).fillColor(darkColor);
+          doc.text('MEDICAMENTO(S)', colMedsX, currentY + 6);
+          doc.text('POSOLOGÍA / INDICACIÓN', colInstX, currentY + 6);
+          doc.text('MÉDICO', colDocX, currentY + 6);
+          doc.text('EMISIÓN', colDateX, currentY + 6, { align: 'right', width: colDateW - 8 });
+          return currentY + 20;
+        };
 
-        doc.font('Helvetica-Bold').fontSize(8.5).fillColor(darkColor);
-        doc.text('MEDICAMENTO(S)', colMedsX, tableY + 6);
-        doc.text('POSOLOGÍA / INDICACIÓN', colInstX, tableY + 6);
-        doc.text('MÉDICO', colDocX, tableY + 6);
-        doc.text('EMISIÓN', colDateX, tableY + 6, { align: 'right', width: colDateW - 8 });
-
-        let rowY = tableY + 20;
+        let rowY = drawPrescriptionHeader(doc.y);
 
         const groupedMeds = this.groupAndConsolidatePrescriptions(prescriptions);
 
         if (groupedMeds.length === 0) {
           doc.rect(leftMargin, rowY, pageWidth, 20).fillAndStroke('#ffffff', borderColor);
-          doc.font('Helvetica').fontSize(9).fillColor(grayColor).text('No hay recetas médicas registradas en el historial.', colMedsX, rowY + 6);
+          doc.font('Helvetica').fontSize(8.5).fillColor(grayColor).text('No hay recetas médicas registradas en el historial.', colMedsX, rowY + 6);
           rowY += 20;
         } else {
           groupedMeds.forEach((med, idx) => {
-            doc.font('Helvetica').fontSize(9);
-            const hMeds = doc.heightOfString(med.medications, { width: colMedsW - 10 });
-            const hInst = doc.heightOfString(med.instructions, { width: colInstW - 10 });
-            const dynamicRowHeight = Math.max(hMeds, hInst, 18) + 10;
+            doc.font('Helvetica').fontSize(8.5);
+            const hMeds = doc.heightOfString(med.medications, { width: colMedsW - 10, lineGap: 1.5 });
+            const hInst = doc.heightOfString(med.instructions, { width: colInstW - 10, lineGap: 1.5 });
+            const dynamicRowHeight = Math.max(hMeds, hInst, 16) + 8;
 
-            if (rowY + dynamicRowHeight > 750) {
+            if (rowY + dynamicRowHeight > 755) {
               doc.addPage();
-              rowY = 50;
+              rowY = drawPrescriptionHeader(45);
             }
 
             const rowBg = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
             doc.rect(leftMargin, rowY, pageWidth, dynamicRowHeight).fillAndStroke(rowBg, borderColor);
 
-            // Texto de medicamentos (negrita y tamaño 9pt)
-            doc.font('Helvetica-Bold').fontSize(9).fillColor(darkColor).text(med.medications, colMedsX, rowY + 5, {
+            // Texto de medicamentos
+            doc.font('Helvetica-Bold').fontSize(8.5).fillColor(darkColor).text(med.medications, colMedsX, rowY + 5, {
               width: colMedsW - 10,
               lineGap: 1.5,
             });
 
             // Indicaciones / Posología
-            doc.font('Helvetica').fontSize(8.5).fillColor(grayColor).text(med.instructions, colInstX, rowY + 5, {
+            doc.font('Helvetica').fontSize(8).fillColor(grayColor).text(med.instructions, colInstX, rowY + 5, {
               width: colInstW - 10,
               lineGap: 1.5,
             });
 
             // Médico emisor (con guion si no está especificado)
-            doc.font('Helvetica').fontSize(8.5).fillColor(darkColor).text(med.doctor, colDocX, rowY + 5, {
+            doc.font('Helvetica').fontSize(8).fillColor(darkColor).text(med.doctor, colDocX, rowY + 5, {
               width: colDocW - 6,
             });
 
             // Fecha
-            doc.font('Helvetica').fontSize(8.5).fillColor(grayColor).text(med.date, colDateX, rowY + 5, {
+            doc.font('Helvetica').fontSize(8).fillColor(grayColor).text(med.date, colDateX, rowY + 5, {
               align: 'right',
               width: colDateW - 8,
             });
@@ -375,18 +391,20 @@ class PDFService {
           });
         }
 
-        doc.y = rowY + 14;
+        doc.y = rowY + 16;
 
         // =====================================================================
         // 7. EXÁMENES DE LABORATORIO
         // =====================================================================
-        if (doc.y > 640) {
+        // Si queda poco espacio para la tabla de exámenes (menos de 140pt), abrir nueva página
+        if (doc.y > 600) {
           doc.addPage();
+          doc.y = 45;
         }
 
         doc
           .font('Helvetica-Bold')
-          .fontSize(10)
+          .fontSize(9.5)
           .fillColor(primaryColor)
           .text('ESTUDIOS Y RESULTADOS PARACLÍNICOS', leftMargin, doc.y);
 
@@ -402,16 +420,17 @@ class PDFService {
         const labColRefX = labColValX + labColValW;
         const labColDateX = labColRefX + labColRefW;
 
-        const labTableY = doc.y;
-        doc.rect(leftMargin, labTableY, pageWidth, 20).fill('#e2e8f0');
+        const drawLabHeader = (currentY) => {
+          doc.rect(leftMargin, currentY, pageWidth, 20).fill('#e2e8f0');
+          doc.font('Helvetica-Bold').fontSize(8.5).fillColor(darkColor);
+          doc.text('PRUEBA / ANÁLISIS', labColTestX, currentY + 6);
+          doc.text('VALOR OBTENIDO', labColValX, currentY + 6);
+          doc.text('RANGO REFERENCIA', labColRefX, currentY + 6);
+          doc.text('ESTADO / FECHA', labColDateX, currentY + 6, { align: 'right', width: labColDateW - 8 });
+          return currentY + 20;
+        };
 
-        doc.font('Helvetica-Bold').fontSize(8.5).fillColor(darkColor);
-        doc.text('PRUEBA / ANÁLISIS', labColTestX, labTableY + 6);
-        doc.text('VALOR OBTENIDO', labColValX, labTableY + 6);
-        doc.text('RANGO REFERENCIA', labColRefX, labTableY + 6);
-        doc.text('ESTADO / FECHA', labColDateX, labTableY + 6, { align: 'right', width: labColDateW - 8 });
-
-        let labRowY = labTableY + 20;
+        let labRowY = drawLabHeader(doc.y);
 
         const allMetrics = [];
         labReports.forEach((report) => {
@@ -429,23 +448,23 @@ class PDFService {
 
         if (allMetrics.length === 0) {
           doc.rect(leftMargin, labRowY, pageWidth, 20).fillAndStroke('#ffffff', borderColor);
-          doc.font('Helvetica').fontSize(9).fillColor(grayColor).text('No hay exámenes paraclínicos estructurados registrados.', labColTestX, labRowY + 6);
+          doc.font('Helvetica').fontSize(8.5).fillColor(grayColor).text('No hay exámenes paraclínicos estructurados registrados.', labColTestX, labRowY + 6);
           labRowY += 20;
         } else {
           allMetrics.slice(0, 15).forEach((met, idx) => {
-            if (labRowY > 760) {
+            if (labRowY + 20 > 755) {
               doc.addPage();
-              labRowY = 50;
+              labRowY = drawLabHeader(45);
             }
             const rowBg = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
             doc.rect(leftMargin, labRowY, pageWidth, 20).fillAndStroke(rowBg, borderColor);
 
-            doc.font('Helvetica').fontSize(9).fillColor(darkColor).text(met.test.slice(0, 36), labColTestX, labRowY + 5);
-            doc.font('Helvetica-Bold').fontSize(9).fillColor(met.abnormal ? '#b91c1c' : darkColor).text(met.val, labColValX, labRowY + 5);
-            doc.font('Helvetica').fontSize(8.5).fillColor(grayColor).text(met.ref.slice(0, 22), labColRefX, labRowY + 5);
+            doc.font('Helvetica').fontSize(8.5).fillColor(darkColor).text(met.test.slice(0, 36), labColTestX, labRowY + 5);
+            doc.font('Helvetica-Bold').fontSize(8.5).fillColor(met.abnormal ? '#b91c1c' : darkColor).text(met.val, labColValX, labRowY + 5);
+            doc.font('Helvetica').fontSize(8).fillColor(grayColor).text(met.ref.slice(0, 22), labColRefX, labRowY + 5);
 
             const statusText = met.abnormal ? '⚠ Alterado' : 'Normal';
-            doc.font('Helvetica').fontSize(8.5).fillColor(met.abnormal ? '#b91c1c' : '#047857').text(`${statusText} (${met.date})`, labColDateX, labRowY + 5, {
+            doc.font('Helvetica').fontSize(8).fillColor(met.abnormal ? '#b91c1c' : '#047857').text(`${statusText} (${met.date})`, labColDateX, labRowY + 5, {
               align: 'right',
               width: labColDateW - 8,
             });
@@ -461,26 +480,35 @@ class PDFService {
         for (let i = 0; i < pages.count; i++) {
           doc.switchToPage(i);
 
-          const footerY = 790;
+          // Desactivar temporalmente el margen inferior para que PDFKit jamás dispare auto-paging fantasma
+          const origBottomMargin = doc.page.margins.bottom;
+          doc.page.margins.bottom = 0;
+
+          const footerY = 792;
           doc.rect(leftMargin, footerY - 5, pageWidth, 0.5).fill(borderColor);
 
           doc
             .font('Helvetica-Oblique')
-            .fontSize(6.8)
+            .fontSize(6.5)
             .fillColor(grayColor)
             .text(
               'Aviso legal: Este informe consolida antecedentes médicos digitalizados voluntariamente por el paciente bajo la Ley N° 21.668 y Ley N° 21.719. ' +
               'La síntesis narrativa ha sido redactada con asistencia de IA generativa y no sustituye la evaluación médica presencial ni diagnósticos de especialistas.',
               leftMargin,
-              footerY + 3,
-              { width: pageWidth - 80, align: 'left' }
+              footerY + 2,
+              { width: pageWidth - 75, align: 'left', lineBreak: true }
             );
 
           doc
             .font('Helvetica')
             .fontSize(7.5)
             .fillColor(darkColor)
-            .text(`Página ${i + 1} de ${pages.count}`, leftMargin + pageWidth - 70, footerY + 4, { align: 'right', width: 70 });
+            .text(`Página ${i + 1} de ${pages.count}`, leftMargin + pageWidth - 65, footerY + 3, {
+              align: 'right',
+              width: 65,
+            });
+
+          doc.page.margins.bottom = origBottomMargin;
         }
 
         doc.end();

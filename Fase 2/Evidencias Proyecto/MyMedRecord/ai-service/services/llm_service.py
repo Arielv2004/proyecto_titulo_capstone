@@ -207,19 +207,18 @@ def _heuristic_type(text: str) -> str:
 
 
 REPORT_SUMMARY_SYSTEM_PROMPT = """Eres un médico especialista auditor en salud digital.
-Tu tarea es redactar una "Síntesis Clínica Narrativa" formal, humana y profesional para el Informe Clínico de un paciente.
+Tu tarea es redactar una "Síntesis Clínica Narrativa" formal, humana, concisa y profesional para el Informe Clínico de un paciente.
 
 REGLAS ESTRICTAS DE REDACCIÓN:
-1. Longitud: exactamente 2 o 3 párrafos concisos y bien estructurados.
+1. Longitud: exactamente 2 párrafos concisos y bien estructurados (longitud total recomendada entre 600 y 900 caracteres, aprox. 100 a 140 palabras). Evita textos excesivamente largos o redundantes.
 2. Tono: formal, clínico, objetivo y asistencial. Dirigido a profesionales de la salud y al propio paciente.
 3. Redacción fluida en español:
    - Prohibido terminantemente usar expresiones mecánicas con paréntesis como "documento(s)", "receta(s)", "examen(es)".
    - Adapta siempre la redacción al número real: "cuenta con 1 documento registrado", "cuenta con 5 documentos registrados".
    - No uses corchetes ni formatos de plantilla técnica.
-4. Contenido:
-   - Párrafo 1: Identificación y estado general de salud del paciente, destacando alergias conocidas y comorbilidades crónicas declaradas.
-   - Párrafo 2: Esquema terapéutico farmacológico activo (medicamentos prescritos, posología y diagnósticos asociados detectados).
-   - Párrafo 3: Estado de controles paraclínicos (exámenes de laboratorio recientes, destacando si hubo valores fuera de rango o si el perfil está estable) y consideraciones de continuidad de la atención.
+4. Contenido estructurado en 2 párrafos:
+   - Párrafo 1: Identificación y estado de salud general, antecedentes declarados de alergias y patologías crónicas.
+   - Párrafo 2: Resumen del esquema terapéutico activo (medicamentos y posologías principales) y estado de exámenes paraclínicos recientes o recomendaciones de seguimiento preventivo.
 5. RIGOR Y SEGURIDAD CLÍNICA (Ley 21.668 / Ley 21.719):
    - NUNCA inventes patologías, fármacos ni valores que no figuren en los datos suministrados.
    - Si no existen recetas o exámenes registrados, indícalo textualmente de manera objetiva y natural (ej: "A la fecha no se registran recetas farmacológicas vigentes ni exámenes paraclínicos cargados en la plataforma").
@@ -293,13 +292,10 @@ class LLMReportService:
         lines = [
             f"El paciente {req.patient_name} (RUT: {req.patient_rut or 'No informado'}) mantiene ficha clínica digital en MyMedRecord. "
             f"Presenta antecedentes declarados de alergias: {', '.join(req.allergies) if req.allergies else 'ninguna alergia conocida informada'}, "
-            f"y comorbilidades crónicas: {', '.join(req.chronic_conditions) if req.chronic_conditions else 'sin enfermedades crónicas registradas'}.",
+            f"y comorbilidades crónicas: {', '.join(req.chronic_conditions) if req.chronic_conditions else 'sin patologías crónicas registradas'}.",
 
-            f"En relación a su esquema terapéutico, el paciente {rx_phrase}. "
-            f"Se sugiere mantener adherencia a las indicaciones médicas emitidas por los profesionales tratantes.",
-
-            f"A la fecha se encuentran disponibles {doc_phrase} y {lab_phrase}. "
-            f"Se aconseja control periódico según la evolución sintomática y los criterios de su médico de cabecera."
+            f"En relación a su esquema terapéutico y paraclínico, el paciente {rx_phrase}, con {doc_phrase} y {lab_phrase}. "
+            f"Se sugiere mantener adherencia a las indicaciones médicas emitidas por los profesionales tratantes y realizar controles periódicos de seguimiento."
         ]
 
         return ClinicalReportSummaryResponse(
