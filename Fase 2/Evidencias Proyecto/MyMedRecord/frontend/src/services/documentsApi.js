@@ -244,5 +244,6 @@ export const mapDocumentFromApi = (doc) => {
     confidence: doc.ocr_confidence ? `${doc.ocr_confidence}%` : '—',
     fileName: doc.file_name || null,
     mimeType: doc.mime_type || null,
+    fileUrl: doc.file_url || null,
   };
 };

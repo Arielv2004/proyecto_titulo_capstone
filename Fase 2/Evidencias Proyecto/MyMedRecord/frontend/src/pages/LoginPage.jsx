@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { useMetaTags } from '../hooks/useMetaTags';
 import {
@@ -24,6 +24,9 @@ export const LoginPage = () => {
 
   const { login, isLoading, error } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const accountDeletedNotice = location.state?.accountDeleted;
 
   useMetaTags(
     'Iniciar Sesión',
@@ -114,6 +117,14 @@ export const LoginPage = () => {
               <strong>Correo Electrónico</strong>.
             </p>
           </div>
+
+          {/* Aviso de cuenta eliminada (Ley 21.719) */}
+          {accountDeletedNotice && (
+            <div className="mb-5 p-3.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 rounded-2xl text-emerald-800 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2.5 animate-in fade-in duration-200">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span>Tu cuenta y todos tus datos personales y clínicos fueron eliminados exitosamente.</span>
+            </div>
+          )}
 
           {/* Mensaje de Error */}
           {error && (

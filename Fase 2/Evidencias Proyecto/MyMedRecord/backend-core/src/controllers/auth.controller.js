@@ -1,12 +1,6 @@
 const AuthService = require('../services/auth.service');
 const config = require('../config/env');
-
-const COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: config.NODE_ENV === 'production',
-  sameSite: 'strict',
-  maxAge: 24 * 60 * 60 * 1000, // 24 horas
-};
+const { COOKIE_OPTIONS } = require('../config/cookie');
 
 class AuthController {
   static async register(req, res, next) {
