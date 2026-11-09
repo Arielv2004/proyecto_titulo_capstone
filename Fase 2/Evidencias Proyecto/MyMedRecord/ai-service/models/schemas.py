@@ -37,3 +37,17 @@ class ClinicalExtractionData(BaseModel):
 class DocumentExtractionResponse(ClinicalExtractionData):
     raw_text: str = Field("", description="Texto crudo extraído por OCR")
     processed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class ClinicalReportSummaryRequest(BaseModel):
+    patient_name: str = Field(..., description="Nombre completo del paciente")
+    patient_rut: Optional[str] = Field(None, description="RUT del paciente")
+    allergies: List[str] = Field(default_factory=list, description="Alergias declaradas")
+    chronic_conditions: List[str] = Field(default_factory=list, description="Enfermedades crónicas declaradas")
+    prescriptions: List[dict] = Field(default_factory=list, description="Recetas y medicamentos prescritos")
+    lab_reports: List[dict] = Field(default_factory=list, description="Exámenes de laboratorio y resultados")
+    documents_count: int = Field(0, description="Total de documentos en la ficha")
+
+class ClinicalReportSummaryResponse(BaseModel):
+    summary_text: str = Field(..., description="Síntesis narrativa redactada por IA en tono clínico")
+    model_used: str = Field(..., description="Identificador del modelo LLM utilizado")
+    generated_at: str = Field(..., description="Marca de tiempo ISO de la generación")

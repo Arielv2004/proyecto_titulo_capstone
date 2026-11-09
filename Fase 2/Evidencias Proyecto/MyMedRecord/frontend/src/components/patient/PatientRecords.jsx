@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { FileText, Search, Upload, ArrowUpRight, Trash2, Pencil } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { FileText, Search, Upload, ArrowUpRight, Trash2, Pencil, Sparkles, Download, CheckCircle2, AlertCircle } from 'lucide-react';
 import {
   Button,
   Card,
@@ -9,6 +9,7 @@ import {
   LoadingState,
   Notice,
 } from '../ui/ClinicalUI';
+import { userApi } from '../../services/userApi';
 
 export function PatientRecords({
   documents,
@@ -26,6 +27,25 @@ export function PatientRecords({
   onDelete,
 }) {
   const filterListRef = useRef(null);
+  const [downloadingReport, setDownloadingReport] = useState(false);
+  const [reportSuccess, setReportSuccess] = useState(false);
+  const [reportError, setReportError] = useState(null);
+
+  const handleDownloadReport = async () => {
+    try {
+      setDownloadingReport(true);
+      setReportError(null);
+      setReportSuccess(false);
+      await userApi.downloadClinicalReport();
+      setReportSuccess(true);
+      setTimeout(() => setReportSuccess(false), 5000);
+    } catch (err) {
+      console.error('Error al generar informe PDF:', err);
+      setReportError(err.response?.data?.message || 'No fue posible generar el informe clínico en PDF.');
+    } finally {
+      setDownloadingReport(false);
+    }
+  };
 
   useEffect(() => {
     const list = filterListRef.current;
@@ -46,6 +66,15 @@ export function PatientRecords({
           <h1 className="sr-only">Mi ficha</h1>
         </div>
         <div className="mm-records-controls">
+          <Button
+            variant="secondary"
+            onClick={handleDownloadReport}
+            disabled={downloadingReport}
+            title="Genera un informe unificado con resumen narrativo por IA (Gemini)"
+          >
+            <Sparkles size={17} className="text-teal-600 dark:text-teal-400" />
+            <span>{downloadingReport ? 'Generando PDF...' : 'Informe Clínico (PDF)'}</span>
+          </Button>
           <Button onClick={onUpload}>
             <Upload size={18} />
             Subir documento
@@ -56,6 +85,21 @@ export function PatientRecords({
           </InfoPopover>
         </div>
       </header>
+
+      {reportSuccess && (
+        <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 rounded-2xl text-emerald-800 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+          <span>Informe clínico generado y descargado exitosamente.</span>
+        </div>
+      )}
+
+      {reportError && (
+        <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 rounded-2xl text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400" />
+          <span>{reportError}</span>
+        </div>
+      )}
+
       <Card className="mm-records-panel">
         <label className="mm-search">
           <Search size={20} aria-hidden="true" />

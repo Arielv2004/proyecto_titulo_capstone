@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Edit3, Download, Trash2, ShieldAlert, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Edit3, Download, Trash2, ShieldAlert, CheckCircle2, AlertCircle, FileText, Sparkles } from 'lucide-react';
 import { Button, Card, InfoPopover, LoadingState, Notice, PageHeader } from '../ui/ClinicalUI';
 import { DeleteAccountDialog } from './DeleteAccountDialog';
 import { userApi } from '../../services/userApi';
@@ -14,6 +14,10 @@ export function PatientProfile({ user, profile, loading, error, onEdit, saved })
   const [exporting, setExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
   const [exportError, setExportError] = useState(null);
+
+  const [downloadingReport, setDownloadingReport] = useState(false);
+  const [reportSuccess, setReportSuccess] = useState(false);
+  const [reportError, setReportError] = useState(null);
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -32,6 +36,22 @@ export function PatientProfile({ user, profile, loading, error, onEdit, saved })
       setExportError(err.response?.data?.message || 'No fue posible exportar tu información clínica.');
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleDownloadReport = async () => {
+    try {
+      setDownloadingReport(true);
+      setReportError(null);
+      setReportSuccess(false);
+      await userApi.downloadClinicalReport();
+      setReportSuccess(true);
+      setTimeout(() => setReportSuccess(false), 6000);
+    } catch (err) {
+      console.error('Error al generar informe PDF:', err);
+      setReportError(err.response?.data?.message || 'No fue posible generar el informe clínico en PDF.');
+    } finally {
+      setDownloadingReport(false);
     }
   };
 
@@ -168,6 +188,43 @@ export function PatientProfile({ user, profile, loading, error, onEdit, saved })
                   <span>{exportError}</span>
                 </div>
               )}
+
+              {/* Notificaciones de informe clínico PDF */}
+              {reportSuccess && (
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 rounded-2xl text-emerald-800 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                  <span>Informe clínico unificado en PDF generado y descargado exitosamente.</span>
+                </div>
+              )}
+
+              {reportError && (
+                <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 rounded-2xl text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400" />
+                  <span>{reportError}</span>
+                </div>
+              )}
+
+              {/* Informe Clínico PDF con IA */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-teal-50/60 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-900/60">
+                <div className="space-y-1">
+                  <h4 className="text-sm font-extrabold text-teal-900 dark:text-teal-200 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                    Informe Clínico Oficial (PDF con IA)
+                  </h4>
+                  <p className="text-xs text-teal-950/80 dark:text-teal-200/80 max-w-xl leading-relaxed">
+                    Genera un documento PDF formal con tu ficha consolidada, tablas de prescripciones, exámenes paraclínicos y una síntesis narrativa redactada por IA (Gemini) en tono médico.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDownloadReport}
+                  disabled={downloadingReport}
+                  className="px-4 py-2.5 rounded-xl bg-action hover:bg-action-hover active:scale-[0.99] text-xs font-bold text-on-action flex items-center justify-center gap-2 transition-all shrink-0 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shadow-xs"
+                >
+                  <FileText className="w-4 h-4 text-teal-300" />
+                  <span>{downloadingReport ? 'Generando informe...' : 'Descargar Informe (PDF)'}</span>
+                </button>
+              </div>
 
               {/* Portabilidad */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-surface-muted/60 dark:bg-surface-muted/30 border border-line">

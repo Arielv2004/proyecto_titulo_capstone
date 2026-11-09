@@ -61,6 +61,32 @@ class UserController {
       next(error);
     }
   }
+
+  /**
+   * GET /api/v1/users/me/clinical-report
+   * Genera y descarga el Informe Clínico en formato PDF enriquecido con IA (Gemini)
+   */
+  static async getClinicalReportPDF(req, res, next) {
+    try {
+      const userId = req.user.id;
+      const ipAddress = req.ip || req.socket?.remoteAddress || 'unknown';
+      const userAgent = req.get('user-agent') || null;
+
+      const { pdfBuffer, filename } = await UserService.generateClinicalReportPDF(userId, {
+        ipAddress,
+        userAgent,
+      });
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+
+      return res.status(200).end(pdfBuffer);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = UserController;

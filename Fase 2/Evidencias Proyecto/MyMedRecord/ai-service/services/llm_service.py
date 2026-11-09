@@ -9,6 +9,8 @@ from models.schemas import (
     DocumentExtractionResponse,
     MedicationEntity,
     LabMetricEntity,
+    ClinicalReportSummaryRequest,
+    ClinicalReportSummaryResponse,
 )
 
 # Silenciar advertencia interna de AFC de la librería google-genai
@@ -202,3 +204,106 @@ def _heuristic_type(text: str) -> str:
         return "INFORME_MEDICO"
 
     return "OTRO"
+
+
+REPORT_SUMMARY_SYSTEM_PROMPT = """Eres un médico especialista auditor en salud digital.
+Tu tarea es redactar una "Síntesis Clínica Narrativa" formal, humana y profesional para el Informe Clínico de un paciente.
+
+REGLAS ESTRICTAS DE REDACCIÓN:
+1. Longitud: exactamente 2 o 3 párrafos concisos y bien estructurados.
+2. Tono: formal, clínico, objetivo y asistencial. Dirigido a profesionales de la salud y al propio paciente.
+3. Redacción fluida en español:
+   - Prohibido terminantemente usar expresiones mecánicas con paréntesis como "documento(s)", "receta(s)", "examen(es)".
+   - Adapta siempre la redacción al número real: "cuenta con 1 documento registrado", "cuenta con 5 documentos registrados".
+   - No uses corchetes ni formatos de plantilla técnica.
+4. Contenido:
+   - Párrafo 1: Identificación y estado general de salud del paciente, destacando alergias conocidas y comorbilidades crónicas declaradas.
+   - Párrafo 2: Esquema terapéutico farmacológico activo (medicamentos prescritos, posología y diagnósticos asociados detectados).
+   - Párrafo 3: Estado de controles paraclínicos (exámenes de laboratorio recientes, destacando si hubo valores fuera de rango o si el perfil está estable) y consideraciones de continuidad de la atención.
+5. RIGOR Y SEGURIDAD CLÍNICA (Ley 21.668 / Ley 21.719):
+   - NUNCA inventes patologías, fármacos ni valores que no figuren en los datos suministrados.
+   - Si no existen recetas o exámenes registrados, indícalo textualmente de manera objetiva y natural (ej: "A la fecha no se registran recetas farmacológicas vigentes ni exámenes paraclínicos cargados en la plataforma").
+   - Prohibido emitir diagnósticos definitivos nuevos que no hayan sido formalmente consignados por los médicos emisores.
+"""
+
+class LLMReportService:
+    @staticmethod
+    async def generate_clinical_summary(req: ClinicalReportSummaryRequest) -> ClinicalReportSummaryResponse:
+        from datetime import datetime, timezone
+        now_iso = datetime.now(timezone.utc).isoformat()
+
+        # Modelos a intentar en orden de preferencia
+        models_to_try = [settings.LLM_MODEL]
+        for fallback in ["gemini-2.5-flash", "gemini-3.0-flash", "gemini-2.0-flash"]:
+            if fallback not in models_to_try:
+                models_to_try.append(fallback)
+
+        prompt_data = (
+            f"DATOS DEL PACIENTE:\n"
+            f"- Nombre: {req.patient_name}\n"
+            f"- RUT: {req.patient_rut or 'No informado'}\n"
+            f"- Alergias declaradas: {', '.join(req.allergies) if req.allergies else 'Ninguna conocida'}\n"
+            f"- Condiciones crónicas: {', '.join(req.chronic_conditions) if req.chronic_conditions else 'Ninguna declarada'}\n\n"
+            f"RECETAS Y TRATAMIENTOS:\n{json.dumps(req.prescriptions, ensure_ascii=False, indent=2)}\n\n"
+            f"EXÁMENES DE LABORATORIO:\n{json.dumps(req.lab_reports, ensure_ascii=False, indent=2)}\n\n"
+            f"TOTAL DOCUMENTOS DIGITALIZADOS: {req.documents_count}"
+        )
+
+        client = genai.Client(api_key=settings.LLM_API_KEY)
+        for model_name in models_to_try:
+            try:
+                response = await client.aio.models.generate_content(
+                    model=model_name,
+                    contents=[prompt_data],
+                    config=types.GenerateContentConfig(
+                        system_instruction=REPORT_SUMMARY_SYSTEM_PROMPT,
+                        temperature=0.2,
+                    ),
+                )
+                text = (response.text or "").strip()
+                if text:
+                    return ClinicalReportSummaryResponse(
+                        summary_text=text,
+                        model_used=model_name,
+                        generated_at=now_iso,
+                    )
+            except Exception as e:
+                continue
+
+        # Fallback determinista si los modelos de IA no responden (redacción natural en español)
+        doc_count = req.documents_count
+        doc_phrase = "1 documento registrado" if doc_count == 1 else f"{doc_count} documentos registrados"
+        
+        rx_count = len(req.prescriptions)
+        if rx_count == 0:
+            rx_phrase = "no cuenta con prescripciones activas registradas en su historial"
+        elif rx_count == 1:
+            rx_phrase = "cuenta con una prescripción médica registrada en su historial clínico digitalizado"
+        else:
+            rx_phrase = f"cuenta con {rx_count} prescripciones médicas registradas en su historial clínico digitalizado"
+
+        lab_count = len(req.lab_reports)
+        if lab_count == 0:
+            lab_phrase = "no registra informes de laboratorio cargados a la fecha"
+        elif lab_count == 1:
+            lab_phrase = "un reporte de laboratorio clínico para seguimiento"
+        else:
+            lab_phrase = f"{lab_count} reportes de laboratorio clínico para seguimiento"
+
+        lines = [
+            f"El paciente {req.patient_name} (RUT: {req.patient_rut or 'No informado'}) mantiene ficha clínica digital en MyMedRecord. "
+            f"Presenta antecedentes declarados de alergias: {', '.join(req.allergies) if req.allergies else 'ninguna alergia conocida informada'}, "
+            f"y comorbilidades crónicas: {', '.join(req.chronic_conditions) if req.chronic_conditions else 'sin enfermedades crónicas registradas'}.",
+
+            f"En relación a su esquema terapéutico, el paciente {rx_phrase}. "
+            f"Se sugiere mantener adherencia a las indicaciones médicas emitidas por los profesionales tratantes.",
+
+            f"A la fecha se encuentran disponibles {doc_phrase} y {lab_phrase}. "
+            f"Se aconseja control periódico según la evolución sintomática y los criterios de su médico de cabecera."
+        ]
+
+        return ClinicalReportSummaryResponse(
+            summary_text="\n\n".join(lines),
+            model_used="deterministic-fallback",
+            generated_at=now_iso,
+        )
