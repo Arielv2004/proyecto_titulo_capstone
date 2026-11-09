@@ -25,6 +25,34 @@ import {
 
 import { ThemeToggle } from '../components/common/ThemeToggle';
 
+const CHILE_REGIONS = [
+  { code: '15', name: 'Arica y Parinacota' },
+  { code: '01', name: 'Tarapacá' },
+  { code: '02', name: 'Antofagasta' },
+  { code: '03', name: 'Atacama' },
+  { code: '04', name: 'Coquimbo' },
+  { code: '05', name: 'Valparaíso' },
+  { code: '13', name: 'Metropolitana de Santiago' },
+  {
+    code: '06',
+    name: "Libertador General Bernardo O'Higgins",
+  },
+  { code: '07', name: 'Maule' },
+  { code: '16', name: 'Ñuble' },
+  { code: '08', name: 'Biobío' },
+  { code: '09', name: 'La Araucanía' },
+  { code: '14', name: 'Los Ríos' },
+  { code: '10', name: 'Los Lagos' },
+  {
+    code: '11',
+    name: 'Aysén del General Carlos Ibáñez del Campo',
+  },
+  {
+    code: '12',
+    name: 'Magallanes y de la Antártica Chilena',
+  },
+];
+
 export const RegisterPage = () => {
   const [formData, setFormData] = useState({
     rut: '',
@@ -37,21 +65,32 @@ export const RegisterPage = () => {
     specialty: '',
     institutionId: '',
     institutionNameOther: '',
+    regionCode: '',
+    city: '',
+    address: '',
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [rutTouched, setRutTouched] = useState(false);
-  const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] =
+    useState(false);
 
-  // Instituciones
+  // Instituciones.
   const [institutions, setInstitutions] = useState([]);
-  const [loadingInstitutions, setLoadingInstitutions] = useState(false);
-  const [institutionsError, setInstitutionsError] = useState('');
+  const [loadingInstitutions, setLoadingInstitutions] =
+    useState(false);
+  const [institutionsError, setInstitutionsError] =
+    useState('');
 
-  // Buscador
-  const [institutionSearch, setInstitutionSearch] = useState('');
-  const [showInstitutionResults, setShowInstitutionResults] = useState(false);
-  const [useOtherInstitution, setUseOtherInstitution] = useState(false);
+  // Buscador de instituciones.
+  const [institutionSearch, setInstitutionSearch] =
+    useState('');
+  const [
+    showInstitutionResults,
+    setShowInstitutionResults,
+  ] = useState(false);
+  const [useOtherInstitution, setUseOtherInstitution] =
+    useState(false);
 
   const { register, isLoading, error } = useAuthStore();
   const navigate = useNavigate();
@@ -71,7 +110,7 @@ export const RegisterPage = () => {
 
       try {
         const response = await fetch(
-          'http://localhost:5000/api/v1/health-institutions'
+          '/api/v1/health-institutions'
         );
 
         if (!response.ok) {
@@ -84,7 +123,11 @@ export const RegisterPage = () => {
 
         const list = Array.isArray(data)
           ? data
-          : data.institutions || [];
+          : Array.isArray(data.data)
+            ? data.data
+            : Array.isArray(data.institutions)
+              ? data.institutions
+              : [];
 
         setInstitutions(list);
       } catch (err) {
@@ -102,7 +145,9 @@ export const RegisterPage = () => {
   }, [isDoctor, institutions.length]);
 
   useMetaTags(
-    isDoctor ? 'Registro Médico' : 'Registro de Ficha Clínica',
+    isDoctor
+      ? 'Registro Médico'
+      : 'Registro de Ficha Clínica',
     isDoctor
       ? 'Crea tu cuenta profesional en MyMedRecord.'
       : 'Crea tu cuenta de paciente en MyMedRecord.'
@@ -113,11 +158,11 @@ export const RegisterPage = () => {
   // =====================================================
 
   const isRutValid =
-    formData.rut.trim() !== '' && validateRut(formData.rut);
+    formData.rut.trim() !== '' &&
+    validateRut(formData.rut);
 
   const handleRutChange = (e) => {
-    const rawVal = e.target.value;
-    const formatted = formatRut(rawVal);
+    const formatted = formatRut(e.target.value);
 
     setFormData({
       ...formData,
@@ -147,13 +192,16 @@ export const RegisterPage = () => {
       ...current,
       role,
 
-      // Si vuelve a paciente, limpiamos los campos médicos.
+      // Al volver a paciente se limpian los campos médicos.
       ...(role === 'PACIENTE'
         ? {
             professionalRegistry: '',
             specialty: '',
             institutionId: '',
             institutionNameOther: '',
+            regionCode: '',
+            city: '',
+            address: '',
           }
         : {}),
     }));
@@ -170,7 +218,9 @@ export const RegisterPage = () => {
   // =====================================================
 
   const filteredInstitutions = useMemo(() => {
-    const search = institutionSearch.trim().toLowerCase();
+    const search = institutionSearch
+      .trim()
+      .toLowerCase();
 
     if (!search) {
       return institutions.slice(0, 8);
@@ -196,7 +246,8 @@ export const RegisterPage = () => {
   const selectedInstitution = useMemo(
     () =>
       institutions.find(
-        (institution) => institution.id === formData.institutionId
+        (institution) =>
+          institution.id === formData.institutionId
       ),
     [institutions, formData.institutionId]
   );
@@ -207,8 +258,6 @@ export const RegisterPage = () => {
     setInstitutionSearch(value);
     setShowInstitutionResults(true);
 
-    // Si modifica la búsqueda después de haber seleccionado
-    // una institución, eliminamos la selección anterior.
     if (formData.institutionId) {
       setFormData((current) => ({
         ...current,
@@ -266,7 +315,7 @@ export const RegisterPage = () => {
   };
 
   // =====================================================
-  // SUBMIT
+  // REGISTRO
   // =====================================================
 
   const handleSubmit = async (e) => {
@@ -280,6 +329,32 @@ export const RegisterPage = () => {
     }
 
     if (isDoctor) {
+      const validRegion = CHILE_REGIONS.some(
+        (region) =>
+          region.code === formData.regionCode
+      );
+
+      if (!validRegion) {
+        alert('Selecciona la región donde trabajas.');
+        return;
+      }
+
+      const city = formData.city.trim();
+
+      if (city.length < 2 || city.length > 100) {
+        alert(
+          'Ingresa una ciudad o comuna de entre 2 y 100 caracteres.'
+        );
+        return;
+      }
+
+      if (formData.address.trim().length > 255) {
+        alert(
+          'La dirección no puede superar los 255 caracteres.'
+        );
+        return;
+      }
+
       if (!formData.professionalRegistry.trim()) {
         alert('Ingresa tu registro profesional.');
         return;
@@ -304,13 +379,26 @@ export const RegisterPage = () => {
     const payload = {
       ...formData,
 
+      regionCode: isDoctor
+        ? formData.regionCode
+        : null,
+
+      city: isDoctor
+        ? formData.city.trim()
+        : null,
+
+      address: isDoctor
+        ? formData.address.trim()
+        : null,
+
       institutionId:
         isDoctor && formData.institutionId
           ? formData.institutionId
           : null,
 
       institutionNameOther:
-        isDoctor && formData.institutionNameOther.trim()
+        isDoctor &&
+        formData.institutionNameOther.trim()
           ? formData.institutionNameOther.trim()
           : null,
     };
@@ -336,8 +424,7 @@ export const RegisterPage = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-canvas dark:bg-canvas text-body dark:text-ink transition-colors">
-
-      {/* Header */}
+      {/* Encabezado */}
       <header className="border-b border-line/80 dark:border-line bg-surface/90 dark:bg-surface/90 backdrop-blur-md px-6 py-3.5 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-action text-on-action shadow-xs">
@@ -345,10 +432,13 @@ export const RegisterPage = () => {
           </div>
 
           <div>
-            <span className="text-base font-extrabold text-ink dark:text-ink tracking-tight">MyMedRecord</span>
+            <span className="text-base font-extrabold text-ink dark:text-ink tracking-tight">
+              MyMedRecord
+            </span>
 
             <p className="text-xs text-muted dark:text-muted font-medium">
-              Plataforma de Salud Digital Interoperable (Ley N° 21.668)
+              Plataforma de Salud Digital Interoperable
+              (Ley N° 21.668)
             </p>
           </div>
         </div>
@@ -363,11 +453,10 @@ export const RegisterPage = () => {
         </div>
       </header>
 
-      {/* Main */}
+      {/* Contenido */}
       <main className="flex-1 flex items-center justify-center p-4 sm:p-6">
         <div className="w-full max-w-lg bg-surface dark:bg-surface border border-line/90 dark:border-line rounded-3xl p-6 sm:p-8 shadow-sm">
-
-          {/* Selector Login / Registro */}
+          {/* Login / Registro */}
           <div className="flex p-1 mb-6 bg-surface-muted dark:bg-surface-muted/80 rounded-2xl border border-line dark:border-line/80">
             <Link
               to="/login"
@@ -399,24 +488,25 @@ export const RegisterPage = () => {
                 </>
               ) : (
                 <>
-                  Registro seguro de cuenta personal como{' '}
-                  <strong>Paciente Titular</strong>.
+                  Registro seguro de cuenta personal
+                  como <strong>Paciente Titular</strong>.
                 </>
               )}
             </p>
           </div>
 
-          {/* Selector de tipo de cuenta */}
+          {/* Tipo de cuenta */}
           <div className="mb-5">
             <p className="text-xs font-bold text-body dark:text-body mb-2">
               Selecciona el tipo de cuenta
             </p>
 
             <div className="grid grid-cols-2 gap-3">
-              {/* Paciente */}
               <button
                 type="button"
-                onClick={() => handleRoleChange('PACIENTE')}
+                onClick={() =>
+                  handleRoleChange('PACIENTE')
+                }
                 className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
                   formData.role === 'PACIENTE'
                     ? 'border-blue-700 bg-blue-50 dark:bg-blue-950/40 ring-2 ring-blue-100 dark:ring-blue-950'
@@ -440,14 +530,16 @@ export const RegisterPage = () => {
                 </div>
 
                 <p className="text-xs leading-relaxed text-muted dark:text-muted">
-                  Gestiona tu historial y documentos médicos.
+                  Gestiona tu historial y documentos
+                  médicos.
                 </p>
               </button>
 
-              {/* Médico */}
               <button
                 type="button"
-                onClick={() => handleRoleChange('MEDICO')}
+                onClick={() =>
+                  handleRoleChange('MEDICO')
+                }
                 className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
                   formData.role === 'MEDICO'
                     ? 'border-teal-600 bg-teal-50 dark:bg-teal-950/40 ring-2 ring-teal-100 dark:ring-teal-950'
@@ -471,7 +563,8 @@ export const RegisterPage = () => {
                 </div>
 
                 <p className="text-xs leading-relaxed text-muted dark:text-muted">
-                  Accede a fichas autorizadas por pacientes.
+                  Accede a fichas autorizadas por
+                  pacientes.
                 </p>
               </button>
             </div>
@@ -491,14 +584,17 @@ export const RegisterPage = () => {
               <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
 
               <span>
-                ¡Cuenta creada con éxito! Iniciando sesión en tu portal...
+                ¡Cuenta creada con éxito! Iniciando
+                sesión en tu portal...
               </span>
             </div>
           )}
 
           {/* Formulario */}
-          <form onSubmit={handleSubmit} className="space-y-3.5">
-
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-3.5"
+          >
             {/* Nombre y apellido */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -557,7 +653,9 @@ export const RegisterPage = () => {
                     ) : (
                       <>
                         <AlertCircle className="w-3.5 h-3.5" />
-                        <span>Dígito verificador inválido</span>
+                        <span>
+                          Dígito verificador inválido
+                        </span>
                       </>
                     )}
                   </span>
@@ -581,7 +679,7 @@ export const RegisterPage = () => {
               />
             </div>
 
-            {/* Email */}
+            {/* Correo */}
             <div>
               <label className="block text-xs font-bold text-body dark:text-body mb-1">
                 Correo Electrónico
@@ -610,7 +708,11 @@ export const RegisterPage = () => {
 
               <div className="relative">
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={
+                    showPassword
+                      ? 'text'
+                      : 'password'
+                  }
                   name="password"
                   required
                   minLength={8}
@@ -622,7 +724,9 @@ export const RegisterPage = () => {
 
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={() =>
+                    setShowPassword(!showPassword)
+                  }
                   className="absolute right-3 top-2.5 p-1 text-muted hover:text-accent-ink dark:hover:text-teal-300 rounded-lg transition-all cursor-pointer"
                   title={
                     showPassword
@@ -644,7 +748,7 @@ export const RegisterPage = () => {
               </div>
             </div>
 
-            {/* Información profesional del médico */}
+            {/* Datos exclusivos del médico */}
             {isDoctor && (
               <div className="space-y-3.5 rounded-2xl border border-teal-200 dark:border-teal-900 bg-teal-50/40 dark:bg-teal-950/20 p-4">
                 <div>
@@ -654,8 +758,10 @@ export const RegisterPage = () => {
                   </h2>
 
                   <p className="text-xs text-muted dark:text-muted mt-1">
-                    Estos antecedentes permiten asociar la cuenta a un perfil médico.
-                    La cuenta quedará pendiente de verificación profesional.
+                    Estos antecedentes permiten asociar
+                    la cuenta a un perfil médico. La
+                    cuenta quedará pendiente de
+                    verificación profesional.
                   </p>
                 </div>
 
@@ -669,7 +775,9 @@ export const RegisterPage = () => {
                     type="text"
                     name="professionalRegistry"
                     required={isDoctor}
-                    value={formData.professionalRegistry}
+                    value={
+                      formData.professionalRegistry
+                    }
                     onChange={handleChange}
                     placeholder="Ej: RNPI-123456"
                     className="w-full px-3.5 py-2.5 bg-surface dark:bg-surface-muted/80 border border-line dark:border-line rounded-xl text-body dark:text-ink text-sm focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100 dark:focus:ring-teal-950/40 transition-all"
@@ -693,6 +801,99 @@ export const RegisterPage = () => {
                   />
                 </div>
 
+                {/* Ubicación laboral */}
+                <fieldset className="space-y-3 rounded-xl border border-teal-200 dark:border-teal-800 p-3">
+                  <legend className="px-1 text-sm font-bold text-ink dark:text-ink">
+                    Ubicación laboral
+                  </legend>
+
+                  <div>
+                    <label
+                      htmlFor="doctor-region"
+                      className="block text-xs font-bold mb-1"
+                    >
+                      Región donde trabajas
+                    </label>
+
+                    <select
+                      id="doctor-region"
+                      name="regionCode"
+                      required
+                      value={formData.regionCode}
+                      onChange={(e) =>
+                        setFormData((current) => ({
+                          ...current,
+                          regionCode: e.target.value,
+                          city: '',
+                        }))
+                      }
+                      className="w-full px-3.5 py-2.5 bg-surface dark:bg-surface-muted border border-line rounded-xl text-sm"
+                    >
+                      <option value="">
+                        Selecciona una región
+                      </option>
+
+                      {CHILE_REGIONS.map((region) => (
+                        <option
+                          key={region.code}
+                          value={region.code}
+                        >
+                          {region.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="doctor-city"
+                      className="block text-xs font-bold mb-1"
+                    >
+                      Ciudad o comuna donde trabajas
+                    </label>
+
+                    <input
+                      id="doctor-city"
+                      type="text"
+                      name="city"
+                      required
+                      minLength={2}
+                      maxLength={100}
+                      autoComplete="address-level2"
+                      value={formData.city}
+                      onChange={handleChange}
+                      placeholder="Ej.: Puerto Montt"
+                      className="w-full px-3.5 py-2.5 bg-surface dark:bg-surface-muted border border-line rounded-xl text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="doctor-address"
+                      className="block text-xs font-bold mb-1"
+                    >
+                      Dirección laboral (opcional)
+                    </label>
+
+                    <input
+                      id="doctor-address"
+                      type="text"
+                      name="address"
+                      maxLength={255}
+                      autoComplete="street-address"
+                      value={formData.address}
+                      onChange={handleChange}
+                      placeholder="Ej.: Los Aromos 65"
+                      className="w-full px-3.5 py-2.5 bg-surface dark:bg-surface-muted border border-line rounded-xl text-sm"
+                    />
+                  </div>
+
+                  <p className="text-xs text-muted">
+                    Registra la ubicación en la que
+                    atiendes pacientes.
+                  </p>
+                </fieldset>
+
                 {/* Institución */}
                 <div>
                   <label className="block text-xs font-bold text-body dark:text-body mb-1">
@@ -701,7 +902,6 @@ export const RegisterPage = () => {
 
                   {!useOtherInstitution ? (
                     <>
-                      {/* Institución seleccionada */}
                       {selectedInstitution ? (
                         <div className="rounded-xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 p-3">
                           <div className="flex items-start justify-between gap-3">
@@ -712,13 +912,17 @@ export const RegisterPage = () => {
 
                               <div>
                                 <p className="text-xs font-extrabold text-emerald-900 dark:text-emerald-200">
-                                  {selectedInstitution.name}
+                                  {
+                                    selectedInstitution.name
+                                  }
                                 </p>
 
                                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-xs text-emerald-700 dark:text-emerald-300">
                                   {selectedInstitution.institution_type && (
                                     <span>
-                                      {selectedInstitution.institution_type}
+                                      {
+                                        selectedInstitution.institution_type
+                                      }
                                     </span>
                                   )}
 
@@ -736,7 +940,9 @@ export const RegisterPage = () => {
 
                             <button
                               type="button"
-                              onClick={handleClearInstitution}
+                              onClick={
+                                handleClearInstitution
+                              }
                               className="p-1.5 rounded-lg text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all cursor-pointer"
                               title="Cambiar institución"
                             >
@@ -753,16 +959,22 @@ export const RegisterPage = () => {
                             <input
                               type="text"
                               value={institutionSearch}
-                              onChange={handleInstitutionSearch}
+                              onChange={
+                                handleInstitutionSearch
+                              }
                               onFocus={() =>
-                                setShowInstitutionResults(true)
+                                setShowInstitutionResults(
+                                  true
+                                )
                               }
                               placeholder={
                                 loadingInstitutions
                                   ? 'Cargando instituciones...'
                                   : 'Buscar hospital, clínica, CESFAM...'
                               }
-                              disabled={loadingInstitutions}
+                              disabled={
+                                loadingInstitutions
+                              }
                               autoComplete="off"
                               className="w-full pl-10 pr-3.5 py-2.5 bg-surface dark:bg-surface-muted/80 border border-line dark:border-line rounded-xl text-body dark:text-ink text-sm focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100 dark:focus:ring-teal-950/40 transition-all disabled:opacity-60"
                             />
@@ -771,12 +983,15 @@ export const RegisterPage = () => {
                             {showInstitutionResults &&
                               !loadingInstitutions && (
                                 <div className="mt-2 overflow-hidden rounded-xl border border-line dark:border-line bg-surface dark:bg-surface-muted shadow-sm">
-                                  {filteredInstitutions.length > 0 ? (
+                                  {filteredInstitutions.length >
+                                  0 ? (
                                     <div className="max-h-52 overflow-y-auto">
                                       {filteredInstitutions.map(
                                         (institution) => (
                                           <button
-                                            key={institution.id}
+                                            key={
+                                              institution.id
+                                            }
                                             type="button"
                                             onClick={() =>
                                               handleSelectInstitution(
@@ -791,7 +1006,9 @@ export const RegisterPage = () => {
 
                                             <div className="min-w-0">
                                               <p className="text-xs font-bold text-body dark:text-ink">
-                                                {institution.name}
+                                                {
+                                                  institution.name
+                                                }
                                               </p>
 
                                               <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5 text-xs text-muted dark:text-muted">
@@ -820,30 +1037,35 @@ export const RegisterPage = () => {
                                   ) : (
                                     <div className="px-3 py-3 text-center">
                                       <p className="text-xs font-semibold text-muted dark:text-body">
-                                        No encontramos esa institución.
+                                        No encontramos esa
+                                        institución.
                                       </p>
 
                                       <p className="text-xs text-muted dark:text-muted mt-1">
-                                        Puedes ingresarla manualmente.
+                                        Puedes ingresarla
+                                        manualmente.
                                       </p>
                                     </div>
                                   )}
 
-                                  {/* Otra institución */}
                                   <button
                                     type="button"
-                                    onClick={handleUseOtherInstitution}
+                                    onClick={
+                                      handleUseOtherInstitution
+                                    }
                                     className="w-full px-3 py-2.5 flex items-center gap-2 text-left bg-canvas dark:bg-surface/70 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors cursor-pointer border-t border-line dark:border-line"
                                   >
                                     <PlusCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
 
                                     <div>
                                       <p className="text-xs font-bold text-body dark:text-body">
-                                        Mi institución no aparece
+                                        Mi institución no
+                                        aparece
                                       </p>
 
                                       <p className="text-xs text-muted dark:text-muted">
-                                        Ingresar el nombre manualmente
+                                        Ingresar el nombre
+                                        manualmente
                                       </p>
                                     </div>
                                   </button>
@@ -854,7 +1076,9 @@ export const RegisterPage = () => {
                           {!showInstitutionResults && (
                             <button
                               type="button"
-                              onClick={handleUseOtherInstitution}
+                              onClick={
+                                handleUseOtherInstitution
+                              }
                               className="mt-2 text-xs font-bold text-accent-ink dark:text-teal-300 hover:underline flex items-center gap-1 cursor-pointer"
                             >
                               <PlusCircle className="w-3.5 h-3.5" />
@@ -865,7 +1089,6 @@ export const RegisterPage = () => {
                       )}
                     </>
                   ) : (
-                    /* Institución manual */
                     <div className="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50/60 dark:bg-amber-950/20 p-3">
                       <div className="flex items-center justify-between gap-2 mb-2">
                         <div className="flex items-center gap-2">
@@ -878,7 +1101,9 @@ export const RegisterPage = () => {
 
                         <button
                           type="button"
-                          onClick={handleReturnToInstitutionSearch}
+                          onClick={
+                            handleReturnToInstitutionSearch
+                          }
                           className="text-xs font-bold text-accent-ink dark:text-teal-300 hover:underline cursor-pointer"
                         >
                           Volver al buscador
@@ -888,7 +1113,9 @@ export const RegisterPage = () => {
                       <input
                         type="text"
                         name="institutionNameOther"
-                        value={formData.institutionNameOther}
+                        value={
+                          formData.institutionNameOther
+                        }
                         onChange={handleChange}
                         placeholder="Ej: Centro Médico Los Alerces"
                         maxLength={200}
@@ -897,8 +1124,10 @@ export const RegisterPage = () => {
                       />
 
                       <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-300">
-                        Esta institución será informada manualmente y podrá
-                        validarse junto con los antecedentes profesionales.
+                        Esta institución será informada
+                        manualmente y podrá validarse
+                        junto con los antecedentes
+                        profesionales.
                       </p>
                     </div>
                   )}
@@ -910,20 +1139,22 @@ export const RegisterPage = () => {
                   )}
                 </div>
 
-                {/* Aviso de verificación */}
+                {/* Aviso */}
                 <div className="flex items-start gap-2 rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/20 p-3">
                   <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0 text-amber-700 dark:text-amber-300" />
 
                   <p className="text-xs leading-relaxed text-amber-800 dark:text-amber-200">
-                    Registrarse como médico no habilita automáticamente el acceso
-                    a fichas clínicas. El perfil profesional debe quedar
-                    verificado antes de aparecer disponible para los pacientes.
+                    Crear la cuenta registra tu perfil
+                    profesional y la ubicación laboral
+                    que informas. Esto no acredita por
+                    sí solo tu identidad profesional ni
+                    autoriza el acceso a fichas clínicas.
                   </p>
                 </div>
               </div>
             )}
 
-            {/* Resumen del tipo de cuenta */}
+            {/* Resumen */}
             <div
               className={`p-3 rounded-xl border flex items-center justify-between ${
                 isDoctor
@@ -954,7 +1185,7 @@ export const RegisterPage = () => {
               </span>
             </div>
 
-            {/* Submit */}
+            {/* Enviar */}
             <button
               type="submit"
               disabled={
@@ -964,6 +1195,8 @@ export const RegisterPage = () => {
                 (isDoctor &&
                   (!formData.professionalRegistry.trim() ||
                     !formData.specialty.trim() ||
+                    !formData.regionCode ||
+                    formData.city.trim().length < 2 ||
                     !doctorInstitutionValid))
               }
               className="w-full mt-3 py-3 bg-action hover:bg-action-hover active:scale-[0.99] text-on-action font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 text-sm cursor-pointer disabled:bg-surface-muted disabled:text-muted disabled:cursor-not-allowed"
@@ -980,7 +1213,7 @@ export const RegisterPage = () => {
             </button>
           </form>
 
-          {/* Login */}
+          {/* Acceso al login */}
           <div className="mt-5 text-center text-xs text-muted dark:text-muted">
             ¿Ya tienes una cuenta registrada?{' '}
 
@@ -994,12 +1227,12 @@ export const RegisterPage = () => {
         </div>
       </main>
 
-      {/* Footer */}
+      {/* Pie de página */}
       <footer className="py-4 text-center text-xs text-muted dark:text-muted border-t border-line dark:border-line bg-surface dark:bg-surface transition-colors">
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 mb-1">
           <Link
             to="/privacy"
-            className="hover:text-accent-ink dark:hover:text-teal-300 hover:underline"
+            className="hover:text-accent-ink dark:text-teal-300 hover:underline"
           >
             Política de Privacidad
           </Link>
@@ -1008,15 +1241,15 @@ export const RegisterPage = () => {
 
           <Link
             to="/terms"
-            className="hover:text-accent-ink dark:hover:text-teal-300 hover:underline"
+            className="hover:text-accent-ink dark:text-teal-300 hover:underline"
           >
             Términos y Condiciones
           </Link>
         </div>
 
         <div>
-          MyMedRecord · República de Chile · Plataforma de Salud Digital
-          Interoperable
+          MyMedRecord · Plataforma
+          de Salud Digital Interoperable
         </div>
       </footer>
     </div>

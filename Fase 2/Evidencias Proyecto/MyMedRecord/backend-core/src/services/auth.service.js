@@ -1,11 +1,45 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('node:crypto');
-const UserRepository = require('../repositories/user.repository');
+
+const UserRepository = require(
+  '../repositories/user.repository'
+);
+
 const EmailService = require('./email.service');
 const config = require('../config/env');
 
+// Códigos de las 16 regiones de Chile.
+const VALID_REGION_CODES = new Set([
+  '01',
+  '02',
+  '03',
+  '04',
+  '05',
+  '06',
+  '07',
+  '08',
+  '09',
+  '10',
+  '11',
+  '12',
+  '13',
+  '14',
+  '15',
+  '16',
+]);
+
+function validationError(message) {
+  const error = new Error(message);
+  error.statusCode = 400;
+  return error;
+}
+
 class AuthService {
+  // =====================================================
+  // REGISTRAR PACIENTE O MÉDICO
+  // =====================================================
+
   static async register({
     rut,
     firstName,
@@ -17,90 +51,254 @@ class AuthService {
     specialty,
     institutionId,
     institutionNameOther,
+    regionCode,
+    city,
+    address,
   }) {
     // =====================================================
-    // VALIDAR EMAIL
+    // DEFINIR Y VALIDAR ROL
     // =====================================================
 
-    const existingEmail = await UserRepository.findByEmail(email);
-
-    if (existingEmail) {
-      const error = new Error(
-        'El correo electrónico ya se encuentra registrado.'
+    if (
+      role != null &&
+      typeof role !== 'string'
+    ) {
+      throw validationError(
+        'El tipo de cuenta no es válido.'
       );
-      error.statusCode = 400;
-      throw error;
     }
-
-    // =====================================================
-    // VALIDAR RUT
-    // =====================================================
-
-    const existingRut = await UserRepository.findByRut(rut);
-
-    if (existingRut) {
-      const error = new Error('El RUT ya se encuentra registrado.');
-      error.statusCode = 400;
-      throw error;
-    }
-
-    // =====================================================
-    // DEFINIR ROL
-    // =====================================================
-
-    const allowedRoles = ['PACIENTE', 'MEDICO'];
 
     const assignedRole =
-      role && allowedRoles.includes(role.toUpperCase())
-        ? role.toUpperCase()
+      typeof role === 'string' && role.trim()
+        ? role.trim().toUpperCase()
         : 'PACIENTE';
 
+    if (
+      !['PACIENTE', 'MEDICO'].includes(assignedRole)
+    ) {
+      throw validationError(
+        'El registro público solo admite pacientes y médicos.'
+      );
+    }
+
     // =====================================================
-    // VALIDACIONES PARA MÉDICOS
+    // VALIDAR CONTRASEÑA
+    // =====================================================
+
+    if (
+      typeof password !== 'string' ||
+      password.length < 8 ||
+      Buffer.byteLength(password, 'utf8') > 72
+    ) {
+      throw validationError(
+        'La contraseña debe tener al menos 8 caracteres y no superar 72 bytes.'
+      );
+    }
+
+    // =====================================================
+    // VALIDAR EMAIL DUPLICADO
+    // =====================================================
+
+    const existingEmail =
+      await UserRepository.findByEmail(email);
+
+    if (existingEmail) {
+      throw validationError(
+        'El correo electrónico ya se encuentra registrado.'
+      );
+    }
+
+    // =====================================================
+    // VALIDAR RUT DUPLICADO
+    // =====================================================
+
+    const existingRut =
+      await UserRepository.findByRut(rut);
+
+    if (existingRut) {
+      throw validationError(
+        'El RUT ya se encuentra registrado.'
+      );
+    }
+
+    // Los pacientes no necesitan información profesional
+    // ni una ubicación laboral.
+    let doctorRegistry = null;
+    let doctorSpecialty = null;
+    let doctorInstitutionId = null;
+    let doctorInstitutionOther = null;
+    let doctorRegionCode = null;
+    let doctorCity = null;
+    let doctorAddress = null;
+
+    // =====================================================
+    // VALIDACIONES EXCLUSIVAS PARA MÉDICOS
     // =====================================================
 
     if (assignedRole === 'MEDICO') {
-      if (!professionalRegistry || !professionalRegistry.trim()) {
-        const error = new Error(
+      // -----------------------------------------------------
+      // REGISTRO PROFESIONAL
+      // -----------------------------------------------------
+
+      if (
+        typeof professionalRegistry !== 'string' ||
+        !professionalRegistry.trim()
+      ) {
+        throw validationError(
           'El registro profesional es obligatorio para una cuenta médica.'
         );
-        error.statusCode = 400;
-        throw error;
       }
 
-      if (!specialty || !specialty.trim()) {
-        const error = new Error(
+      doctorRegistry = professionalRegistry.trim();
+
+      if (doctorRegistry.length > 100) {
+        throw validationError(
+          'El registro profesional no puede superar los 100 caracteres.'
+        );
+      }
+
+      // -----------------------------------------------------
+      // ESPECIALIDAD
+      // -----------------------------------------------------
+
+      if (
+        typeof specialty !== 'string' ||
+        !specialty.trim()
+      ) {
+        throw validationError(
           'La especialidad es obligatoria para una cuenta médica.'
         );
-        error.statusCode = 400;
-        throw error;
       }
 
-      const hasInstitutionId =
-        institutionId &&
-        String(institutionId).trim();
+      doctorSpecialty = specialty.trim();
 
-      const hasOtherInstitution =
-        institutionNameOther &&
-        institutionNameOther.trim();
+      if (doctorSpecialty.length > 150) {
+        throw validationError(
+          'La especialidad no puede superar los 150 caracteres.'
+        );
+      }
 
-      // El médico debe seleccionar una institución existente
-      // O escribir manualmente una institución.
-      if (!hasInstitutionId && !hasOtherInstitution) {
-        const error = new Error(
+      // -----------------------------------------------------
+      // INSTITUCIÓN DE SALUD
+      // -----------------------------------------------------
+
+      if (
+        institutionId != null &&
+        typeof institutionId !== 'string'
+      ) {
+        throw validationError(
+          'La institución seleccionada no es válida.'
+        );
+      }
+
+      if (
+        institutionNameOther != null &&
+        typeof institutionNameOther !== 'string'
+      ) {
+        throw validationError(
+          'El nombre de la institución no es válido.'
+        );
+      }
+
+      doctorInstitutionId =
+        institutionId?.trim() || null;
+
+      doctorInstitutionOther =
+        institutionNameOther?.trim() || null;
+
+      if (
+        !doctorInstitutionId &&
+        !doctorInstitutionOther
+      ) {
+        throw validationError(
           'Debes seleccionar una institución de salud o indicar otra institución.'
         );
-        error.statusCode = 400;
-        throw error;
       }
 
-      // No permitimos enviar ambas alternativas simultáneamente.
-      if (hasInstitutionId && hasOtherInstitution) {
-        const error = new Error(
+      if (
+        doctorInstitutionId &&
+        doctorInstitutionOther
+      ) {
+        throw validationError(
           'Selecciona una institución registrada o indica otra institución, pero no ambas.'
         );
-        error.statusCode = 400;
-        throw error;
+      }
+
+      if (
+        doctorInstitutionOther &&
+        doctorInstitutionOther.length > 200
+      ) {
+        throw validationError(
+          'El nombre de la institución no puede superar los 200 caracteres.'
+        );
+      }
+
+      // -----------------------------------------------------
+      // REGIÓN
+      // -----------------------------------------------------
+
+      doctorRegionCode =
+        typeof regionCode === 'string'
+          ? regionCode.trim()
+          : '';
+
+      if (
+        !VALID_REGION_CODES.has(doctorRegionCode)
+      ) {
+        throw validationError(
+          'Selecciona una región válida de Chile.'
+        );
+      }
+
+      // -----------------------------------------------------
+      // CIUDAD O COMUNA
+      // -----------------------------------------------------
+
+      if (typeof city !== 'string') {
+        throw validationError(
+          'Debes indicar la ciudad o comuna donde trabajas.'
+        );
+      }
+
+      // Quitar espacios al inicio/final y espacios repetidos.
+      doctorCity = city
+        .trim()
+        .replace(/\s+/g, ' ');
+
+      if (
+        doctorCity.length < 2 ||
+        doctorCity.length > 100
+      ) {
+        throw validationError(
+          'La ciudad o comuna debe tener entre 2 y 100 caracteres.'
+        );
+      }
+
+      // -----------------------------------------------------
+      // DIRECCIÓN LABORAL OPCIONAL
+      // -----------------------------------------------------
+
+      if (
+        address != null &&
+        typeof address !== 'string'
+      ) {
+        throw validationError(
+          'La dirección laboral no es válida.'
+        );
+      }
+
+      doctorAddress =
+        typeof address === 'string'
+          ? address.trim() || null
+          : null;
+
+      if (
+        doctorAddress &&
+        doctorAddress.length > 255
+      ) {
+        throw validationError(
+          'La dirección laboral no puede superar los 255 caracteres.'
+        );
       }
     }
 
@@ -109,10 +307,14 @@ class AuthService {
     // =====================================================
 
     const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(password, salt);
+
+    const passwordHash = await bcrypt.hash(
+      password,
+      salt
+    );
 
     // =====================================================
-    // CREAR USUARIO
+    // CREAR USUARIO Y PERFIL
     // =====================================================
 
     const user = await UserRepository.create({
@@ -123,27 +325,18 @@ class AuthService {
       passwordHash,
       role: assignedRole,
 
-      professionalRegistry:
-        assignedRole === 'MEDICO'
-          ? professionalRegistry.trim()
-          : null,
+      professionalRegistry: doctorRegistry,
+      specialty: doctorSpecialty,
+      institutionId: doctorInstitutionId,
+      institutionNameOther: doctorInstitutionOther,
 
-      specialty:
-        assignedRole === 'MEDICO'
-          ? specialty.trim()
-          : null,
-
-      institutionId:
-        assignedRole === 'MEDICO' && institutionId
-          ? String(institutionId).trim()
-          : null,
-
-      institutionNameOther:
-        assignedRole === 'MEDICO' && institutionNameOther
-          ? institutionNameOther.trim()
-          : null,
+      regionCode: doctorRegionCode,
+      city: doctorCity,
+      address: doctorAddress,
     });
 
+    // La verificación profesional no se determina
+    // desde los datos enviados por el formulario.
     const token = this.generateToken(user);
 
     return {
@@ -153,16 +346,18 @@ class AuthService {
   }
 
   // =====================================================
-  // LOGIN
+  // INICIAR SESIÓN
   // =====================================================
 
   static async login({ email, password }) {
-    const user = await UserRepository.findByIdentifier(email);
+    const user =
+      await UserRepository.findByIdentifier(email);
 
     if (!user) {
       const error = new Error(
         'Credenciales inválidas. Verifica tu correo o RUT y tu contraseña.'
       );
+
       error.statusCode = 401;
       throw error;
     }
@@ -173,7 +368,10 @@ class AuthService {
     );
 
     if (!isValid) {
-      const error = new Error('Credenciales inválidas.');
+      const error = new Error(
+        'Credenciales inválidas.'
+      );
+
       error.statusCode = 401;
       throw error;
     }
@@ -190,21 +388,23 @@ class AuthService {
       token,
     };
   }
-  
+
   // =====================================================
   // SOLICITAR RECUPERACIÓN DE CONTRASEÑA
   // =====================================================
 
   static async forgotPassword({ email }) {
-    const user = await UserRepository.findByEmail(email);
+    const user =
+      await UserRepository.findByEmail(email);
 
     // No revelar si el correo existe o no.
     if (!user || !user.is_active) {
       return;
     }
 
-    // Token aleatorio de 32 bytes.
-    const token = crypto.randomBytes(32).toString('hex');
+    const token = crypto
+      .randomBytes(32)
+      .toString('hex');
 
     // Guardar solamente el hash del token.
     const tokenHash = crypto
@@ -212,7 +412,6 @@ class AuthService {
       .update(token)
       .digest('hex');
 
-    // Duración de 30 minutos.
     const expiresAt = new Date(
       Date.now() + 30 * 60 * 1000
     );
@@ -222,10 +421,6 @@ class AuthService {
       tokenHash,
       expiresAt
     );
-
-    // =====================================================
-    // ENVIAR ENLACE DE RECUPERACIÓN AL CORREO
-    // =====================================================
 
     await EmailService.sendPasswordResetEmail(
       user.email,
@@ -238,29 +433,23 @@ class AuthService {
   // =====================================================
 
   static async resetPassword({ token, password }) {
-    // Validación básica de contraseña.
     if (
       typeof password !== 'string' ||
       password.length < 8 ||
       Buffer.byteLength(password, 'utf8') > 72
     ) {
-      const error = new Error(
+      throw validationError(
         'La contraseña debe tener al menos 8 caracteres y no superar 72 bytes.'
       );
-      error.statusCode = 400;
-      throw error;
     }
 
-    // Validar formato del token.
     if (
       typeof token !== 'string' ||
       !/^[a-f0-9]{64}$/i.test(token)
     ) {
-      const error = new Error(
+      throw validationError(
         'El enlace de recuperación no es válido.'
       );
-      error.statusCode = 400;
-      throw error;
     }
 
     const tokenHash = crypto
@@ -268,11 +457,11 @@ class AuthService {
       .update(token)
       .digest('hex');
 
-    // Generar hash de la nueva contraseña.
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(
+      password,
+      10
+    );
 
-    // Actualizar contraseña y consumir el token
-    // mediante una transacción.
     const updated =
       await UserRepository.resetPasswordWithToken(
         tokenHash,
@@ -280,18 +469,16 @@ class AuthService {
       );
 
     if (!updated) {
-      const error = new Error(
+      throw validationError(
         'El enlace de recuperación es inválido o ha expirado.'
       );
-      error.statusCode = 400;
-      throw error;
     }
 
     return true;
   }
 
   // =====================================================
-  // JWT
+  // GENERAR JWT
   // =====================================================
 
   static generateToken(user) {

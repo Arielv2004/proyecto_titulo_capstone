@@ -3,11 +3,22 @@ const UserRepository = require('../repositories/user.repository');
 class DoctorController {
   /**
    * GET /api/v1/doctors
-   * Obtener médicos disponibles para recibir una ficha clínica.
+   *
+   * Directorio de perfiles médicos.
+   * Filtros opcionales: regionCode y city.
+   *
+   * Los perfiles pendientes pueden mostrarse, pero no están
+   * habilitados para recibir fichas clínicas.
+   * Este listado no concede acceso a información clínica.
    */
   static async getAvailable(req, res, next) {
     try {
-      const doctors = await UserRepository.findAvailableDoctors();
+      const { regionCode, city } = req.query;
+
+      const doctors = await UserRepository.findDoctorsDirectory({
+        regionCode,
+        city,
+      });
 
       return res.status(200).json({
         success: true,

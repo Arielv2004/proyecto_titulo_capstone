@@ -2,29 +2,265 @@ const crypto = require('crypto');
 
 const AccessGrantRepository = require('../repositories/access-grant.repository');
 const db = require('../config/db');
-const { isValidRut } = require('../utils/rut.util');
+
+const VALID_HOURS = [1, 2, 6, 12, 24, 48];
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function serviceError(message, statusCode = 400) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+}
+
+function validateId(value, message, statusCode = 400) {
+  if (typeof value !== 'string' || !UUID_PATTERN.test(value)) {
+    throw serviceError(message, statusCode);
+  }
+
+  return value.toLowerCase();
+}
+
+function validateDuration(value) {
+  if (
+    !['string', 'number'].includes(typeof value) ||
+    (typeof value === 'string' && !value.trim())
+  ) {
+    throw serviceError('La duración del acceso no es válida.');
+  }
+
+  const hours = Number(value);
+
+  if (!Number.isInteger(hours) || !VALID_HOURS.includes(hours)) {
+    throw serviceError(
+      'La duración debe ser de 1, 2, 6, 12, 24 o 48 horas.'
+    );
+  }
+
+  return hours;
+}
+
+function validateLocation(regionCode, city) {
+  if (
+    typeof regionCode !== 'string' ||
+    !/^(0[1-9]|1[0-6])$/.test(regionCode.trim())
+  ) {
+    throw serviceError('Selecciona una región válida.');
+  }
+
+  if (typeof city !== 'string') {
+    throw serviceError('Selecciona una ciudad o comuna válida.');
+  }
+
+  const normalizedCity = city.trim().replace(/\s+/g, ' ');
+
+  if (normalizedCity.length < 2 || normalizedCity.length > 100) {
+    throw serviceError(
+      'La ciudad o comuna debe tener entre 2 y 100 caracteres.'
+    );
+  }
+
+  return {
+    regionCode: regionCode.trim(),
+    city: normalizedCity,
+  };
+}
+
+function normalizeCity(value) {
+  return String(value || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLocaleLowerCase('es-CL');
+}
+
+function validateToken(token) {
+  if (
+    typeof token !== 'string' ||
+    !token.trim() ||
+    token.trim().length > 100
+  ) {
+    throw serviceError('Se requiere un token de acceso válido.');
+  }
+
+  return token.trim();
+}
+
+function validateGrantDates(grant) {
+  if (grant.is_revoked) {
+    throw serviceError('El paciente revocó este acceso.', 403);
+  }
+
+  const now = new Date();
+  const expiry = new Date(grant.expires_at);
+  const startsAt = new Date(grant.starts_at || grant.created_at);
+
+  if (
+    !Number.isFinite(expiry.getTime()) ||
+    !Number.isFinite(startsAt.getTime())
+  ) {
+    throw serviceError('El permiso tiene fechas no válidas.', 403);
+  }
+
+  if (startsAt > now) {
+    throw serviceError('Este acceso todavía no está vigente.', 403);
+  }
+
+  if (now >= expiry) {
+    throw serviceError('Este acceso compartido ha expirado.', 410);
+  }
+
+  return { now, expiry };
+}
+
+function minutesRemaining(expiresAt) {
+  return Math.max(
+    0,
+    Math.floor((new Date(expiresAt).getTime() - Date.now()) / 60000)
+  );
+}
+
+function grantStatus(grant) {
+  if (grant.is_revoked) return 'REVOCADO';
+
+  if (new Date(grant.expires_at).getTime() <= Date.now()) {
+    return 'EXPIRADO';
+  }
+
+  if (
+    new Date(grant.starts_at || grant.created_at).getTime() > Date.now()
+  ) {
+    return 'PROGRAMADO';
+  }
+
+  return 'ACTIVO';
+}
 
 class AccessGrantService {
-  /**
-   * =====================================================
-   * GENERAR CÓDIGO QR TEMPORAL
-   * =====================================================
-   */
-  static async generateGrant({ patientId, durationHours = 2 }) {
-    const hours = parseInt(durationHours, 10);
-    const validHours = [1, 2, 6, 12, 24, 48];
-    const finalHours = validHours.includes(hours) ? hours : 2;
-
-    const randomHex = crypto
-      .randomBytes(12)
-      .toString('hex')
-      .toUpperCase();
-
-    const token = `MMR-${finalHours}H-${randomHex}`;
-
-    const expiresAt = new Date(
-      Date.now() + finalHours * 60 * 60 * 1000
+  // El identificador debe proceder de la sesión autenticada.
+  static async requirePatient(patientId) {
+    const id = validateId(
+      patientId,
+      'No se pudo identificar al paciente autenticado.',
+      401
     );
+
+    const result = await db.query(
+      `SELECT id
+       FROM users
+       WHERE id = $1
+         AND role = 'PACIENTE'
+         AND is_active = TRUE`,
+      [id]
+    );
+
+    if (!result.rows[0]) {
+      throw serviceError(
+        'Se requiere una cuenta de paciente activa.',
+        403
+      );
+    }
+
+    return result.rows[0];
+  }
+
+  // Consulta siempre el estado actual en la base de datos.
+  static async requireEligibleDoctor(doctorId) {
+    const id = validateId(
+      doctorId,
+      'No se pudo identificar al médico.',
+      403
+    );
+
+    const result = await db.query(
+      `SELECT
+         u.id,
+         u.rut,
+         u.first_name,
+         u.last_name,
+         u.email,
+         dp.professional_registry,
+         dp.specialty,
+         dp.professional_title,
+         dp.verification_status,
+         dp.is_available_for_sharing,
+         dp.region_code,
+         COALESCE(
+           NULLIF(TRIM(dp.city), ''),
+           NULLIF(TRIM(hi.commune), ''),
+           NULLIF(TRIM(hi.city), '')
+         ) AS city,
+         COALESCE(
+           hi.name,
+           dp.institution_name_other,
+           'Institución no especificada'
+         ) AS institution_name
+       FROM users u
+       INNER JOIN doctor_profiles dp ON dp.user_id = u.id
+       LEFT JOIN health_institutions hi ON hi.id = dp.institution_id
+       WHERE u.id = $1
+         AND u.role = 'MEDICO'
+         AND u.is_active = TRUE
+         AND dp.verification_status = 'VERIFICADO'
+         AND dp.verified_at IS NOT NULL
+         AND dp.is_available_for_sharing = TRUE`,
+      [id]
+    );
+
+    if (!result.rows[0]) {
+      throw serviceError(
+        'El médico debe tener una cuenta activa, identidad profesional verificada y disponibilidad habilitada.',
+        403
+      );
+    }
+
+    return result.rows[0];
+  }
+
+  static async writeAudit({
+    userId,
+    patientId,
+    action,
+    details,
+    ipAddress,
+    userAgent,
+  }) {
+    await db.query(
+      `INSERT INTO audit_logs (
+         user_id,
+         patient_id,
+         action,
+         details,
+         ip_address,
+         user_agent
+       )
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [
+        userId,
+        patientId,
+        action,
+        JSON.stringify(details),
+        String(ipAddress || '127.0.0.1').slice(0, 45),
+        String(userAgent || 'MyMedRecord'),
+      ]
+    );
+  }
+
+  // =====================================================
+  // GENERAR CÓDIGO QR TEMPORAL
+  // =====================================================
+
+  static async generateGrant({
+    patientId,
+    durationHours = 2,
+    ipAddress,
+    userAgent,
+  }) {
+    await this.requirePatient(patientId);
+
+    const finalHours = validateDuration(durationHours);
+    const randomHex = crypto.randomBytes(12).toString('hex').toUpperCase();
+    const token = `MMR-${finalHours}H-${randomHex}`;
+    const expiresAt = new Date(Date.now() + finalHours * 3600000);
 
     const grant = await AccessGrantRepository.createGrant({
       patientId,
@@ -32,28 +268,18 @@ class AccessGrantService {
       expiresAt,
     });
 
-    await db.query(
-      `INSERT INTO audit_logs (
-        user_id,
-        patient_id,
-        action,
-        details,
-        ip_address,
-        user_agent
-      )
-      VALUES ($1, $2, 'GENERATE_QR_TOKEN', $3, $4, $5);`,
-      [
-        patientId,
-        patientId,
-        JSON.stringify({
-          grantId: grant.id,
-          durationHours: finalHours,
-          expiresAt: grant.expires_at,
-        }),
-        '127.0.0.1',
-        'MyMedRecord Portal Paciente',
-      ]
-    );
+    await this.writeAudit({
+      userId: patientId,
+      patientId,
+      action: 'GENERATE_QR_TOKEN',
+      details: {
+        grantId: grant.id,
+        durationHours: finalHours,
+        expiresAt: grant.expires_at,
+      },
+      ipAddress,
+      userAgent,
+    });
 
     return {
       id: grant.id,
@@ -65,105 +291,43 @@ class AccessGrantService {
     };
   }
 
-  /**
-   * =====================================================
-   * COMPARTIR DIRECTAMENTE CON UN MÉDICO
-   * =====================================================
-   *
-   * El paciente selecciona un médico registrado dentro
-   * de MyMedRecord y le entrega acceso temporal.
-   */
+  // =====================================================
+  // COMPARTIR DIRECTAMENTE CON UN MÉDICO
+  // =====================================================
+
   static async createDirectGrant({
     patientId,
     doctorId,
     durationHours = 24,
+    regionCode,
+    city,
+    ipAddress,
+    userAgent,
   }) {
-    if (!doctorId) {
-      const error = new Error(
-        'Debe seleccionar un médico para compartir la ficha.'
-      );
+    const patient = await this.requirePatient(patientId);
 
-      error.statusCode = 400;
-      throw error;
-    }
-
-    if (String(patientId) === String(doctorId)) {
-      const error = new Error(
-        'No puede compartir su ficha consigo mismo.'
-      );
-
-      error.statusCode = 400;
-      throw error;
-    }
-
-    // -----------------------------------------------------
-    // 1. Validar duración
-    // -----------------------------------------------------
-
-    const hours = parseInt(durationHours, 10);
-    const validHours = [1, 2, 6, 12, 24, 48];
-
-    const finalHours = validHours.includes(hours)
-      ? hours
-      : 24;
-
-    // -----------------------------------------------------
-    // 2. Verificar médico
-    // -----------------------------------------------------
-
-    const doctorResult = await db.query(
-      `SELECT
-        u.id,
-        u.rut,
-        u.first_name,
-        u.last_name,
-        u.email,
-        u.role,
-        u.is_active,
-
-        dp.professional_registry,
-        dp.specialty,
-        dp.professional_title,
-        dp.verification_status,
-        dp.is_available_for_sharing,
-
-        COALESCE(
-          hi.name,
-          dp.institution_name_other,
-          'Institución no especificada'
-        ) AS institution_name
-
-      FROM users u
-
-      INNER JOIN doctor_profiles dp
-        ON dp.user_id = u.id
-
-      LEFT JOIN health_institutions hi
-        ON hi.id = dp.institution_id
-
-      WHERE u.id = $1
-        AND u.role = 'MEDICO'
-        AND u.is_active = TRUE
-        AND dp.is_available_for_sharing = TRUE
-
-      LIMIT 1;`,
-      [doctorId]
+    const selectedDoctorId = validateId(
+      doctorId,
+      'Debes seleccionar un médico válido.'
     );
 
-    const doctor = doctorResult.rows[0];
-
-    if (!doctor) {
-      const error = new Error(
-        'El médico seleccionado no existe, no está activo o no está disponible para recibir fichas.'
-      );
-
-      error.statusCode = 404;
-      throw error;
+    if (patient.id.toLowerCase() === selectedDoctorId) {
+      throw serviceError('No puedes compartir tu ficha contigo mismo.');
     }
 
-    // -----------------------------------------------------
-    // 3. Evitar accesos DIRECTO duplicados activos
-    // -----------------------------------------------------
+    const finalHours = validateDuration(durationHours);
+    const location = validateLocation(regionCode, city);
+    const doctor = await this.requireEligibleDoctor(selectedDoctorId);
+
+    if (
+      doctor.region_code !== location.regionCode ||
+      normalizeCity(doctor.city) !== normalizeCity(location.city)
+    ) {
+      throw serviceError(
+        'El médico no corresponde a la región y ciudad seleccionadas.',
+        403
+      );
+    }
 
     const existingResult = await db.query(
       `SELECT id
@@ -173,104 +337,54 @@ class AccessGrantService {
          AND grant_type = 'DIRECTO'
          AND is_revoked = FALSE
          AND expires_at > NOW()
-       LIMIT 1;`,
-      [patientId, doctorId]
+       LIMIT 1`,
+      [patientId, selectedDoctorId]
     );
 
     if (existingResult.rows[0]) {
-      const error = new Error(
-        'Este médico ya tiene un acceso activo a su ficha.'
+      throw serviceError(
+        'Este médico ya tiene un acceso vigente o programado a tu ficha.',
+        409
       );
-
-      error.statusCode = 409;
-      throw error;
     }
 
-    // -----------------------------------------------------
-    // 4. Crear token interno
-    // -----------------------------------------------------
-    //
-    // Aunque DIRECTO no usa QR, la columna token
-    // de access_grants es NOT NULL y UNIQUE.
-    //
-    // IMPORTANTE:
-    // Este token NO es un UUID.
-    // Nunca debe enviarse a una consulta SQL que espere UUID.
-    // -----------------------------------------------------
+    const token =
+      `MMR-DIRECT-${crypto.randomBytes(16).toString('hex').toUpperCase()}`;
 
-    const randomHex = crypto
-      .randomBytes(16)
-      .toString('hex')
-      .toUpperCase();
+    const expiresAt = new Date(Date.now() + finalHours * 3600000);
 
-    const token = `MMR-DIRECT-${randomHex}`;
+    const grant = await AccessGrantRepository.createDirectGrant({
+      patientId,
+      doctorId: selectedDoctorId,
+      token,
+      expiresAt,
+    });
 
-    const expiresAt = new Date(
-      Date.now() + finalHours * 60 * 60 * 1000
-    );
-
-    // -----------------------------------------------------
-    // 5. Crear autorización
-    // -----------------------------------------------------
-
-    const grant =
-      await AccessGrantRepository.createDirectGrant({
-        patientId,
-        doctorId,
-        token,
-        expiresAt,
-      });
-
-    // -----------------------------------------------------
-    // 6. Auditoría
-    // -----------------------------------------------------
-
-    await db.query(
-      `INSERT INTO audit_logs (
-        user_id,
-        patient_id,
-        action,
-        details,
-        ip_address,
-        user_agent
-      )
-      VALUES ($1, $2, 'SHARE_RECORD_WITH_DOCTOR', $3, $4, $5);`,
-      [
-        patientId,
-        patientId,
-
-        JSON.stringify({
-          grantId: grant.id,
-          doctorId: doctor.id,
-          doctorRut: doctor.rut,
-          doctorName:
-            `${doctor.first_name} ${doctor.last_name}`.trim(),
-          specialty: doctor.specialty,
-          institution: doctor.institution_name,
-          durationHours: finalHours,
-          expiresAt: grant.expires_at,
-        }),
-
-        '127.0.0.1',
-        'MyMedRecord Portal Paciente',
-      ]
-    );
-
-    // -----------------------------------------------------
-    // 7. Respuesta
-    // -----------------------------------------------------
+    await this.writeAudit({
+      userId: patientId,
+      patientId,
+      action: 'SHARE_RECORD_WITH_DOCTOR',
+      details: {
+        grantId: grant.id,
+        doctorId: doctor.id,
+        doctorRut: doctor.rut,
+        doctorName: `${doctor.first_name} ${doctor.last_name}`.trim(),
+        specialty: doctor.specialty,
+        institution: doctor.institution_name,
+        regionCode: doctor.region_code,
+        city: doctor.city,
+        durationHours: finalHours,
+        expiresAt: grant.expires_at,
+      },
+      ipAddress,
+      userAgent,
+    });
 
     return {
       id: grant.id,
-
-      // IMPORTANTE:
-      // Se devuelve también el token para mantener
-      // consistente la estructura del acceso.
       token: grant.token,
-
       grantType: grant.grant_type,
       doctorId: doctor.id,
-
       doctor: {
         id: doctor.id,
         rut: doctor.rut,
@@ -279,197 +393,108 @@ class AccessGrantService {
         email: doctor.email,
         specialty: doctor.specialty,
         professionalTitle: doctor.professional_title,
-        professionalRegistry:
-          doctor.professional_registry,
-        verificationStatus:
-          doctor.verification_status,
-        institutionName:
-          doctor.institution_name,
+        professionalRegistry: doctor.professional_registry,
+        verificationStatus: doctor.verification_status,
+        institutionName: doctor.institution_name,
+        regionCode: doctor.region_code,
+        city: doctor.city,
       },
-
       durationHours: finalHours,
-
-      startsAt:
-        grant.starts_at || grant.created_at,
-
+      startsAt: grant.starts_at || grant.created_at,
       expiresAt: grant.expires_at,
       createdAt: grant.created_at,
     };
   }
 
-  /**
-   * =====================================================
-   * VALIDAR QR Y ACCEDER A LA FICHA
-   * =====================================================
-   *
-   * Este método corresponde EXCLUSIVAMENTE
-   * al flujo mediante código QR.
-   */
+  // =====================================================
+  // VALIDAR QR Y ACCEDER A LA FICHA
+  // =====================================================
+
   static async validateAndAccess({
     token,
-    doctorRut,
-    doctorName,
-    doctorInstitution,
+    doctorId,
     ipAddress,
     userAgent,
   }) {
-    // -----------------------------------------------------
-    // 1. Validar token
-    // -----------------------------------------------------
-
-    if (!token || !token.trim()) {
-      const error = new Error(
-        'Se requiere un token de Código QR válido.'
+    // doctorId debe obtenerse de req.user.id en el controlador.
+    // No se utiliza el RUT, nombre o institución enviados por el cliente.
+    if (!doctorId) {
+      throw serviceError(
+        'Debes iniciar sesión con una cuenta médica para consultar el QR.',
+        401
       );
-
-      error.statusCode = 400;
-      throw error;
     }
 
-    // -----------------------------------------------------
-    // 2. Validar identificación profesional
-    // -----------------------------------------------------
+    const doctor = await this.requireEligibleDoctor(doctorId);
+    const cleanToken = validateToken(token);
 
-    if (!isValidRut(doctorRut) || !String(doctorName || '').trim() || String(doctorName).trim().length > 150 || String(doctorInstitution || '').length > 150) {
-      const error = new Error(
-        'Ingresa un RUT válido y tu nombre profesional para acceder con el QR.'
-      );
-
-      error.statusCode = 400;
-      throw error;
-    }
-
-    const cleanToken = token.trim();
-
-    // -----------------------------------------------------
-    // 3. Buscar autorización por token
-    // -----------------------------------------------------
-
-    const grant =
-      await AccessGrantRepository.findByToken(cleanToken);
+    const grant = await AccessGrantRepository.findByToken(cleanToken);
 
     if (!grant) {
-      const error = new Error(
-        'Código QR no encontrado o inválido.'
-      );
-
-      error.statusCode = 404;
-      throw error;
+      throw serviceError('Código QR no encontrado o inválido.', 404);
     }
-
-    // -----------------------------------------------------
-    // 4. Debe ser QR_TEMPORAL
-    // -----------------------------------------------------
 
     if (grant.grant_type !== 'QR_TEMPORAL') {
-      const error = new Error(
+      throw serviceError(
         'El código proporcionado no corresponde a un acceso QR.'
       );
-
-      error.statusCode = 400;
-      throw error;
     }
 
-    // -----------------------------------------------------
-    // 5. Comprobar revocación
-    // -----------------------------------------------------
+    validateGrantDates(grant);
 
-    if (grant.is_revoked) {
-      const error = new Error(
-        'Este acceso ha sido revocado directamente por el paciente.'
+    if (String(grant.patient_id).toLowerCase() === doctor.id.toLowerCase()) {
+      throw serviceError(
+        'Este permiso no corresponde a la ficha de otro paciente.',
+        403
       );
-
-      error.statusCode = 403;
-      throw error;
     }
 
-    // -----------------------------------------------------
-    // 6. Comprobar expiración
-    // -----------------------------------------------------
-
-    const now = new Date();
-    const expiry = new Date(grant.expires_at);
-
-    if (now >= expiry) {
-      const error = new Error(
-        `El tiempo de validez de este Código QR expiró el ${expiry.toLocaleString(
-          'es-CL'
-        )}.`
+    // Si el permiso está vinculado a un médico, se respeta esa vinculación.
+    if (
+      grant.doctor_id &&
+      String(grant.doctor_id).toLowerCase() !== doctor.id.toLowerCase()
+    ) {
+      throw serviceError(
+        'Este permiso QR pertenece a otro médico.',
+        403
       );
-
-      error.statusCode = 410;
-      throw error;
     }
 
-    // -----------------------------------------------------
-    // 7. Registrar profesional que consultó
-    // -----------------------------------------------------
+    const doctorName =
+      `${doctor.first_name} ${doctor.last_name}`.trim();
 
     await AccessGrantRepository.recordDoctorAccess({
       token: grant.token,
-      doctorRut: doctorRut.trim(),
-      doctorName: doctorName.trim(),
-      doctorInstitution: (
-        doctorInstitution || 'No especificada'
-      ).trim(),
+      doctorRut: doctor.rut,
+      doctorName,
+      doctorInstitution: doctor.institution_name,
     });
 
-    // -----------------------------------------------------
-    // 8. Auditoría
-    // -----------------------------------------------------
-
-    await db.query(
-      `INSERT INTO audit_logs (
-        patient_id,
-        action,
-        details,
-        ip_address,
-        user_agent
-      )
-      VALUES ($1, 'CONSULTA_MEDICA_QR', $2, $3, $4);`,
-      [
-        grant.patient_id,
-
-        JSON.stringify({
-          doctor_rut: doctorRut.trim(),
-          doctor_name: doctorName.trim(),
-          doctor_institution:
-            doctorInstitution ||
-            'Centro de Salud / Consulta Médica',
-          expires_at: grant.expires_at,
-        }),
-
-        ipAddress || '127.0.0.1',
-        userAgent || 'Visor Medico QR Web',
-      ]
-    );
-
-    // -----------------------------------------------------
-    // 9. Obtener ficha clínica
-    // -----------------------------------------------------
+    await this.writeAudit({
+      userId: doctor.id,
+      patientId: grant.patient_id,
+      action: 'CONSULTA_MEDICA_QR',
+      details: {
+        grantId: grant.id,
+        doctorId: doctor.id,
+        doctor_rut: doctor.rut,
+        doctor_name: doctorName,
+        doctor_institution: doctor.institution_name,
+        expires_at: grant.expires_at,
+      },
+      ipAddress,
+      userAgent,
+    });
 
     const clinicalData =
-      await AccessGrantRepository.getPatientClinicalData(
-        grant.patient_id
-      );
+      await AccessGrantRepository.getPatientClinicalData(grant.patient_id);
 
     if (!clinicalData) {
-      const error = new Error(
-        'No se encontró la ficha clínica del paciente.'
+      throw serviceError(
+        'No se encontró la ficha clínica del paciente.',
+        404
       );
-
-      error.statusCode = 404;
-      throw error;
     }
-
-    // -----------------------------------------------------
-    // 10. Tiempo restante
-    // -----------------------------------------------------
-
-    const minutesRemaining = Math.max(
-      0,
-      Math.round((expiry - now) / (1000 * 60))
-    );
 
     return {
       grant: {
@@ -477,472 +502,242 @@ class AccessGrantService {
         token: grant.token,
         grantType: grant.grant_type,
         expiresAt: grant.expires_at,
-        minutesRemaining,
-        doctorRut: doctorRut.trim(),
-        doctorName: doctorName.trim(),
-        doctorInstitution:
-          doctorInstitution || 'No especificada',
+        minutesRemaining: minutesRemaining(grant.expires_at),
+        doctorRut: doctor.rut,
+        doctorName,
+        doctorInstitution: doctor.institution_name,
       },
-
       clinicalData,
     };
   }
 
-  /**
-   * =====================================================
-   * REVOCAR ACCESO
-   * =====================================================
-   *
-   * Funciona para:
-   * - QR_TEMPORAL
-   * - DIRECTO
-   */
+  // =====================================================
+  // REVOCAR ACCESO
+  // =====================================================
+
   static async revokeGrant({
     grantId,
     patientId,
+    ipAddress,
+    userAgent,
   }) {
+    await this.requirePatient(patientId);
+    validateId(grantId, 'El identificador del permiso no es válido.');
+
     const revoked =
-      await AccessGrantRepository.revokeGrant(
-        grantId,
-        patientId
-      );
+      await AccessGrantRepository.revokeGrant(grantId, patientId);
 
     if (!revoked) {
-      const error = new Error(
-        'No se encontró el acceso para revocar o no le pertenece.'
+      throw serviceError(
+        'No se encontró el acceso para revocar o no te pertenece.',
+        404
       );
-
-      error.statusCode = 404;
-      throw error;
     }
 
-    const action =
-      revoked.grant_type === 'DIRECTO'
-        ? 'REVOKE_DIRECT_ACCESS'
-        : 'REVOKE_QR_ACCESS';
-
-    await db.query(
-      `INSERT INTO audit_logs (
-        user_id,
-        patient_id,
-        action,
-        details,
-        ip_address,
-        user_agent
-      )
-      VALUES ($1, $2, $3, $4, $5, $6);`,
-      [
-        patientId,
-        patientId,
-        action,
-
-        JSON.stringify({
-          grantId,
-          grantType: revoked.grant_type,
-          doctorId: revoked.doctor_id || null,
-        }),
-
-        '127.0.0.1',
-        'MyMedRecord Portal Paciente',
-      ]
-    );
+    await this.writeAudit({
+      userId: patientId,
+      patientId,
+      action:
+        revoked.grant_type === 'DIRECTO'
+          ? 'REVOKE_DIRECT_ACCESS'
+          : 'REVOKE_QR_ACCESS',
+      details: {
+        grantId,
+        grantType: revoked.grant_type,
+        doctorId: revoked.doctor_id || null,
+      },
+      ipAddress,
+      userAgent,
+    });
 
     return revoked;
   }
 
-  /**
-   * =====================================================
-   * OBTENER QR ACTIVO DEL PACIENTE
-   * =====================================================
-   */
+  // =====================================================
+  // OBTENER QR ACTIVO DEL PACIENTE
+  // =====================================================
+
   static async getActiveGrant(patientId) {
+    await this.requirePatient(patientId);
+
     const grant =
-      await AccessGrantRepository.getActiveByPatient(
-        patientId
-      );
+      await AccessGrantRepository.getActiveByPatient(patientId);
 
-    if (!grant) {
-      return null;
-    }
+    if (!grant) return null;
 
-    const now = new Date();
     const expiry = new Date(grant.expires_at);
-
-    const minutesRemaining = Math.max(
-      0,
-      Math.round((expiry - now) / (1000 * 60))
-    );
 
     return {
       id: grant.id,
       token: grant.token,
       grantType: grant.grant_type,
       expiresAt: grant.expires_at,
-      durationHours: Math.round((expiry - new Date(grant.created_at)) / 3600000),
-      minutesRemaining,
+      durationHours: Math.round(
+        (expiry - new Date(grant.created_at)) / 3600000
+      ),
+      minutesRemaining: minutesRemaining(grant.expires_at),
       doctorRut: grant.doctor_rut,
       doctorName: grant.doctor_name,
-      doctorInstitution:
-        grant.doctor_institution,
+      doctorInstitution: grant.doctor_institution,
       accessCount: grant.access_count,
       createdAt: grant.created_at,
     };
   }
 
-  /**
-   * =====================================================
-   * OBTENER TODOS LOS ACCESOS DEL PACIENTE
-   * =====================================================
-   */
+  // =====================================================
+  // OBTENER TODOS LOS ACCESOS DEL PACIENTE
+  // =====================================================
+
   static async getMyGrants(patientId) {
+    await this.requirePatient(patientId);
+
     const grants =
-      await AccessGrantRepository.getAllByPatient(
-        patientId
-      );
+      await AccessGrantRepository.getAllByPatient(patientId);
 
-    return grants.map((grant) => {
-      const now = new Date();
-      const expiry = new Date(grant.expires_at);
-
-      const minutesRemaining = Math.max(
-        0,
-        Math.round((expiry - now) / (1000 * 60))
-      );
-
-      let status = 'ACTIVO';
-
-      if (grant.is_revoked) {
-        status = 'REVOCADO';
-      } else if (expiry <= now) {
-        status = 'EXPIRADO';
-      }
-
-      return {
-        id: grant.id,
-        token: grant.token,
-        grantType: grant.grant_type,
-
-        doctorId: grant.doctor_id,
-        doctorRut: grant.doctor_rut,
-        doctorName: grant.doctor_name,
-        doctorInstitution:
-          grant.doctor_institution,
-
-        startsAt:
-          grant.starts_at || grant.created_at,
-
-        expiresAt: grant.expires_at,
-        minutesRemaining,
-
-        isRevoked: grant.is_revoked,
-        accessCount: grant.access_count,
-
-        status,
-
-        createdAt: grant.created_at,
-      };
-    });
+    return grants.map((grant) => ({
+      id: grant.id,
+      token: grant.token,
+      grantType: grant.grant_type,
+      doctorId: grant.doctor_id,
+      doctorRut: grant.doctor_rut,
+      doctorName: grant.doctor_name,
+      doctorInstitution: grant.doctor_institution,
+      startsAt: grant.starts_at || grant.created_at,
+      expiresAt: grant.expires_at,
+      minutesRemaining: minutesRemaining(grant.expires_at),
+      isRevoked: grant.is_revoked,
+      accessCount: grant.access_count,
+      status: grantStatus(grant),
+      createdAt: grant.created_at,
+    }));
   }
 
-  /**
-   * =====================================================
-   * FICHAS COMPARTIDAS CON EL MÉDICO
-   * =====================================================
-   *
-   * Devuelve los accesos DIRECTO que los pacientes
-   * entregaron al médico autenticado.
-   */
+  // =====================================================
+  // FICHAS COMPARTIDAS CON EL MÉDICO
+  // =====================================================
+
   static async getSharedWithDoctor(doctorId) {
     if (!doctorId) {
-      const error = new Error(
-        'No se pudo identificar al médico autenticado.'
+      throw serviceError(
+        'No se pudo identificar al médico autenticado.',
+        401
       );
-
-      error.statusCode = 401;
-      throw error;
     }
 
+    await this.requireEligibleDoctor(doctorId);
+
     const grants =
-      await AccessGrantRepository.getSharedWithDoctor(
-        doctorId
-      );
+      await AccessGrantRepository.getSharedWithDoctor(doctorId);
 
-    const now = new Date();
-
-    return grants.map((grant) => {
-      const expiry = new Date(grant.expires_at);
-
-      const minutesRemaining = Math.max(
-        0,
-        Math.round((expiry - now) / (1000 * 60))
-      );
-
-      let status = 'ACTIVO';
-
-      if (grant.is_revoked) {
-        status = 'REVOCADO';
-      } else if (expiry <= now) {
-        status = 'EXPIRADO';
-      }
-
-      return {
-        id: grant.id,
-
-        // MUY IMPORTANTE:
-        // Para abrir un acceso DIRECTO el frontend
-        // debe enviar este TOKEN al backend.
-        //
-        // NO se debe usar patientId como token.
-        token: grant.token,
-
-        grantType: grant.grant_type,
-
-        patientId: grant.patient_id,
-
-        patient: {
-          id: grant.patient_id,
-          rut: grant.patient_rut,
-          firstName: grant.patient_first_name,
-          lastName: grant.patient_last_name,
-          email: grant.patient_email,
-        },
-
-        startsAt:
-          grant.starts_at || grant.created_at,
-
-        expiresAt: grant.expires_at,
-        minutesRemaining,
-
-        isRevoked: grant.is_revoked,
-        accessCount: grant.access_count,
-
-        status,
-
-        createdAt: grant.created_at,
-      };
-    });
+    return grants.map((grant) => ({
+      id: grant.id,
+      token: grant.token,
+      grantType: grant.grant_type,
+      patientId: grant.patient_id,
+      patient: {
+        id: grant.patient_id,
+        rut: grant.patient_rut,
+        firstName: grant.patient_first_name,
+        lastName: grant.patient_last_name,
+        email: grant.patient_email,
+      },
+      startsAt: grant.starts_at || grant.created_at,
+      expiresAt: grant.expires_at,
+      minutesRemaining: minutesRemaining(grant.expires_at),
+      isRevoked: grant.is_revoked,
+      accessCount: grant.access_count,
+      status: grantStatus(grant),
+      createdAt: grant.created_at,
+    }));
   }
 
-  /**
-   * =====================================================
-   * ABRIR FICHA MEDIANTE ACCESO DIRECTO
-   * =====================================================
-   *
-   * Este método NO usa patientId para buscar la ficha.
-   *
-   * Recibe el token interno:
-   *
-   * MMR-DIRECT-XXXXXXXX...
-   *
-   * y verifica que ese token realmente pertenezca
-   * al médico autenticado.
-   */
+  // =====================================================
+  // ABRIR FICHA MEDIANTE ACCESO DIRECTO
+  // =====================================================
+
   static async accessDirectGrant({
     token,
     doctorId,
     ipAddress,
     userAgent,
   }) {
-    // -----------------------------------------------------
-    // 1. Validar médico autenticado
-    // -----------------------------------------------------
-
     if (!doctorId) {
-      const error = new Error(
-        'No se pudo identificar al médico autenticado.'
+      throw serviceError(
+        'No se pudo identificar al médico autenticado.',
+        401
       );
-
-      error.statusCode = 401;
-      throw error;
     }
 
-    // -----------------------------------------------------
-    // 2. Validar token
-    // -----------------------------------------------------
+    const doctor = await this.requireEligibleDoctor(doctorId);
+    const cleanToken = validateToken(token);
 
-    if (!token || !String(token).trim()) {
-      const error = new Error(
-        'Se requiere un token de acceso válido.'
-      );
-
-      error.statusCode = 400;
-      throw error;
-    }
-
-    const cleanToken = String(token).trim();
-
-    // -----------------------------------------------------
-    // 3. Buscar permiso por TOKEN
-    // -----------------------------------------------------
-    //
-    // Esto evita el error:
-    //
-    // invalid input syntax for type uuid:
-    // "MMR-DIRECT-..."
-    //
-    // El token se compara contra access_grants.token,
-    // que es texto, NO contra una columna UUID.
-    // -----------------------------------------------------
-
-    const grant =
-      await AccessGrantRepository.findByToken(cleanToken);
+    const grant = await AccessGrantRepository.findByToken(cleanToken);
 
     if (!grant) {
-      const error = new Error(
-        'El acceso compartido no existe.'
-      );
-
-      error.statusCode = 404;
-      throw error;
+      throw serviceError('El acceso compartido no existe.', 404);
     }
-
-    // -----------------------------------------------------
-    // 4. Verificar tipo DIRECTO
-    // -----------------------------------------------------
 
     if (grant.grant_type !== 'DIRECTO') {
-      const error = new Error(
+      throw serviceError(
         'Este token no corresponde a un acceso directo.'
       );
-
-      error.statusCode = 400;
-      throw error;
     }
 
-    // -----------------------------------------------------
-    // 5. Verificar que pertenece al médico autenticado
-    // -----------------------------------------------------
-
-    if (String(grant.doctor_id) !== String(doctorId)) {
-      const error = new Error(
-        'No tiene autorización para consultar esta ficha.'
+    if (
+      String(grant.doctor_id).toLowerCase() !== doctor.id.toLowerCase()
+    ) {
+      throw serviceError(
+        'No tienes autorización para consultar esta ficha.',
+        403
       );
-
-      error.statusCode = 403;
-      throw error;
     }
 
-    // -----------------------------------------------------
-    // 6. Verificar revocación
-    // -----------------------------------------------------
-
-    if (grant.is_revoked) {
-      const error = new Error(
-        'El paciente revocó este acceso.'
-      );
-
-      error.statusCode = 403;
-      throw error;
-    }
-
-    // -----------------------------------------------------
-    // 7. Verificar expiración
-    // -----------------------------------------------------
-
-    const now = new Date();
-    const expiry = new Date(grant.expires_at);
-
-    if (now >= expiry) {
-      const error = new Error(
-        'Este acceso compartido ha expirado.'
-      );
-
-      error.statusCode = 410;
-      throw error;
-    }
-
-    // -----------------------------------------------------
-    // 8. Obtener ficha clínica del paciente
-    // -----------------------------------------------------
+    validateGrantDates(grant);
 
     const clinicalData =
-      await AccessGrantRepository.getPatientClinicalData(
-        grant.patient_id
-      );
+      await AccessGrantRepository.getPatientClinicalData(grant.patient_id);
 
     if (!clinicalData) {
-      const error = new Error(
-        'No se encontró la ficha clínica del paciente.'
+      throw serviceError(
+        'No se encontró la ficha clínica del paciente.',
+        404
       );
-
-      error.statusCode = 404;
-      throw error;
     }
 
-    // -----------------------------------------------------
-    // 9. Registrar auditoría
-    // -----------------------------------------------------
-
-    await db.query(
-      `INSERT INTO audit_logs (
-        user_id,
-        patient_id,
-        action,
-        details,
-        ip_address,
-        user_agent
-      )
-      VALUES ($1, $2, 'CONSULTA_MEDICA_DIRECTA', $3, $4, $5);`,
-      [
-        doctorId,
-        grant.patient_id,
-
-        JSON.stringify({
-          grantId: grant.id,
-          grantType: grant.grant_type,
-          doctorId,
-          patientId: grant.patient_id,
-          expiresAt: grant.expires_at,
-        }),
-
-        ipAddress || '127.0.0.1',
-        userAgent || 'MyMedRecord Portal Médico',
-      ]
-    );
-
-    // -----------------------------------------------------
-    // 10. Incrementar contador de accesos
-    // -----------------------------------------------------
+    await this.writeAudit({
+      userId: doctor.id,
+      patientId: grant.patient_id,
+      action: 'CONSULTA_MEDICA_DIRECTA',
+      details: {
+        grantId: grant.id,
+        grantType: grant.grant_type,
+        doctorId: doctor.id,
+        patientId: grant.patient_id,
+        expiresAt: grant.expires_at,
+      },
+      ipAddress,
+      userAgent,
+    });
 
     await db.query(
       `UPDATE access_grants
        SET access_count = COALESCE(access_count, 0) + 1
-       WHERE id = $1;`,
+       WHERE id = $1`,
       [grant.id]
     );
-
-    // -----------------------------------------------------
-    // 11. Calcular minutos restantes
-    // -----------------------------------------------------
-
-    const minutesRemaining = Math.max(
-      0,
-      Math.round((expiry - now) / (1000 * 60))
-    );
-
-    // -----------------------------------------------------
-    // 12. Respuesta final
-    // -----------------------------------------------------
 
     return {
       grant: {
         id: grant.id,
         token: grant.token,
         grantType: grant.grant_type,
-
         patientId: grant.patient_id,
         doctorId: grant.doctor_id,
-
-        startsAt:
-          grant.starts_at || grant.created_at,
-
+        startsAt: grant.starts_at || grant.created_at,
         expiresAt: grant.expires_at,
-        minutesRemaining,
-
-        accessCount:
-          Number(grant.access_count || 0) + 1,
+        minutesRemaining: minutesRemaining(grant.expires_at),
+        accessCount: Number(grant.access_count || 0) + 1,
       },
-
       clinicalData,
     };
   }

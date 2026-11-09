@@ -9,6 +9,10 @@ const COOKIE_OPTIONS = {
 };
 
 class AuthController {
+  // =====================================================
+  // REGISTRAR PACIENTE O MÉDICO
+  // =====================================================
+
   static async register(req, res, next) {
     try {
       const {
@@ -22,6 +26,9 @@ class AuthController {
         specialty,
         institutionId,
         institutionNameOther,
+        regionCode,
+        city,
+        address,
       } = req.body;
 
       const { user, token } = await AuthService.register({
@@ -35,10 +42,16 @@ class AuthController {
         specialty,
         institutionId,
         institutionNameOther,
+        regionCode,
+        city,
+        address,
       });
 
-      // Transmisión segura en Cookie HttpOnly
-      res.cookie(config.JWT.COOKIE_NAME, token, COOKIE_OPTIONS);
+      res.cookie(
+        config.JWT.COOKIE_NAME,
+        token,
+        COOKIE_OPTIONS
+      );
 
       return res.status(201).json({
         success: true,
@@ -53,6 +66,10 @@ class AuthController {
     }
   }
 
+  // =====================================================
+  // INICIAR SESIÓN
+  // =====================================================
+
   static async login(req, res, next) {
     try {
       const { email, password } = req.body;
@@ -62,8 +79,11 @@ class AuthController {
         password,
       });
 
-      // Transmisión segura en Cookie HttpOnly
-      res.cookie(config.JWT.COOKIE_NAME, token, COOKIE_OPTIONS);
+      res.cookie(
+        config.JWT.COOKIE_NAME,
+        token,
+        COOKIE_OPTIONS
+      );
 
       return res.status(200).json({
         success: true,
@@ -75,15 +95,22 @@ class AuthController {
     }
   }
 
-  // Solicitar recuperación de contraseña
+  // =====================================================
+  // SOLICITAR RECUPERACIÓN DE CONTRASEÑA
+  // =====================================================
+
   static async forgotPassword(req, res, next) {
     try {
       const { email } = req.body;
 
-      if (typeof email !== 'string' || !email.trim()) {
+      if (
+        typeof email !== 'string' ||
+        !email.trim()
+      ) {
         return res.status(400).json({
           success: false,
-          message: 'Debes ingresar un correo electrónico válido.',
+          message:
+            'Debes ingresar un correo electrónico válido.',
         });
       }
 
@@ -101,7 +128,10 @@ class AuthController {
     }
   }
 
-  // Restablecer contraseña mediante token temporal
+  // =====================================================
+  // RESTABLECER CONTRASEÑA
+  // =====================================================
+
   static async resetPassword(req, res, next) {
     try {
       const { token, password } = req.body;
@@ -114,7 +144,8 @@ class AuthController {
       ) {
         return res.status(400).json({
           success: false,
-          message: 'El enlace y la nueva contraseña son obligatorios.',
+          message:
+            'El enlace y la nueva contraseña son obligatorios.',
         });
       }
 
@@ -123,8 +154,11 @@ class AuthController {
         password,
       });
 
-      // Cerrar la sesión actual en este navegador
-      res.clearCookie(config.JWT.COOKIE_NAME, COOKIE_OPTIONS);
+      // Cerrar la sesión actual en este navegador.
+      res.clearCookie(
+        config.JWT.COOKIE_NAME,
+        COOKIE_OPTIONS
+      );
 
       return res.status(200).json({
         success: true,
@@ -136,14 +170,25 @@ class AuthController {
     }
   }
 
+  // =====================================================
+  // CERRAR SESIÓN
+  // =====================================================
+
   static async logout(req, res) {
-    res.clearCookie(config.JWT.COOKIE_NAME, COOKIE_OPTIONS);
+    res.clearCookie(
+      config.JWT.COOKIE_NAME,
+      COOKIE_OPTIONS
+    );
 
     return res.status(200).json({
       success: true,
       message: 'Sesión cerrada exitosamente.',
     });
   }
+
+  // =====================================================
+  // CONSULTAR USUARIO AUTENTICADO
+  // =====================================================
 
   static async me(req, res) {
     return res.status(200).json({

@@ -3,133 +3,441 @@ const AccessGrantRepository = require('../repositories/access-grant.repository')
 const DocumentRepository = require('../repositories/document.repository');
 const DocumentService = require('../services/document.service');
 const db = require('../config/db');
-const { isValidRut } = require('../utils/rut.util');
 const os = require('os');
 
+function controllerError(message, statusCode = 400) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+}
+
+function authenticatedUserId(req, expectedRole) {
+  if (!req.user?.id) {
+    throw controllerError('Debes iniciar sesión para continuar.', 401);
+  }
+
+  if (req.user.role !== expectedRole) {
+    throw controllerError(
+      'Tu cuenta no tiene permiso para realizar esta operación.',
+      403
+    );
+  }
+
+  return req.user.id;
+}
+
+function requestContext(req) {
+  return {
+    ipAddress:
+      req.ip ||
+      req.socket?.remoteAddress ||
+      '127.0.0.1',
+    userAgent:
+      req.get('user-agent') ||
+      'MyMedRecord',
+  };
+}
+
 function localAppAddress() {
-  const addresses = Object.entries(os.networkInterfaces()).flatMap(([name, entries]) =>
-    (entries || []).filter((entry) => {
-      if (entry.internal || !['IPv4', 4].includes(entry.family)) return false;
-      if (/vpn|virtual|vEthernet|docker|wsl|tailscale|zerotier|loopback/i.test(name)) return false;
-      const address = entry.address;
-      return /^10\./.test(address) || /^192\.168\./.test(address) ||
-        /^172\.(1[6-9]|2\d|3[01])\./.test(address);
-    }).map((entry) => ({ name, address: entry.address })),
+  const addresses = Object.entries(os.networkInterfaces()).flatMap(
+    ([name, entries]) =>
+      (entries || [])
+        .filter((entry) => {
+          if (
+            entry.internal ||
+            !['IPv4', 4].includes(entry.family)
+          ) {
+            return false;
+          }
+
+          if (
+            /vpn|virtual|vEthernet|docker|wsl|tailscale|zerotier|loopback/i.test(
+              name
+            )
+          ) {
+            return false;
+          }
+
+          const address = entry.address;
+
+          return (
+            /^10\./.test(address) ||
+            /^192\.168\./.test(address) ||
+            /^172\.(1[6-9]|2\d|3[01])\./.test(address)
+          );
+        })
+        .map((entry) => ({
+          name,
+          address: entry.address,
+        }))
   );
+
   addresses.sort((a, b) => {
-    const score = (item) => (/wi-?fi|wireless|ethernet|wlan/i.test(item.name) ? 10 : 0) +
+    const score = (item) =>
+      (/wi-?fi|wireless|ethernet|wlan/i.test(item.name) ? 10 : 0) +
       (item.address.startsWith('192.168.') ? 2 : 0);
+
     return score(b) - score(a);
   });
+
   return addresses[0]?.address || null;
 }
 
-async function sendAuthorizedFile(req, res, grant, documentId, actor) {
-  if (!grant || grant.is_revoked || new Date(grant.expires_at) <= new Date()) {
-    return res.status(403).json({ success: false, message: 'El permiso no está vigente.' });
+function cleanToken(value) {
+  if (
+    typeof value !== 'string' ||
+    !value.trim() ||
+    value.trim().length > 100
+  ) {
+    throw controllerError('El token de acceso no es válido.');
   }
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(documentId || '')) {
-    return res.status(400).json({ success: false, message: 'Documento no válido.' });
+
+  return value.trim();
+}
+
+function assertCurrentGrant(grant) {
+  if (!grant) {
+    throw controllerError('El permiso no existe o no está disponible.', 403);
   }
-  const document = await DocumentRepository.findById(documentId);
-  if (!document || document.patient_id !== grant.patient_id || !['CONFIRMADO', 'PENDIENTE_REVISION'].includes(document.status)) {
-    return res.status(404).json({ success: false, message: 'Documento no disponible en esta ficha.' });
+
+  const now = Date.now();
+  const expiresAt = new Date(grant.expires_at).getTime();
+  const startsAt = new Date(
+    grant.starts_at || grant.created_at
+  ).getTime();
+
+  if (
+    grant.is_revoked ||
+    !Number.isFinite(expiresAt) ||
+    !Number.isFinite(startsAt) ||
+    startsAt > now ||
+    expiresAt <= now
+  ) {
+    throw controllerError('El permiso no está vigente.', 403);
   }
-  const file = await DocumentService.readStoredFile(document);
-  await db.query(
-    `INSERT INTO audit_logs (user_id, patient_id, action, details, ip_address, user_agent)
-     VALUES ($1,$2,'VIEW_SHARED_DOCUMENT',$3,$4,$5)`,
-    [actor.userId || null, grant.patient_id,
-      JSON.stringify({ grantId: grant.id, documentId, accessType: grant.grant_type, declaredDoctorRut: actor.rut || null }),
-      req.ip || '0.0.0.0', req.get('user-agent') || null],
+}
+
+function remainingMinutes(grant) {
+  return Math.max(
+    0,
+    Math.floor(
+      (new Date(grant.expires_at).getTime() - Date.now()) / 60000
+    )
   );
+}
+
+// Comprueba la sesión, el estado profesional y la titularidad
+// antes de consultar vigencia o entregar un archivo.
+async function authorizedDoctorGrant(req, token, grantType) {
+  const doctorId = authenticatedUserId(req, 'MEDICO');
+
+  const doctor =
+    await AccessGrantService.requireEligibleDoctor(doctorId);
+
+  const grant =
+    await AccessGrantRepository.findByToken(cleanToken(token));
+
+  if (!grant || grant.grant_type !== grantType) {
+    throw controllerError(
+      'El permiso no corresponde al tipo de acceso solicitado.',
+      403
+    );
+  }
+
+  assertCurrentGrant(grant);
+
+  const sameDoctor =
+    String(grant.doctor_id || '').toLowerCase() ===
+    String(doctor.id).toLowerCase();
+
+  if (grantType === 'DIRECTO' && !sameDoctor) {
+    throw controllerError(
+      'No tienes autorización para consultar esta ficha.',
+      403
+    );
+  }
+
+  if (
+    grantType === 'QR_TEMPORAL' &&
+    grant.doctor_id &&
+    !sameDoctor
+  ) {
+    throw controllerError(
+      'Este permiso QR pertenece a otro médico.',
+      403
+    );
+  }
+
+  if (
+    String(grant.patient_id).toLowerCase() ===
+    String(doctor.id).toLowerCase()
+  ) {
+    throw controllerError(
+      'Este permiso no corresponde a la ficha de otro paciente.',
+      403
+    );
+  }
+
+  return { grant, doctor };
+}
+
+async function sendAuthorizedFile(
+  req,
+  res,
+  grant,
+  documentId,
+  doctor
+) {
+  assertCurrentGrant(grant);
+
+  const uuidPattern =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  if (
+    typeof documentId !== 'string' ||
+    !uuidPattern.test(documentId)
+  ) {
+    throw controllerError('Documento no válido.');
+  }
+
+  const document = await DocumentRepository.findById(documentId);
+
+  if (
+    !document ||
+    String(document.patient_id).toLowerCase() !==
+      String(grant.patient_id).toLowerCase() ||
+    !['CONFIRMADO', 'PENDIENTE_REVISION'].includes(document.status)
+  ) {
+    throw controllerError(
+      'Documento no disponible en esta ficha.',
+      404
+    );
+  }
+
+  const file = await DocumentService.readStoredFile(document);
+
+  // Revalidar después de leer el archivo y antes de enviarlo.
+  await AccessGrantService.requireEligibleDoctor(doctor.id);
+
+  const currentGrant =
+    await AccessGrantRepository.findByToken(grant.token);
+
+  assertCurrentGrant(currentGrant);
+
+  if (
+    currentGrant.grant_type !== grant.grant_type ||
+    String(currentGrant.patient_id).toLowerCase() !==
+      String(grant.patient_id).toLowerCase() ||
+    (
+      currentGrant.grant_type === 'DIRECTO' &&
+      String(currentGrant.doctor_id).toLowerCase() !==
+        String(doctor.id).toLowerCase()
+    ) ||
+    (
+      currentGrant.grant_type === 'QR_TEMPORAL' &&
+      currentGrant.doctor_id &&
+      String(currentGrant.doctor_id).toLowerCase() !==
+        String(doctor.id).toLowerCase()
+    )
+  ) {
+    throw controllerError(
+      'El permiso cambió y ya no autoriza esta consulta.',
+      403
+    );
+  }
+
+  const context = requestContext(req);
+
+  await db.query(
+    `INSERT INTO audit_logs (
+       user_id,
+       patient_id,
+       action,
+       details,
+       ip_address,
+       user_agent
+     )
+     VALUES ($1, $2, 'VIEW_SHARED_DOCUMENT', $3, $4, $5)`,
+    [
+      doctor.id,
+      currentGrant.patient_id,
+      JSON.stringify({
+        grantId: currentGrant.id,
+        documentId,
+        accessType: currentGrant.grant_type,
+        doctorId: doctor.id,
+        doctorRut: doctor.rut,
+      }),
+      String(context.ipAddress).slice(0, 45),
+      context.userAgent,
+    ]
+  );
+
+  const fileName = String(file.fileName || 'documento')
+    .replace(/[^\x20-\x7E]|["\\/]/g, '_');
+
   res.set('Cache-Control', 'no-store');
+  res.set('X-Content-Type-Options', 'nosniff');
   res.type(file.mimeType);
-  res.set('Content-Disposition', `inline; filename="${file.fileName.replace(/["\\\r\n]/g, '_')}"`);
+  res.set(
+    'Content-Disposition',
+    `inline; filename="${fileName}"`
+  );
+
   return res.send(file.buffer);
 }
 
 class AccessGrantController {
-  static async shareUrl(req, res) {
-    const port = Number(req.query.port);
-    const frontendPort = Number.isInteger(port) && port > 0 && port <= 65535 ? port : 5173;
-    let baseUrl = null;
-    if (process.env.PUBLIC_APP_URL) {
-      try {
-        const configured = new URL(process.env.PUBLIC_APP_URL);
-        if (['http:', 'https:'].includes(configured.protocol)) baseUrl = configured.origin;
-      } catch { /* Se usará la dirección local disponible. */ }
+  static async shareUrl(req, res, next) {
+    try {
+      const patientId = authenticatedUserId(req, 'PACIENTE');
+      await AccessGrantService.requirePatient(patientId);
+
+      const port = Number(req.query.port);
+      const frontendPort =
+        Number.isInteger(port) && port > 0 && port <= 65535
+          ? port
+          : 5173;
+
+      let baseUrl = null;
+
+      if (process.env.PUBLIC_APP_URL) {
+        try {
+          const configured = new URL(process.env.PUBLIC_APP_URL);
+
+          if (['http:', 'https:'].includes(configured.protocol)) {
+            baseUrl = configured.origin;
+          }
+        } catch {
+          // Se intentará obtener una dirección local.
+        }
+      }
+
+      if (!baseUrl) {
+        const address = localAppAddress();
+
+        if (address) {
+          baseUrl = `http://${address}:${frontendPort}`;
+        }
+      }
+
+      res.set('Cache-Control', 'no-store');
+
+      if (!baseUrl) {
+        return res.status(503).json({
+          success: false,
+          message:
+            'No se detectó una dirección de acceso para otros dispositivos.',
+        });
+      }
+
+      return res.json({
+        success: true,
+        data: { baseUrl },
+      });
+    } catch (error) {
+      next(error);
     }
-    if (!baseUrl) {
-      const address = localAppAddress();
-      if (address) baseUrl = `http://${address}:${frontendPort}`;
-    }
-    res.set('Cache-Control', 'no-store');
-    if (!baseUrl) return res.status(503).json({ success: false, message: 'No se detectó una dirección de acceso para otros dispositivos.' });
-    return res.json({ success: true, data: { baseUrl } });
   }
 
   static async directCheck(req, res, next) {
     try {
-      const grant = await AccessGrantRepository.findByToken(req.params.token);
-      const valid = grant && grant.grant_type === 'DIRECTO' && String(grant.doctor_id) === String(req.user.id)
-        && !grant.is_revoked && new Date(grant.expires_at) > new Date();
-      if (!valid) return res.status(403).json({ success: false, message: 'El permiso ya no está vigente.' });
+      const { grant } = await authorizedDoctorGrant(
+        req,
+        req.params.token,
+        'DIRECTO'
+      );
+
       res.set('Cache-Control', 'no-store');
-      return res.json({ success: true, minutesRemaining: Math.max(0, Math.ceil((new Date(grant.expires_at) - new Date()) / 60000)) });
-    } catch (error) { next(error); }
+
+      return res.json({
+        success: true,
+        minutesRemaining: remainingMinutes(grant),
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 
   static async qrCheck(req, res, next) {
     try {
-      const grant = await AccessGrantRepository.findByToken(String(req.body?.token || '').trim());
-      const valid = grant && grant.grant_type === 'QR_TEMPORAL' && !grant.is_revoked && new Date(grant.expires_at) > new Date();
-      if (!valid) return res.status(403).json({ success: false, message: 'El código QR ya no está vigente.' });
+      const { grant } = await authorizedDoctorGrant(
+        req,
+        req.body?.token,
+        'QR_TEMPORAL'
+      );
+
       res.set('Cache-Control', 'no-store');
-      return res.json({ success: true, minutesRemaining: Math.max(0, Math.ceil((new Date(grant.expires_at) - new Date()) / 60000)) });
-    } catch (error) { next(error); }
+
+      return res.json({
+        success: true,
+        minutesRemaining: remainingMinutes(grant),
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 
   static async directFile(req, res, next) {
     try {
-      const grant = await AccessGrantRepository.findByToken(req.params.token);
-      if (!grant || grant.grant_type !== 'DIRECTO' || String(grant.doctor_id) !== String(req.user.id)) {
-        return res.status(403).json({ success: false, message: 'No tienes autorización para este documento.' });
-      }
-      return await sendAuthorizedFile(req, res, grant, req.params.documentId, { userId: req.user.id });
-    } catch (error) { next(error); }
+      const { grant, doctor } = await authorizedDoctorGrant(
+        req,
+        req.params.token,
+        'DIRECTO'
+      );
+
+      return await sendAuthorizedFile(
+        req,
+        res,
+        grant,
+        req.params.documentId,
+        doctor
+      );
+    } catch (error) {
+      next(error);
+    }
   }
 
   static async qrFile(req, res, next) {
     try {
-      const { token, documentId, doctorRut, doctorName } = req.body || {};
-      if (!token || !isValidRut(doctorRut) || !doctorName?.trim()) {
-        return res.status(400).json({ success: false, message: 'Código e identificación declarada requeridos.' });
-      }
-      const grant = await AccessGrantRepository.findByToken(String(token).trim());
-      if (!grant || grant.grant_type !== 'QR_TEMPORAL') {
-        return res.status(403).json({ success: false, message: 'Código QR no válido.' });
-      }
-      return await sendAuthorizedFile(req, res, grant, documentId, { rut: doctorRut.trim() });
-    } catch (error) { next(error); }
+      const { token, documentId } = req.body || {};
+
+      const { grant, doctor } = await authorizedDoctorGrant(
+        req,
+        token,
+        'QR_TEMPORAL'
+      );
+
+      return await sendAuthorizedFile(
+        req,
+        res,
+        grant,
+        documentId,
+        doctor
+      );
+    } catch (error) {
+      next(error);
+    }
   }
-  /**
-   * POST /api/v1/access-grants/generate
-   * Paciente autenticado genera un QR temporal
-   */
+
+  // POST /api/v1/access-grants/generate
   static async generate(req, res, next) {
     try {
-      const patientId = req.user.id;
-      const { durationHours } = req.body;
+      const patientId = authenticatedUserId(req, 'PACIENTE');
+      const { durationHours } = req.body || {};
 
       const grant = await AccessGrantService.generateGrant({
         patientId,
         durationHours,
+        ...requestContext(req),
       });
+
+      res.set('Cache-Control', 'no-store');
 
       return res.status(201).json({
         success: true,
-        message: `Código QR generado exitosamente por ${grant.durationHours} horas.`,
+        message:
+          `Código QR generado exitosamente por ${grant.durationHours} horas.`,
         data: grant,
       });
     } catch (error) {
@@ -137,28 +445,28 @@ class AccessGrantController {
     }
   }
 
-  /**
-   * POST /api/v1/access-grants/share
-   * Paciente comparte directamente su ficha con
-   * un médico registrado en MyMedRecord
-   */
+  // POST /api/v1/access-grants/share
   static async shareWithDoctor(req, res, next) {
     try {
-      const patientId = req.user.id;
-      const { doctorId, durationHours } = req.body;
+      const patientId = authenticatedUserId(req, 'PACIENTE');
 
-      if (!doctorId) {
-        return res.status(400).json({
-          success: false,
-          message: 'Debe seleccionar un médico.',
-        });
-      }
+      const {
+        doctorId,
+        durationHours,
+        regionCode,
+        city,
+      } = req.body || {};
 
       const grant = await AccessGrantService.createDirectGrant({
         patientId,
         doctorId,
         durationHours,
+        regionCode,
+        city,
+        ...requestContext(req),
       });
+
+      res.set('Cache-Control', 'no-store');
 
       return res.status(201).json({
         success: true,
@@ -171,20 +479,15 @@ class AccessGrantController {
     }
   }
 
-  /**
-   * GET /api/v1/access-grants/shared-with-me
-   *
-   * Médico autenticado consulta las fichas que
-   * los pacientes han compartido directamente con él.
-   */
+  // GET /api/v1/access-grants/shared-with-me
   static async getSharedWithMe(req, res, next) {
     try {
-      const doctorId = req.user.id;
+      const doctorId = authenticatedUserId(req, 'MEDICO');
 
       const grants =
-        await AccessGrantService.getSharedWithDoctor(
-          doctorId
-        );
+        await AccessGrantService.getSharedWithDoctor(doctorId);
+
+      res.set('Cache-Control', 'no-store');
 
       return res.status(200).json({
         success: true,
@@ -195,39 +498,18 @@ class AccessGrantController {
     }
   }
 
-  /**
-   * GET /api/v1/access-grants/direct/:token
-   *
-   * Médico autenticado abre una ficha que
-   * un paciente compartió directamente con él.
-   *
-   * El parámetro :token tiene formato:
-   * MMR-DIRECT-XXXXXXXX...
-   *
-   * NO es un UUID.
-   */
+  // GET /api/v1/access-grants/direct/:token
   static async accessDirect(req, res, next) {
     try {
-      const doctorId = req.user.id;
-      const { token } = req.params;
+      const doctorId = authenticatedUserId(req, 'MEDICO');
 
-      const ipAddress =
-        req.ip ||
-        req.headers['x-forwarded-for'] ||
-        req.socket?.remoteAddress ||
-        '127.0.0.1';
+      const result = await AccessGrantService.accessDirectGrant({
+        token: req.params.token,
+        doctorId,
+        ...requestContext(req),
+      });
 
-      const userAgent =
-        req.headers['user-agent'] ||
-        'MyMedRecord Portal Médico';
-
-      const result =
-        await AccessGrantService.accessDirectGrant({
-          token,
-          doctorId,
-          ipAddress,
-          userAgent,
-        });
+      res.set('Cache-Control', 'no-store');
 
       return res.status(200).json({
         success: true,
@@ -240,42 +522,18 @@ class AccessGrantController {
     }
   }
 
-  /**
-   * POST /api/v1/access-grants/validate
-   *
-   * Médico ingresa token QR y sus datos profesionales
-   * para consultar la ficha.
-   *
-   * Este flujo corresponde al QR temporal.
-   */
+  // POST /api/v1/access-grants/validate
   static async validate(req, res, next) {
     try {
-      const {
-        token,
-        doctorRut,
-        doctorName,
-        doctorInstitution,
-      } = req.body;
+      const doctorId = authenticatedUserId(req, 'MEDICO');
 
-      const ipAddress =
-        req.ip ||
-        req.headers['x-forwarded-for'] ||
-        req.socket?.remoteAddress ||
-        '127.0.0.1';
+      const result = await AccessGrantService.validateAndAccess({
+        token: req.body?.token,
+        doctorId,
+        ...requestContext(req),
+      });
 
-      const userAgent =
-        req.headers['user-agent'] ||
-        'Visor Medico QR Web';
-
-      const result =
-        await AccessGrantService.validateAndAccess({
-          token,
-          doctorRut,
-          doctorName,
-          doctorInstitution,
-          ipAddress,
-          userAgent,
-        });
+      res.set('Cache-Control', 'no-store');
 
       return res.status(200).json({
         success: true,
@@ -288,25 +546,18 @@ class AccessGrantController {
     }
   }
 
-  /**
-   * PATCH /api/v1/access-grants/:id/revoke
-   *
-   * Paciente revoca un acceso.
-   *
-   * Puede ser:
-   * - QR_TEMPORAL
-   * - DIRECTO
-   */
+  // PATCH /api/v1/access-grants/:id/revoke
   static async revoke(req, res, next) {
     try {
-      const patientId = req.user.id;
-      const grantId = req.params.id;
+      const patientId = authenticatedUserId(req, 'PACIENTE');
 
-      const revoked =
-        await AccessGrantService.revokeGrant({
-          grantId,
-          patientId,
-        });
+      const revoked = await AccessGrantService.revokeGrant({
+        grantId: req.params.id,
+        patientId,
+        ...requestContext(req),
+      });
+
+      res.set('Cache-Control', 'no-store');
 
       return res.status(200).json({
         success: true,
@@ -323,19 +574,15 @@ class AccessGrantController {
     }
   }
 
-  /**
-   * GET /api/v1/access-grants/active
-   *
-   * Paciente consulta su QR temporal activo.
-   */
+  // GET /api/v1/access-grants/active
   static async getActive(req, res, next) {
     try {
-      const patientId = req.user.id;
+      const patientId = authenticatedUserId(req, 'PACIENTE');
 
       const grant =
-        await AccessGrantService.getActiveGrant(
-          patientId
-        );
+        await AccessGrantService.getActiveGrant(patientId);
+
+      res.set('Cache-Control', 'no-store');
 
       return res.status(200).json({
         success: true,
@@ -346,22 +593,15 @@ class AccessGrantController {
     }
   }
 
-  /**
-   * GET /api/v1/access-grants/my-grants
-   *
-   * Paciente consulta todos los accesos que ha generado:
-   *
-   * - QR temporales
-   * - Accesos directos a médicos
-   */
+  // GET /api/v1/access-grants/my-grants
   static async getMyGrants(req, res, next) {
     try {
-      const patientId = req.user.id;
+      const patientId = authenticatedUserId(req, 'PACIENTE');
 
       const grants =
-        await AccessGrantService.getMyGrants(
-          patientId
-        );
+        await AccessGrantService.getMyGrants(patientId);
+
+      res.set('Cache-Control', 'no-store');
 
       return res.status(200).json({
         success: true,

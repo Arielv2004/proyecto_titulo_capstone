@@ -20,6 +20,24 @@ import { PatientHome } from '../components/patient/PatientHome';
 import { UploadCamera } from '../components/patient/UploadCamera';
 import { SectionNav, Notice, PageHeader, Button, InfoPopover, LoadingState } from '../components/ui/ClinicalUI';
 
+const DOCTOR_REGIONS = [
+  ['15', 'Arica y Parinacota'], ['01', 'Tarapacá'],
+  ['02', 'Antofagasta'], ['03', 'Atacama'], ['04', 'Coquimbo'],
+  ['05', 'Valparaíso'], ['13', 'Metropolitana de Santiago'],
+  ['06', 'O’Higgins'], ['07', 'Maule'], ['16', 'Ñuble'],
+  ['08', 'Biobío'], ['09', 'La Araucanía'], ['14', 'Los Ríos'],
+  ['10', 'Los Lagos'], ['11', 'Aysén'],
+  ['12', 'Magallanes y de la Antártica Chilena'],
+];
+
+const normalizeDoctorCity = (value) =>
+  String(value || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('es-CL');
+
+const doctorCanReceiveRecords = (doctor) =>
+  doctor?.can_receive_records === true &&
+  doctor?.verification_status === 'VERIFICADO' &&
+  doctor?.is_available_for_sharing === true;
+
 const emptyPatientProfile = () => ({
   bloodType: '',
   healthInsurance: '',
@@ -155,6 +173,33 @@ export const PatientDashboard = () => {
   const [isSharingDirect, setIsSharingDirect] = useState(false);
   const [directShareError, setDirectShareError] = useState(null);
   const [directShareSuccess, setDirectShareSuccess] = useState(null);
+  const [doctorRegion, setDoctorRegion] = useState('');
+  const [doctorCity, setDoctorCity] = useState('');
+
+  const doctorCities = useMemo(() => {
+    if (!doctorRegion) return [];
+    const cities = new Map();
+    doctors.forEach((doctor) => {
+      if (doctor.region_code !== doctorRegion) return;
+      const city = String(doctor.city || '').trim().replace(/\s+/g, ' ');
+      if (city) cities.set(normalizeDoctorCity(city), city);
+    });
+    return Array.from(cities.values()).sort((a, b) => a.localeCompare(b, 'es'));
+  }, [doctors, doctorRegion]);
+
+  const filteredDoctors = useMemo(() => {
+    if (!doctorRegion || !doctorCity) return [];
+    return doctors.filter((doctor) =>
+      doctor.region_code === doctorRegion &&
+      normalizeDoctorCity(doctor.city) === normalizeDoctorCity(doctorCity)
+    );
+  }, [doctors, doctorRegion, doctorCity]);
+
+  const selectedDirectoryDoctor = filteredDoctors.find(
+    (doctor) => String(doctor.id) === String(selectedDoctorId)
+  );
+  const canShareWithSelectedDoctor = doctorCanReceiveRecords(selectedDirectoryDoctor);
+
 
   // Estado para gestión dinámica de QR de Acceso Médico (Ley N° 21.668)
   const [qrDuration, setQrDuration] = useState(12); // 2, 12, 24 horas
@@ -915,7 +960,13 @@ export const PatientDashboard = () => {
       setDirectShareError(null);
       const res = await api.get('/doctors');
       const payload = res.data?.data ?? res.data ?? [];
-      const list = Array.isArray(payload) ? payload : (payload.doctors || []);
+      if (res.data?.success === false) {
+        throw new Error(res.data.message || 'No fue posible cargar los médicos.');
+      }
+      const list = Array.isArray(payload) ? payload : payload?.doctors;
+      if (!Array.isArray(list)) {
+        throw new Error('El servidor devolvió una lista de médicos no válida.');
+      }
       setDoctors(list);
     } catch (err) {
       console.error('Error cargando médicos:', err);
@@ -927,6 +978,9 @@ export const PatientDashboard = () => {
   };
 
   const handleOpenDirectShare = () => {
+    setDoctorRegion('');
+    setDoctorCity('');
+    setDoctors([]);
     setSelectedDoctorId('');
     setDirectShareDuration(12);
     setDirectShareError(null);
@@ -936,6 +990,18 @@ export const PatientDashboard = () => {
   };
 
   const handleShareDirect = async () => {
+    if (isSharingDirect) return;
+    if (!doctorRegion || !doctorCity) {
+      setDirectShareError('Selecciona una región y una ciudad o comuna.');
+      return;
+    }
+    const selected = filteredDoctors.find(
+      (doctor) => String(doctor.id) === String(selectedDoctorId)
+    );
+    if (!doctorCanReceiveRecords(selected)) {
+      setDirectShareError('Selecciona un médico verificado y disponible de esta ubicación.');
+      return;
+    }
     if (!selectedDoctorId) {
       setDirectShareError('Selecciona un médico antes de compartir tu ficha.');
       return;
@@ -948,6 +1014,8 @@ export const PatientDashboard = () => {
 
       const res = await api.post('/access-grants/share', {
         doctorId: selectedDoctorId,
+        regionCode: doctorRegion,
+        city: doctorCity,
         durationHours: directShareDuration,
         notes: `Acceso directo autorizado por el paciente (${directShareDuration} horas)`
       });
@@ -962,8 +1030,12 @@ export const PatientDashboard = () => {
         : 'el médico seleccionado';
 
       setDirectShareSuccess(`Ficha compartida correctamente con ${doctorName || 'el médico seleccionado'} por ${directShareDuration} horas.`);
-      await fetchMyGrants();
-      fetchAuditLogs();
+      try {
+        await fetchMyGrants();
+        await fetchAuditLogs();
+      } catch (refreshError) {
+        console.error('No se pudo actualizar la vista de accesos:', refreshError);
+      }
     } catch (err) {
       console.error('Error compartiendo ficha directamente:', err);
       setDirectShareError(
@@ -2264,7 +2336,7 @@ export const PatientDashboard = () => {
       {/* MODAL: COMPARTIR FICHA DIRECTAMENTE CON MÉDICO REGISTRADO */}
       {/* ========================================================================= */}
       {showDirectShareModal && (
-        <DialogFrame label="Compartir con un médico" onClose={() => setShowDirectShareModal(false)} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+        <DialogFrame label="Compartir con un médico" onClose={() => { if (!isSharingDirect) setShowDirectShareModal(false); }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="w-full max-w-lg bg-surface dark:bg-surface border border-line dark:border-line rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto">
             <div className="flex items-start justify-between pb-3 border-b border-stone-100 dark:border-line">
               <div className="flex items-center gap-3">
@@ -2276,7 +2348,7 @@ export const PatientDashboard = () => {
                   <p className="text-xs text-muted dark:text-muted">Autoriza temporalmente a un médico registrado</p>
                 </div>
               </div>
-              <button type="button" aria-label="Cerrar diálogo" onClick={() => setShowDirectShareModal(false)} className="p-1.5 text-muted hover:text-muted dark:hover:text-slate-200 rounded-xl hover:bg-surface-muted dark:hover:bg-slate-800 transition-colors cursor-pointer">
+              <button type="button" aria-label="Cerrar diálogo" disabled={isSharingDirect} onClick={() => setShowDirectShareModal(false)} className="p-1.5 text-muted hover:text-muted dark:hover:text-slate-200 rounded-xl hover:bg-surface-muted dark:hover:bg-slate-800 transition-colors cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -2301,40 +2373,77 @@ export const PatientDashboard = () => {
 
             {!directShareSuccess && (
               <>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-700 dark:text-body">1. Selecciona el médico</label>
-                  {loadingDoctors ? (
-                    <div className="py-8 text-center border border-line dark:border-line rounded-2xl">
-                      <RefreshCw className="w-6 h-6 text-accent-ink dark:text-teal-400 animate-spin mx-auto" />
-                      <p className="mt-2 text-xs text-muted">Cargando médicos registrados...</p>
-                    </div>
-                  ) : doctors.length === 0 ? (
-                    <div className="p-4 bg-canvas dark:bg-surface-muted rounded-2xl border border-line dark:border-line text-xs text-muted dark:text-muted">
-                      No hay médicos registrados disponibles para compartir directamente. Puedes utilizar el acceso por QR.
-                    </div>
-                  ) : (
-                    <select aria-label="Duración del permiso"
-                      value={selectedDoctorId}
-                      onChange={(e) => setSelectedDoctorId(e.target.value)}
-                      className="w-full px-4 py-3 rounded-2xl border border-line dark:border-line bg-surface dark:bg-surface-muted text-sm text-body dark:text-ink outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-accent-ink"
-                    >
-                      <option value="">Seleccionar médico...</option>
-                      {doctors.map((doctor) => {
+                <fieldset disabled={isSharingDirect || loadingDoctors} className="space-y-4">
+                  <div>
+                    <label htmlFor="doctor-region" className="block text-xs font-bold text-body mb-2">1. Región</label>
+                    <select id="doctor-region" value={doctorRegion}
+                      onChange={(event) => {
+                        setDoctorRegion(event.target.value);
+                        setDoctorCity('');
+                        setSelectedDoctorId('');
+                        setDirectShareError(null);
+                      }}
+                      className="w-full px-4 py-3 rounded-2xl border border-line bg-surface text-body">
+                      <option value="">Selecciona una región</option>
+                      {DOCTOR_REGIONS.map(([code, name]) => <option key={code} value={code}>{name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="doctor-city" className="block text-xs font-bold text-body mb-2">2. Ciudad o comuna</label>
+                    <select id="doctor-city" value={doctorCity} disabled={!doctorRegion}
+                      onChange={(event) => {
+                        setDoctorCity(event.target.value);
+                        setSelectedDoctorId('');
+                        setDirectShareError(null);
+                      }}
+                      className="w-full px-4 py-3 rounded-2xl border border-line bg-surface text-body disabled:opacity-50">
+                      <option value="">Selecciona una ciudad o comuna</option>
+                      {doctorCities.map((city) => <option key={normalizeDoctorCity(city)} value={city}>{city}</option>)}
+                    </select>
+                    {doctorRegion && doctorCities.length === 0 && (
+                      <p className="text-xs text-muted mt-2">No hay médicos con ubicación registrada en esta región.</p>
+                    )}
+                  </div>
+                  {doctorCity && (
+                    <div className="space-y-3">
+                      <p className="text-xs font-bold text-body">3. Médicos en {doctorCity}</p>
+                      {filteredDoctors.length === 0 && <p className="text-xs text-muted">No hay médicos en esta ubicación.</p>}
+                      {filteredDoctors.map((doctor) => {
                         const name = `${doctor.first_name || doctor.firstName || doctor.name || 'Médico'} ${doctor.last_name || doctor.lastName || ''}`.trim();
-                        const specialty = doctor.specialty || doctor.speciality || doctor.especialidad || '';
-                        const rut = doctor.rut || doctor.run || '';
+                        const eligible = doctorCanReceiveRecords(doctor);
+                        const selected = String(doctor.id) === String(selectedDoctorId);
+                        const status = doctor.verification_status === 'PENDIENTE'
+                          ? 'Pendiente de verificación'
+                          : eligible ? 'Verificado y disponible' : 'No disponible para recibir fichas';
                         return (
-                          <option key={doctor.id} value={doctor.id}>
-                            {name}{specialty ? ` · ${specialty}` : ''}{rut ? ` · ${rut}` : ''}
-                          </option>
+                          <div key={doctor.id} className={`border rounded-2xl p-4 space-y-2 ${selected ? 'border-teal-600' : 'border-line'}`}>
+                            <p className="text-sm font-bold text-body">{name}</p>
+                            {doctor.specialty && <p className="text-xs text-muted">{doctor.specialty}</p>}
+                            <p className="text-xs text-muted">{doctor.institution_name || 'Institución no especificada'}</p>
+                            <p className="text-xs text-muted">{doctor.city}{doctor.address ? ` · ${doctor.address}` : ''}</p>
+                            <p className={`text-xs font-bold ${eligible ? 'text-teal-700 dark:text-teal-300' : 'text-amber-700 dark:text-amber-300'}`}>{status}</p>
+                            <button type="button" disabled={!eligible} aria-pressed={selected}
+                              onClick={() => { setSelectedDoctorId(String(doctor.id)); setDirectShareError(null); }}
+                              className="px-4 py-2 rounded-xl bg-action text-on-action text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed">
+                              {selected ? 'Médico seleccionado' : eligible ? 'Seleccionar médico' : 'No habilitado para compartir'}
+                            </button>
+                          </div>
                         );
                       })}
-                    </select>
+                    </div>
                   )}
-                </div>
+                </fieldset>
+                {loadingDoctors && <p role="status" className="text-sm text-muted">Cargando médicos registrados...</p>}
+                {!loadingDoctors && directShareError && (
+                  <button type="button" disabled={isSharingDirect} onClick={fetchDoctors}
+                    className="text-sm font-bold text-accent-ink">Reintentar carga de médicos</button>
+                )}
+                <p className="text-xs text-muted">
+                  Los perfiles pendientes aparecen como registrados, pero solo puedes compartir con médicos verificados y disponibles.
+                </p>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-700 dark:text-body">2. Duración del acceso</label>
+                  <label className="text-xs font-bold text-slate-700 dark:text-body">4. Duración del acceso</label>
                   <div className="grid grid-cols-3 gap-2">
                     {[
                       { hours: 2, label: '2 Horas', desc: 'Consulta' },
@@ -2344,7 +2453,7 @@ export const PatientDashboard = () => {
                       <button
                         key={opt.hours}
                         type="button"
-                        onClick={() => setDirectShareDuration(opt.hours)}
+                        disabled={isSharingDirect} onClick={() => setDirectShareDuration(opt.hours)}
                         className={`p-3 rounded-2xl border text-center transition-all cursor-pointer ${directShareDuration === opt.hours
                           ? 'bg-action text-on-action border-accent-ink shadow-md ring-2 ring-teal-400/40'
                           : 'bg-surface dark:bg-surface-muted text-slate-700 dark:text-body border-line dark:border-line hover:border-accent-ink'
@@ -2370,7 +2479,7 @@ export const PatientDashboard = () => {
                 <button
                   type="button"
                   onClick={handleShareDirect}
-                  disabled={isSharingDirect || loadingDoctors || !selectedDoctorId}
+                  disabled={isSharingDirect || loadingDoctors || !canShareWithSelectedDoctor}
                   className="w-full py-3 bg-action hover:bg-action-hover active:scale-95 text-on-action font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSharingDirect ? <RefreshCw className="w-4 h-4 animate-spin text-teal-300" /> : <Share2 className="w-4 h-4 text-teal-300" />}
@@ -2379,7 +2488,7 @@ export const PatientDashboard = () => {
 
                 <button
                   type="button"
-                  onClick={() => { setShowDirectShareModal(false); openQrModal(); }}
+                  disabled={isSharingDirect} onClick={() => { setShowDirectShareModal(false); openQrModal(); }}
                   className="w-full py-2.5 border border-line dark:border-line text-muted dark:text-body font-bold rounded-xl text-xs flex items-center justify-center gap-2 hover:bg-canvas dark:hover:bg-slate-800 cursor-pointer"
                 >
                   <QrCode className="w-4 h-4" />
@@ -2389,7 +2498,7 @@ export const PatientDashboard = () => {
             )}
 
             <div className="pt-2 border-t border-stone-100 dark:border-line flex justify-end">
-              <button type="button" aria-label="Cerrar diálogo" onClick={() => setShowDirectShareModal(false)} className="px-4 py-2 bg-surface-muted hover:bg-surface-muted dark:bg-surface-muted dark:hover:bg-slate-700 text-body dark:text-body font-bold rounded-xl text-xs cursor-pointer transition-colors">Cerrar</button>
+              <button type="button" aria-label="Cerrar diálogo" disabled={isSharingDirect} onClick={() => setShowDirectShareModal(false)} className="px-4 py-2 bg-surface-muted hover:bg-surface-muted dark:bg-surface-muted dark:hover:bg-slate-700 text-body dark:text-body font-bold rounded-xl text-xs cursor-pointer transition-colors">Cerrar</button>
             </div>
           </div>
         </DialogFrame>
