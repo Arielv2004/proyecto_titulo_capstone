@@ -43,6 +43,9 @@ export const RegisterPage = () => {
   const [rutTouched, setRutTouched] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
+  // Consentimiento explícito de datos sensibles (Ley 21.719)
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+
   // Instituciones
   const [institutions, setInstitutions] = useState([]);
   const [loadingInstitutions, setLoadingInstitutions] = useState(false);
@@ -301,8 +304,17 @@ export const RegisterPage = () => {
       }
     }
 
+    if (!acceptedTerms) {
+      alert(
+        'Debes aceptar la Política de Privacidad y otorgar tu consentimiento explícito para continuar.'
+      );
+      return;
+    }
+
     const payload = {
       ...formData,
+
+      acceptedTerms: true,
 
       institutionId:
         isDoctor && formData.institutionId
@@ -954,12 +966,58 @@ export const RegisterPage = () => {
               </span>
             </div>
 
+            {/* Consentimiento explícito (Ley 21.719) */}
+            <div className="rounded-xl border border-line dark:border-line bg-canvas dark:bg-surface-muted/60 p-3">
+              <label
+                htmlFor="acceptedTerms"
+                className="flex items-start gap-2.5 cursor-pointer"
+              >
+                <input
+                  id="acceptedTerms"
+                  name="acceptedTerms"
+                  type="checkbox"
+                  required
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-line dark:border-line accent-teal-600 dark:accent-teal-400 cursor-pointer"
+                />
+
+                <span className="text-xs leading-relaxed text-body dark:text-body">
+                  Acepto la{' '}
+                  <Link
+                    to="/privacy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold text-accent-ink dark:text-teal-300 hover:underline"
+                  >
+                    Política de Privacidad
+                  </Link>{' '}
+                  y otorgo mi consentimiento explícito para el tratamiento de
+                  mis datos personales sensibles de salud (Ley 21.719).
+                </span>
+              </label>
+
+              <p className="mt-1.5 pl-6.5 text-xs text-muted dark:text-muted">
+                Revisa también los{' '}
+                <Link
+                  to="/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-accent-ink dark:text-teal-300 hover:underline"
+                >
+                  Términos y Condiciones
+                </Link>
+                .
+              </p>
+            </div>
+
             {/* Submit */}
             <button
               type="submit"
               disabled={
                 isLoading ||
                 loadingInstitutions ||
+                !acceptedTerms ||
                 (formData.rut && !isRutValid) ||
                 (isDoctor &&
                   (!formData.professionalRegistry.trim() ||

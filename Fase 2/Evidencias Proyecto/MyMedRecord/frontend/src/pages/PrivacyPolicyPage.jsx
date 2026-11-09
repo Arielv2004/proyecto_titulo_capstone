@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMetaTags } from '../hooks/useMetaTags';
-import { HeartHandshake, ArrowLeft, ShieldCheck, Lock, FileText, UserCheck } from 'lucide-react';
+import { HeartHandshake, ArrowLeft, ShieldCheck, Lock, FileText, UserCheck, HeartPulse } from 'lucide-react';
 
 export const PrivacyPolicyPage = () => {
   const navigate = useNavigate();
@@ -81,10 +81,10 @@ export const PrivacyPolicyPage = () => {
             <section className="space-y-2">
               <h2 className="text-base font-bold text-ink flex items-center gap-2">
                 <UserCheck className="w-4 h-4 text-accent-ink" />
-                3. Derechos del Titular de Datos (ARCO)
+                3. Derechos del Titular de Datos (ARCOP)
               </h2>
               <p>
-                Bajo la <strong>Ley N° 19.628</strong> y la <strong>Ley N° 20.584</strong>, como titular de los datos tienes derecho a:
+                Bajo la <strong>Ley N° 19.628</strong>, la <strong>Ley N° 21.719</strong> y la <strong>Ley N° 20.584</strong>, como titular de los datos tienes derecho a:
               </p>
               <ul className="list-disc pl-5 space-y-1 text-muted text-xs">
                 <li><strong>Acceso:</strong> Conocer en todo momento qué datos clínicos están registrados a tu nombre.</li>
@@ -92,6 +92,53 @@ export const PrivacyPolicyPage = () => {
                 <li><strong>Cancelación y Revocación:</strong> Revocar en cualquier momento los permisos temporales otorgados a profesionales médicos.</li>
                 <li><strong>Actividad:</strong> Revisar los registros de accesos y acciones disponibles en tu portal.</li>
               </ul>
+            </section>
+
+            <section className="space-y-2">
+              <h2 className="text-base font-bold text-ink flex items-center gap-2">
+                <HeartPulse className="w-4 h-4 text-accent-ink" />
+                4. Tratamiento de Datos Sensibles (Ley 21.719)
+              </h2>
+              <p>
+                Los datos relativos a tu salud son <strong>datos personales sensibles</strong>. Su tratamiento en MyMedRecord se basa exclusivamente en tu <strong>consentimiento explícito, libre, informado y específico</strong>, otorgado al momento de registrarte. Registramos la fecha, hora y versión de esta política que aceptaste.
+              </p>
+
+              <h3 className="text-sm font-bold text-ink pt-1">4.1 Qué datos sensibles recopilamos</h3>
+              <ul className="list-disc pl-5 space-y-1 text-muted text-xs">
+                <li><strong>Imágenes de documentos clínicos:</strong> fotografías o archivos de recetas médicas, órdenes y resultados de exámenes que subas a la plataforma.</li>
+                <li><strong>Información clínica extraída:</strong> diagnósticos, medicamentos, posología y resultados de laboratorio.</li>
+                <li><strong>Antecedentes de salud:</strong> alergias, enfermedades crónicas y otros datos que declares en tu perfil.</li>
+              </ul>
+
+              <h3 className="text-sm font-bold text-ink pt-1">4.2 Con qué finalidad</h3>
+              <p>
+                Usamos estos datos únicamente para la <strong>gestión de tu ficha clínica personal</strong>: organizar tu historial, mostrar tus tratamientos activos y permitirte compartirlo temporalmente con los profesionales de salud que tú autorices. No los usamos con fines comerciales ni publicitarios, y no los cedemos a terceros para esos fines.
+              </p>
+
+              <h3 className="text-sm font-bold text-ink pt-1">4.3 Proveedores externos (encargados de tratamiento)</h3>
+              <ul className="list-disc pl-5 space-y-1 text-muted text-xs">
+                <li><strong>Google Gemini (Inteligencia Artificial):</strong> procesa las imágenes de tus documentos para extraer y estructurar automáticamente su contenido (texto, medicamentos, diagnósticos).</li>
+                <li><strong>Supabase (almacenamiento):</strong> almacena de forma segura los archivos de los documentos que subes.</li>
+              </ul>
+              <p className="text-xs">
+                Estos proveedores actúan por cuenta de MyMedRecord y pueden procesar la información en servidores ubicados fuera de Chile (transferencia internacional de datos), bajo sus propias medidas de seguridad y confidencialidad.
+              </p>
+
+              <h3 className="text-sm font-bold text-ink pt-1">4.4 Cómo ejercer tus derechos ARCOP</h3>
+              <ul className="list-disc pl-5 space-y-1 text-muted text-xs">
+                <li><strong>Acceso:</strong> consultar tus datos y documentos desde tu portal de paciente.</li>
+                <li><strong>Rectificación:</strong> editar los datos extraídos de tus documentos y tu perfil, o pedir su corrección.</li>
+                <li><strong>Cancelación / Supresión:</strong> eliminar documentos o solicitar la eliminación de tu cuenta y sus datos.</li>
+                <li><strong>Oposición:</strong> oponerte a un tratamiento específico, como el procesamiento automatizado por IA.</li>
+                <li><strong>Portabilidad:</strong> solicitar una copia de tus datos en un formato estructurado y de uso común.</li>
+              </ul>
+              <p>
+                Puedes <strong>revocar tu consentimiento</strong> en cualquier momento, sin efecto retroactivo. Para ejercer cualquiera de estos derechos escribe a{' '}
+                <a href="mailto:privacidad@mymedrecord.cl" className="font-bold text-accent-ink hover:underline">
+                  privacidad@mymedrecord.cl
+                </a>
+                {' '}indicando tu RUT y el derecho que deseas ejercer.
+              </p>
             </section>
           </div>
         </div>
