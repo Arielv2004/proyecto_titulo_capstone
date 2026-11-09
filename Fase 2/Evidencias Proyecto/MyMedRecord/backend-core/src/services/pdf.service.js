@@ -111,9 +111,9 @@ class PDFService {
         doc.rect(leftMargin, 38, pageWidth, 3.5).fill(primaryColor);
 
         const headerTopY = 48;
-        const colWidthLeft = 310;
-        const colRightX = leftMargin + colWidthLeft + 10;
-        const colWidthRight = pageWidth - (colWidthLeft + 10); // ~195 pt
+        const colWidthLeft = 210;
+        const colRightX = leftMargin + 215;
+        const colWidthRight = pageWidth - 215; // ~300 pt de ancho para fecha y ley sin riesgo de sobreposición
 
         // Lado Izquierdo: Logotipo y Subtítulo de marca
         doc
@@ -128,20 +128,17 @@ class PDFService {
           .fillColor(grayColor)
           .text('Plataforma de Salud Digital Interoperable', leftMargin, headerTopY + 22);
 
-        // Lado Derecho: Metadatos de Emisión y Marco Legal
-        const emissionDate = new Date().toLocaleDateString('es-CL', {
-          day: '2-digit',
-          month: 'long',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        });
+        // Lado Derecho: Metadatos de Emisión y Marco Legal (alineados a la derecha, en líneas separadas limpias)
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+        const emissionDate = `${pad(now.getDate())} de ${months[now.getMonth()]} de ${now.getFullYear()} · ${pad(now.getHours())}:${pad(now.getMinutes())} hrs`;
 
         doc
           .font('Helvetica-Bold')
           .fontSize(8)
           .fillColor(darkColor)
-          .text(`Fecha de Emisión: ${emissionDate}`, colRightX, headerTopY + 2, {
+          .text(`Fecha de Emisión: ${emissionDate}`, colRightX, headerTopY, {
             align: 'right',
             width: colWidthRight,
           });
@@ -150,11 +147,11 @@ class PDFService {
           .font('Helvetica')
           .fontSize(6.8)
           .fillColor('#64748b')
-          .text('República de Chile · Ley N° 21.668 y Ley N° 21.719', colRightX, headerTopY + 16, {
+          .text('República de Chile · Ley N° 21.668 y Ley N° 21.719', colRightX, headerTopY + 14, {
             align: 'right',
             width: colWidthRight,
           })
-          .text('Tratamiento y Protección de Datos Personales de Salud', colRightX, headerTopY + 26, {
+          .text('Tratamiento y Protección de Datos Personales de Salud', colRightX, headerTopY + 25, {
             align: 'right',
             width: colWidthRight,
           });
@@ -320,16 +317,16 @@ class PDFService {
         doc.moveDown(0.3);
 
         // Proporciones A4 (pageWidth ~515pt):
-        // Meds: 195pt | Indicaciones: 165pt | Médico: 95pt | Fecha: 60pt
-        const colMedsW = 195;
-        const colInstW = 165;
-        const colDocW = 95;
-        const colDateW = 60;
+        // Meds: 185pt | Indicaciones: 155pt | Médico: 88pt | Fecha: 68pt
+        const colMedsW = 185;
+        const colInstW = 155;
+        const colDocW = 88;
+        const colDateW = 68;
 
-        const colMedsX = leftMargin + 6;
-        const colInstX = colMedsX + colMedsW;
-        const colDocX = colInstX + colInstW;
-        const colDateX = colDocX + colDocW;
+        const colMedsX = leftMargin + 8;
+        const colInstX = leftMargin + 196;
+        const colDocX = leftMargin + 354;
+        const colDateX = leftMargin + 444;
 
         const drawPrescriptionHeader = (currentY) => {
           doc.rect(leftMargin, currentY, pageWidth, 20).fill('#e2e8f0');
@@ -337,7 +334,7 @@ class PDFService {
           doc.text('MEDICAMENTO(S)', colMedsX, currentY + 6);
           doc.text('POSOLOGÍA / INDICACIÓN', colInstX, currentY + 6);
           doc.text('MÉDICO', colDocX, currentY + 6);
-          doc.text('EMISIÓN', colDateX, currentY + 6, { align: 'right', width: colDateW - 8 });
+          doc.text('EMISIÓN', colDateX, currentY + 6, { align: 'right', width: colDateW - 4 });
           return currentY + 20;
         };
 
@@ -384,7 +381,7 @@ class PDFService {
             // Fecha
             doc.font('Helvetica').fontSize(8).fillColor(grayColor).text(med.date, colDateX, rowY + 5, {
               align: 'right',
-              width: colDateW - 8,
+              width: colDateW - 4,
             });
 
             rowY += dynamicRowHeight;
@@ -410,15 +407,15 @@ class PDFService {
 
         doc.moveDown(0.3);
 
-        const labColTestW = 195;
-        const labColValW = 135;
-        const labColRefW = 115;
-        const labColDateW = 70;
+        const labColTestW = 172;
+        const labColValW = 95;
+        const labColRefW = 95;
+        const labColDateW = 122;
 
-        const labColTestX = leftMargin + 6;
-        const labColValX = labColTestX + labColTestW;
-        const labColRefX = labColValX + labColValW;
-        const labColDateX = labColRefX + labColRefW;
+        const labColTestX = leftMargin + 8;
+        const labColValX = leftMargin + 185;
+        const labColRefX = leftMargin + 285;
+        const labColDateX = leftMargin + 385;
 
         const drawLabHeader = (currentY) => {
           doc.rect(leftMargin, currentY, pageWidth, 20).fill('#e2e8f0');
@@ -426,7 +423,7 @@ class PDFService {
           doc.text('PRUEBA / ANÁLISIS', labColTestX, currentY + 6);
           doc.text('VALOR OBTENIDO', labColValX, currentY + 6);
           doc.text('RANGO REFERENCIA', labColRefX, currentY + 6);
-          doc.text('ESTADO / FECHA', labColDateX, currentY + 6, { align: 'right', width: labColDateW - 8 });
+          doc.text('ESTADO / FECHA', labColDateX, currentY + 6, { align: 'right', width: labColDateW - 6 });
           return currentY + 20;
         };
 
@@ -459,14 +456,14 @@ class PDFService {
             const rowBg = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
             doc.rect(leftMargin, labRowY, pageWidth, 20).fillAndStroke(rowBg, borderColor);
 
-            doc.font('Helvetica').fontSize(8.5).fillColor(darkColor).text(met.test.slice(0, 36), labColTestX, labRowY + 5);
+            doc.font('Helvetica').fontSize(8.5).fillColor(darkColor).text(met.test.slice(0, 32), labColTestX, labRowY + 5);
             doc.font('Helvetica-Bold').fontSize(8.5).fillColor(met.abnormal ? '#b91c1c' : darkColor).text(met.val, labColValX, labRowY + 5);
-            doc.font('Helvetica').fontSize(8).fillColor(grayColor).text(met.ref.slice(0, 22), labColRefX, labRowY + 5);
+            doc.font('Helvetica').fontSize(8).fillColor(grayColor).text(met.ref.slice(0, 20), labColRefX, labRowY + 5);
 
             const statusText = met.abnormal ? '⚠ Alterado' : 'Normal';
             doc.font('Helvetica').fontSize(8).fillColor(met.abnormal ? '#b91c1c' : '#047857').text(`${statusText} (${met.date})`, labColDateX, labRowY + 5, {
               align: 'right',
-              width: labColDateW - 8,
+              width: labColDateW - 6,
             });
 
             labRowY += 20;
