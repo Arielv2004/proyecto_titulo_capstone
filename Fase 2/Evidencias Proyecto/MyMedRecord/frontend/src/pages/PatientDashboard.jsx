@@ -622,6 +622,12 @@ export const PatientDashboard = () => {
   };
 
   const handleOpenOriginal = async (doc) => {
+    // Si cuenta con Signed URL de Supabase (o enlace directo temporal), abrir directamente
+    if (doc.fileUrl && doc.fileUrl.startsWith('http')) {
+      window.open(doc.fileUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
     const tab = prepareDocumentWindow();
     setOpeningFileId(doc.id);
     try {

@@ -412,7 +412,7 @@ class DocumentService {
             ipAddress: '0.0.0.0',
         });
 
-        const { file_path, ocr_raw_text, encrypted_notes, ...safeDocument } = updatedDoc;
+        const safeDocument = await this.attachFileUrl(updatedDoc);
         return {
             document: safeDocument,
             structured,
@@ -506,10 +506,34 @@ class DocumentService {
         };
     }
 
+    /**
+     * Adjunta la URL de acceso seguro al documento (file_url).
+     * Si el archivo reside en Supabase Storage, genera una Signed URL válida por 1 hora (Ley 21.719).
+     * Si reside localmente, expone el endpoint seguro de streaming autenticado (/api/v1/documents/:id/file).
+     */
+    static async attachFileUrl(doc) {
+        if (!doc) return doc;
+        let fileUrl = null;
+        if (doc.file_path) {
+            if (SupabaseService.isSupabaseUrl(doc.file_path)) {
+                fileUrl = await SupabaseService.getSignedUrl(doc.file_path, 3600);
+            }
+            if (!fileUrl && doc.id) {
+                fileUrl = `/api/v1/documents/${doc.id}/file`;
+            }
+        }
+        const { file_path, ocr_raw_text, encrypted_notes, ...safeDocument } = doc;
+        return {
+            ...safeDocument,
+            file_url: fileUrl,
+        };
+    }
+
     static async listDocuments(user, { document_type = null } = {}) {
         // Paciente solo ve los suyos (findByPatient ya incluye structured vía JSON agg en 1 query)
         const patientId = user.id;
-        return DocumentRepository.findByPatient(patientId, { document_type });
+        const docs = await DocumentRepository.findByPatient(patientId, { document_type });
+        return Promise.all(docs.map((doc) => this.attachFileUrl(doc)));
     }
 
     static async getDocumentById(documentId, user) {
@@ -536,8 +560,8 @@ class DocumentService {
             structured = await DocumentRepository.findLabReportByDocumentId(documentId);
         }
 
-        const { file_path, ocr_raw_text, encrypted_notes, ...safeDocument } = doc;
-        return { ...safeDocument, structured };
+        const safeDocumentWithUrl = await this.attachFileUrl(doc);
+        return { ...safeDocumentWithUrl, structured };
     }
 
     static async updateDocument(documentId, user, data = {}) {
@@ -807,7 +831,7 @@ class DocumentService {
             try {
                 const uploadRes = await SupabaseService.uploadFile(fileBuffer, originalName, mimeType);
                 return {
-                    filePath: uploadRes.publicUrl,
+                    filePath: uploadRes.filePath,
                     fileName: uploadRes.fileName,
                     isRemote: true,
                 };
@@ -831,7 +855,7 @@ class DocumentService {
     /**
      * Elimina el archivo físico de Supabase Storage o del disco local según corresponda.
      */
-    static async _removeStoredFile(filePath) {
+    static async removeStoredFile(filePath) {
         if (!filePath) return false;
 
         if (SupabaseService.isSupabaseUrl(filePath)) {
@@ -848,6 +872,13 @@ class DocumentService {
         }
 
         return false;
+    }
+
+    /**
+     * Alias retrocompatible para llamadas internas.
+     */
+    static async _removeStoredFile(filePath) {
+        return this.removeStoredFile(filePath);
     }
 
     /**

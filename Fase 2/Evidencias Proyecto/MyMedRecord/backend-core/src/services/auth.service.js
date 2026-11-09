@@ -5,6 +5,10 @@ const UserRepository = require('../repositories/user.repository');
 const EmailService = require('./email.service');
 const config = require('../config/env');
 
+// Versión vigente de la Política de Privacidad / Términos.
+// Actualizar cuando cambie el texto legal para exigir nueva aceptación.
+const CURRENT_TERMS_VERSION = '2026-11';
+
 class AuthService {
   static async register({
     rut,
@@ -17,7 +21,22 @@ class AuthService {
     specialty,
     institutionId,
     institutionNameOther,
+    acceptedTerms,
+    ipAddress,
+    userAgent,
   }) {
+    // =====================================================
+    // VALIDAR CONSENTIMIENTO EXPLÍCITO (LEY 21.719)
+    // =====================================================
+
+    if (acceptedTerms !== true) {
+      const error = new Error(
+        'Debes aceptar la Política de Privacidad y otorgar tu consentimiento explícito para registrarte.'
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
     // =====================================================
     // VALIDAR EMAIL
     // =====================================================
@@ -142,6 +161,10 @@ class AuthService {
         assignedRole === 'MEDICO' && institutionNameOther
           ? institutionNameOther.trim()
           : null,
+
+      termsVersion: CURRENT_TERMS_VERSION,
+      ipAddress,
+      userAgent,
     });
 
     const token = this.generateToken(user);

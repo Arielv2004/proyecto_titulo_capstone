@@ -57,4 +57,9 @@ export const useAuthStore = create((set) => ({
       set({ user: null, isAuthenticated: false, error: null });
     }
   },
+
+  // Limpiar sesión localmente sin invocar endpoint (útil tras eliminar cuenta)
+  clearSession: () => {
+    set({ user: null, isAuthenticated: false, error: null, isLoading: false });
+  },
 }));

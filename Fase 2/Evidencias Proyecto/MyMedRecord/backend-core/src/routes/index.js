@@ -9,6 +9,7 @@ const healthInstitutionRoutes = require('./health-institution.routes');
 const patientProfileRoutes = require('./patient-profile.routes');
 const auditRoutes = require('./audit.routes');
 const doctorRoutes = require('./doctor.routes');
+const userRoutes = require('./user.routes');
 
 
 // Verificación de salud de API
@@ -29,5 +30,6 @@ router.use('/health-institutions', healthInstitutionRoutes);
 router.use('/patient-profile', patientProfileRoutes);
 router.use('/audit', auditRoutes);
 router.use('/doctors', doctorRoutes);
+router.use('/users', userRoutes);
 
 module.exports = router;

@@ -107,6 +107,9 @@ class UserRepository {
     specialty = null,
     institutionId = null,
     institutionNameOther = null,
+    termsVersion = null,
+    ipAddress = 'unknown',
+    userAgent = null,
   }) {
     const userRole = role || 'PACIENTE';
 
@@ -121,6 +124,8 @@ class UserRepository {
       // CREAR USUARIO BASE
       // =================================================
 
+      // terms_accepted_at usa NOW() del servidor de BD para
+      // que la marca de tiempo no pueda ser manipulada.
       const result = await client.query(
         `INSERT INTO users (
           rut,
@@ -128,9 +133,11 @@ class UserRepository {
           last_name,
           email,
           password_hash,
-          role
+          role,
+          terms_accepted_at,
+          terms_version
         )
-        VALUES ($1, $2, $3, $4, $5, $6)
+        VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7)
         RETURNING
           id,
           rut,
@@ -138,6 +145,8 @@ class UserRepository {
           last_name,
           email,
           role,
+          terms_accepted_at,
+          terms_version,
           created_at`,
         [
           rut,
@@ -146,10 +155,40 @@ class UserRepository {
           email,
           passwordHash,
           userRole,
+          termsVersion,
         ]
       );
 
       const user = result.rows[0];
+
+      // =================================================
+      // AUDITORÍA DEL CONSENTIMIENTO (LEY 21.719)
+      // Prueba del consentimiento explícito. Sin datos clínicos.
+      // =================================================
+
+      await client.query(
+        `INSERT INTO audit_logs (
+          user_id,
+          patient_id,
+          action,
+          details,
+          ip_address,
+          user_agent
+        )
+        VALUES ($1, $2, 'CONSENT_GRANTED', $3, $4, $5)`,
+        [
+          user.id,
+          userRole === 'PACIENTE' ? user.id : null,
+          JSON.stringify({
+            consent_type: 'DATOS_SENSIBLES_SALUD',
+            law: 'Ley 21.719',
+            terms_version: termsVersion,
+            accepted_at: user.terms_accepted_at,
+          }),
+          String(ipAddress || 'unknown').slice(0, 45),
+          userAgent,
+        ]
+      );
 
       // =================================================
       // PERFIL PACIENTE

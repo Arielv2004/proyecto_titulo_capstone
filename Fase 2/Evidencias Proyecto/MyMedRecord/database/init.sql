@@ -40,6 +40,9 @@ CREATE TABLE users (
         CHECK (role IN ('PACIENTE', 'MEDICO')),
     phone VARCHAR(20),
     is_active BOOLEAN DEFAULT TRUE,
+    -- Consentimiento explícito para tratamiento de datos sensibles (Ley 21.719)
+    terms_accepted_at TIMESTAMP WITH TIME ZONE,
+    terms_version VARCHAR(20),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

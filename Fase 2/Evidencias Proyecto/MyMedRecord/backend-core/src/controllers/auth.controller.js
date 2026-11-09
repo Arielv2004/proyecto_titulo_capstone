@@ -1,12 +1,6 @@
 const AuthService = require('../services/auth.service');
 const config = require('../config/env');
-
-const COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: config.NODE_ENV === 'production',
-  sameSite: 'strict',
-  maxAge: 24 * 60 * 60 * 1000, // 24 horas
-};
+const { COOKIE_OPTIONS } = require('../config/cookie');
 
 class AuthController {
   static async register(req, res, next) {
@@ -22,6 +16,7 @@ class AuthController {
         specialty,
         institutionId,
         institutionNameOther,
+        acceptedTerms,
       } = req.body;
 
       const { user, token } = await AuthService.register({
@@ -35,6 +30,9 @@ class AuthController {
         specialty,
         institutionId,
         institutionNameOther,
+        acceptedTerms,
+        ipAddress: req.ip || req.socket?.remoteAddress || 'unknown',
+        userAgent: req.get('user-agent') || null,
       });
 
       // Transmisión segura en Cookie HttpOnly
