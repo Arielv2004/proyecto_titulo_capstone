@@ -1,3 +1,4 @@
+
 const db = require('../config/db');
 
 function validationError(message) {
@@ -19,7 +20,10 @@ function normalizeLocation(regionCode, city, address) {
     throw validationError('Selecciona una región válida.');
   }
 
-  if (normalizedCity.length < 2 || normalizedCity.length > 100) {
+  if (
+    normalizedCity.length < 2 ||
+    normalizedCity.length > 100
+  ) {
     throw validationError(
       'La ciudad o comuna debe tener entre 2 y 100 caracteres.'
     );
@@ -30,7 +34,9 @@ function normalizeLocation(regionCode, city, address) {
   }
 
   const normalizedAddress =
-    typeof address === 'string' ? address.trim() || null : null;
+    typeof address === 'string'
+      ? address.trim() || null
+      : null;
 
   if (normalizedAddress && normalizedAddress.length > 255) {
     throw validationError(
@@ -55,7 +61,8 @@ function normalizeFilters({ regionCode = null, city = null } = {}) {
   }
 
   const region = regionCode?.trim() || null;
-  const normalizedCity = city?.trim().replace(/\s+/g, ' ') || null;
+  const normalizedCity =
+    city?.trim().replace(/\s+/g, ' ') || null;
 
   if (region && !/^(0[1-9]|1[0-6])$/.test(region)) {
     throw validationError('Selecciona una región válida.');
@@ -96,7 +103,10 @@ class UserRepository {
   }
 
   static async findByIdentifier(identifier) {
-    if (typeof identifier !== 'string' || !identifier.trim()) {
+    if (
+      typeof identifier !== 'string' ||
+      !identifier.trim()
+    ) {
       return null;
     }
 
@@ -114,7 +124,9 @@ class UserRepository {
       return emailResult.rows[0];
     }
 
-    const cleanRut = clean.replace(/[^0-9kK]/g, '').toUpperCase();
+    const cleanRut = clean
+      .replace(/[^0-9kK]/g, '')
+      .toUpperCase();
 
     const rutResult = await db.query(
       `SELECT id, rut, first_name, last_name, email,
@@ -142,6 +154,10 @@ class UserRepository {
     return result.rows[0];
   }
 
+  // =====================================================
+  // CREAR USUARIO Y PERFIL
+  // =====================================================
+
   static async create({
     rut,
     firstName,
@@ -156,6 +172,9 @@ class UserRepository {
     regionCode = null,
     city = null,
     address = null,
+    termsVersion = null,
+    ipAddress = 'unknown',
+    userAgent = null,
   }) {
     const userRole = role || 'PACIENTE';
 
@@ -175,13 +194,33 @@ class UserRepository {
     try {
       await client.query('BEGIN');
 
+      // =================================================
+      // CREAR USUARIO BASE Y REGISTRAR ACEPTACIÓN
+      // =================================================
+
+      // NOW() utiliza la hora del servidor de base de datos.
       const result = await client.query(
         `INSERT INTO users (
-          rut, first_name, last_name, email, password_hash, role
+          rut,
+          first_name,
+          last_name,
+          email,
+          password_hash,
+          role,
+          terms_accepted_at,
+          terms_version
         )
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING id, rut, first_name, last_name,
-                  email, role, created_at`,
+        VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7)
+        RETURNING
+          id,
+          rut,
+          first_name,
+          last_name,
+          email,
+          role,
+          terms_accepted_at,
+          terms_version,
+          created_at`,
         [
           rut,
           firstName,
@@ -189,10 +228,43 @@ class UserRepository {
           email,
           passwordHash,
           userRole,
+          termsVersion,
         ]
       );
 
       const user = result.rows[0];
+
+      // =================================================
+      // AUDITORÍA DEL CONSENTIMIENTO
+      // =================================================
+
+      await client.query(
+        `INSERT INTO audit_logs (
+          user_id,
+          patient_id,
+          action,
+          details,
+          ip_address,
+          user_agent
+        )
+        VALUES ($1, $2, 'CONSENT_GRANTED', $3, $4, $5)`,
+        [
+          user.id,
+          userRole === 'PACIENTE' ? user.id : null,
+          JSON.stringify({
+            consent_type: 'DATOS_SENSIBLES_SALUD',
+            law: 'Ley 21.719',
+            terms_version: termsVersion,
+            accepted_at: user.terms_accepted_at,
+          }),
+          String(ipAddress || 'unknown').slice(0, 45),
+          userAgent,
+        ]
+      );
+
+      // =================================================
+      // CREAR PERFIL DE PACIENTE
+      // =================================================
 
       if (userRole === 'PACIENTE') {
         await client.query(
@@ -202,6 +274,10 @@ class UserRepository {
           [user.id]
         );
       }
+
+      // =================================================
+      // CREAR PERFIL DE MÉDICO
+      // =================================================
 
       if (userRole === 'MEDICO') {
         const otherInstitution =
@@ -271,6 +347,7 @@ class UserRepository {
       }
 
       await client.query('COMMIT');
+
       return user;
     } catch (error) {
       await client.query('ROLLBACK');
@@ -280,7 +357,15 @@ class UserRepository {
     }
   }
 
-  static async savePasswordResetToken(userId, tokenHash, expiresAt) {
+  // =====================================================
+  // GUARDAR TOKEN DE RECUPERACIÓN
+  // =====================================================
+
+  static async savePasswordResetToken(
+    userId,
+    tokenHash,
+    expiresAt
+  ) {
     await db.query(
       `INSERT INTO password_reset_tokens (
         user_id, token_hash, expires_at
@@ -294,6 +379,10 @@ class UserRepository {
       [userId, tokenHash, expiresAt]
     );
   }
+
+  // =====================================================
+  // BUSCAR TOKEN DE RECUPERACIÓN
+  // =====================================================
 
   static async findPasswordResetToken(tokenHash) {
     const result = await db.query(
@@ -309,7 +398,14 @@ class UserRepository {
     return result.rows[0];
   }
 
-  static async resetPasswordWithToken(tokenHash, passwordHash) {
+  // =====================================================
+  // RESTABLECER CONTRASEÑA
+  // =====================================================
+
+  static async resetPasswordWithToken(
+    tokenHash,
+    passwordHash
+  ) {
     const client = await db.pool.connect();
 
     try {
@@ -357,9 +453,12 @@ class UserRepository {
     }
   }
 
-  // Perfiles para mostrar en el directorio.
-  // Incluye pendientes, identificados mediante verification_status.
-  // Esta consulta NO autoriza compartir una ficha.
+  // =====================================================
+  // DIRECTORIO DE MÉDICOS
+  // =====================================================
+
+  // Solo muestra médicos activos, verificados y disponibles.
+  // Esta consulta no autoriza compartir una ficha médica.
   static async findDoctorsDirectory(filters = {}) {
     const params = normalizeFilters(filters);
 
@@ -379,10 +478,7 @@ class UserRepository {
           NULLIF(TRIM(hi.city), '')
         ) AS city,
         dp.address,
-        (
-          dp.verification_status = 'VERIFICADO'
-          AND dp.is_available_for_sharing = TRUE
-        ) AS can_receive_records,
+        TRUE AS can_receive_records,
         COALESCE(
           hi.name,
           dp.institution_name_other,
@@ -393,11 +489,8 @@ class UserRepository {
        LEFT JOIN health_institutions hi ON hi.id = dp.institution_id
        WHERE u.role = 'MEDICO'
          AND u.is_active = TRUE
-         AND dp.verification_status IN ('PENDIENTE', 'VERIFICADO')
-         AND (
-           dp.verification_status = 'PENDIENTE'
-           OR dp.is_available_for_sharing = TRUE
-         )
+         AND dp.verification_status = 'VERIFICADO'
+         AND dp.is_available_for_sharing = TRUE
          AND ($1::varchar IS NULL OR dp.region_code = $1)
          AND (
            $2::text IS NULL
@@ -415,8 +508,10 @@ class UserRepository {
     return result.rows;
   }
 
-  // Solo médicos habilitados para recibir fichas.
-  // Conserva el nombre utilizado por el código existente.
+  // =====================================================
+  // MÉDICOS HABILITADOS PARA RECIBIR FICHAS
+  // =====================================================
+
   static async findAvailableDoctors(filters = {}) {
     const params = normalizeFilters(filters);
 

@@ -1,8 +1,67 @@
-import React from 'react';
-import { Edit3 } from 'lucide-react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Edit3, Download, Trash2, ShieldAlert, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button, Card, InfoPopover, LoadingState, Notice, PageHeader } from '../ui/ClinicalUI';
+import { DeleteAccountDialog } from './DeleteAccountDialog';
+import { userApi } from '../../services/userApi';
+import { useAuthStore } from '../../store/useAuthStore';
 
 export function PatientProfile({ user, profile, loading, error, onEdit, saved }) {
+  const navigate = useNavigate();
+  const { clearSession } = useAuthStore();
+
+  // Estados para portabilidad y eliminación
+  const [exporting, setExporting] = useState(false);
+  const [exportSuccess, setExportSuccess] = useState(false);
+  const [exportError, setExportError] = useState(null);
+
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
+
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      setExportError(null);
+      setExportSuccess(false);
+      await userApi.exportMyData();
+      setExportSuccess(true);
+      setTimeout(() => setExportSuccess(false), 6000);
+    } catch (err) {
+      console.error('Error al exportar datos:', err);
+      setExportError(err.response?.data?.message || 'No fue posible exportar tu información clínica.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleDeleteConfirm = async ({ confirmation, password }) => {
+    try {
+      setDeleting(true);
+      setDeleteError(null);
+      await userApi.deleteMyAccount({ confirmation, password });
+
+      // Limpiar caches de localStorage vinculados al paciente
+      try {
+        localStorage.removeItem('mymedrecord_patient_profile');
+        localStorage.removeItem('mymedrecord_auth');
+      } catch (e) {
+        // Ignorar
+      }
+
+      setDeleteModalOpen(false);
+      clearSession();
+      navigate('/login', {
+        replace: true,
+        state: { accountDeleted: true },
+      });
+    } catch (err) {
+      console.error('Error al eliminar cuenta:', err);
+      setDeleteError(err.response?.data?.message || 'Error al eliminar la cuenta.');
+    } finally {
+      setDeleting(false);
+    }
+  };
   const conditions = (profile.chronicConditions || []).filter(
     (c) => !c.startsWith('Medicamento: ') && !c.startsWith('Cirugía: '),
   );
@@ -91,8 +150,85 @@ export function PatientProfile({ user, profile, loading, error, onEdit, saved })
               </section>
             </div>
           </Card>
+
+          {/* Sección Ley 21.719: Privacidad, Portabilidad y Derecho al Olvido */}
+          <Card className="mm-profile-card border-rose-200/80 dark:border-rose-900/40" title="Privacidad y Gestión de Datos (Ley N° 21.719)">
+            <div className="space-y-6 pt-2">
+              {/* Notificaciones de exportación */}
+              {exportSuccess && (
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 rounded-2xl text-emerald-800 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                  <span>Tu expediente clínico ha sido exportado exitosamente en formato JSON.</span>
+                </div>
+              )}
+
+              {exportError && (
+                <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 rounded-2xl text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400" />
+                  <span>{exportError}</span>
+                </div>
+              )}
+
+              {/* Portabilidad */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-surface-muted/60 dark:bg-surface-muted/30 border border-line">
+                <div className="space-y-1">
+                  <h4 className="text-sm font-extrabold text-ink dark:text-ink flex items-center gap-2">
+                    <Download className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                    Portabilidad de Datos
+                  </h4>
+                  <p className="text-xs text-muted dark:text-muted max-w-xl leading-relaxed">
+                    Obtén una copia completa y estructurada de tus antecedentes clínicos, documentos digitalizados, recetas médicas, órdenes de exámenes y registros de auditoría en formato JSON interoperable.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleExport}
+                  disabled={exporting}
+                  className="px-4 py-2.5 rounded-xl border border-line dark:border-line bg-surface hover:bg-surface-muted active:scale-[0.99] text-xs font-bold text-ink dark:text-ink flex items-center justify-center gap-2 transition-all shrink-0 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shadow-xs"
+                >
+                  <Download className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                  <span>{exporting ? 'Generando exportación...' : 'Exportar mis datos (JSON)'}</span>
+                </button>
+              </div>
+
+              {/* Zona de peligro: Eliminación / Olvido */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/60">
+                <div className="space-y-1">
+                  <h4 className="text-sm font-extrabold text-rose-700 dark:text-rose-300 flex items-center gap-2">
+                    <ShieldAlert className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                    Zona de Peligro · Cancelación de Datos
+                  </h4>
+                  <p className="text-xs text-rose-900/80 dark:text-rose-200/80 max-w-xl leading-relaxed">
+                    Ejerce tu derecho a la supresión definitiva (Derecho al Olvido). Se eliminarán tu cuenta, ficha médica, antecedentes clínicos y archivos originales en Supabase Storage de forma permanente.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeleteError(null);
+                    setDeleteModalOpen(true);
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-[0.99] text-white text-xs font-bold flex items-center justify-center gap-2 transition-all shrink-0 cursor-pointer shadow-xs"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Eliminar mi cuenta</span>
+                </button>
+              </div>
+            </div>
+          </Card>
         </>
       )}
+
+      {/* Modal de confirmación para eliminar cuenta */}
+      <DeleteAccountDialog
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          if (!deleting) setDeleteModalOpen(false);
+        }}
+        onConfirm={handleDeleteConfirm}
+        deleting={deleting}
+        error={deleteError}
+      />
     </div>
   );
 }

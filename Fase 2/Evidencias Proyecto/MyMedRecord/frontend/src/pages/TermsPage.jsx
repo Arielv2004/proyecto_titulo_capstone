@@ -1,7 +1,7 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useMetaTags } from '../hooks/useMetaTags';
-import { HeartHandshake, ArrowLeft, Scale, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { HeartHandshake, ArrowLeft, Scale, CheckCircle2, AlertTriangle, HeartPulse } from 'lucide-react';
 
 export const TermsPage = () => {
   const navigate = useNavigate();
@@ -76,6 +76,31 @@ export const TermsPage = () => {
                 <li>Mantener bajo debida custodia y confidencialidad sus credenciales de acceso.</li>
                 <li>Hacer uso de los mecanismos de consentimiento (QR o autorización RUT) únicamente para fines asistenciales legítimos.</li>
               </ul>
+            </section>
+
+            <section className="space-y-2">
+              <h2 className="text-base font-bold text-ink flex items-center gap-2">
+                <HeartPulse className="w-4 h-4 text-accent-ink" />
+                4. Tratamiento de Datos Sensibles (Ley 21.719)
+              </h2>
+              <p>
+                Al registrarte otorgas tu <strong>consentimiento explícito</strong> para el tratamiento de tus datos personales sensibles de salud. MyMedRecord registra la fecha, hora y versión de los términos aceptados.
+              </p>
+              <ul className="list-disc pl-5 space-y-1 text-muted text-xs">
+                <li><strong>Datos recopilados:</strong> imágenes de recetas, órdenes y exámenes; diagnósticos, medicamentos y resultados de laboratorio.</li>
+                <li><strong>Finalidad:</strong> exclusivamente la gestión de tu ficha clínica personal y su acceso por profesionales que tú autorices.</li>
+                <li><strong>Proveedores externos:</strong> <strong>Google Gemini</strong> (IA para extraer el contenido de tus documentos) y <strong>Supabase</strong> (almacenamiento de archivos). Pueden procesar datos fuera de Chile.</li>
+                <li><strong>Derechos ARCOP:</strong> Acceso, Rectificación, Cancelación, Oposición y Portabilidad, además de la revocación del consentimiento, escribiendo a{' '}
+                  <a href="mailto:privacidad@mymedrecord.cl" className="font-bold text-accent-ink hover:underline">privacidad@mymedrecord.cl</a>.
+                </li>
+              </ul>
+              <p className="text-xs">
+                El detalle completo está disponible en la{' '}
+                <Link to="/privacy" className="font-bold text-accent-ink hover:underline">
+                  Política de Privacidad
+                </Link>
+                .
+              </p>
             </section>
           </div>
         </div>

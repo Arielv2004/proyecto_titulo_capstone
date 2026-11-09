@@ -1,3 +1,4 @@
+
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('node:crypto');
@@ -29,6 +30,9 @@ const VALID_REGION_CODES = new Set([
   '16',
 ]);
 
+// Versión vigente de la Política de Privacidad / Términos.
+const CURRENT_TERMS_VERSION = '2026-11';
+
 function validationError(message) {
   const error = new Error(message);
   error.statusCode = 400;
@@ -54,7 +58,20 @@ class AuthService {
     regionCode,
     city,
     address,
+    acceptedTerms,
+    ipAddress,
+    userAgent,
   }) {
+    // =====================================================
+    // VALIDAR CONSENTIMIENTO EXPLÍCITO
+    // =====================================================
+
+    if (acceptedTerms !== true) {
+      throw validationError(
+        'Debes aceptar la Política de Privacidad y otorgar tu consentimiento explícito para registrarte.'
+      );
+    }
+
     // =====================================================
     // DEFINIR Y VALIDAR ROL
     // =====================================================
@@ -333,6 +350,10 @@ class AuthService {
       regionCode: doctorRegionCode,
       city: doctorCity,
       address: doctorAddress,
+
+      termsVersion: CURRENT_TERMS_VERSION,
+      ipAddress,
+      userAgent,
     });
 
     // La verificación profesional no se determina

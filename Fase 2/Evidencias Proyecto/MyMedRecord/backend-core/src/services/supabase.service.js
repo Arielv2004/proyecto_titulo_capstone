@@ -23,11 +23,30 @@ if (SUPABASE_URL && SUPABASE_KEY) {
 }
 
 class SupabaseService {
+  /**
+   * Extrae el path/nombre de archivo relativo dentro del bucket.
+   * Maneja tanto nombres limpios (nuevos) como URLs públicas completas legacy de Supabase.
+   * @param {string} filePath
+   */
   static objectPath(filePath) {
-    if (!filePath) return '';
+    if (!filePath || typeof filePath !== 'string') return '';
+    let raw = filePath.trim();
+
+    // 1. Si contiene el marcador explícito del bucket (ej: /medical-documents/archivo.png)
     const marker = `/${BUCKET}/`;
-    const index = filePath.indexOf(marker);
-    return decodeURIComponent((index >= 0 ? filePath.slice(index + marker.length) : filePath).split('?')[0].split('#')[0]);
+    const index = raw.indexOf(marker);
+    if (index >= 0) {
+      raw = raw.slice(index + marker.length);
+    } else if (raw.startsWith('http://') || raw.startsWith('https://')) {
+      // 2. Si es cualquier otra URL web, tomar el último segmento de la ruta
+      const cleanUrl = raw.split('?')[0].split('#')[0];
+      const segments = cleanUrl.split('/');
+      raw = segments[segments.length - 1] || '';
+    }
+
+    // 3. Limpiar query params, hashes y decodificar caracteres URI
+    const cleaned = decodeURIComponent(raw.split('?')[0].split('#')[0]);
+    return cleaned;
   }
 
   static async downloadFile(filePath) {
@@ -53,24 +72,62 @@ class SupabaseService {
   }
 
   /**
-   * Determina si una ruta corresponde a una URL almacenada en Supabase Storage.
+   * Determina si una ruta o nombre corresponde a un archivo almacenado en Supabase Storage.
+   * Admite URLs legacy completas o nombres de archivo/rutas relativas dentro del bucket.
    * @param {string} filePath
    */
   static isSupabaseUrl(filePath) {
     if (!filePath || typeof filePath !== 'string') return false;
+    // URLs completas legacy o directas de Supabase
     if (SUPABASE_URL && filePath.startsWith(SUPABASE_URL)) return true;
-    return (
-      (filePath.startsWith('http://') || filePath.startsWith('https://')) &&
-      filePath.includes('/storage/v1/object/')
-    );
+    if ((filePath.startsWith('http://') || filePath.startsWith('https://')) && filePath.includes('/storage/v1/object/')) {
+      return true;
+    }
+    // Si es un path local absoluto o de la carpeta uploads, no es Supabase
+    if (path.isAbsolute(filePath) || filePath.startsWith('uploads') || filePath.startsWith('/uploads')) {
+      return false;
+    }
+    // Si no tiene barras de ruta del sistema de archivos y tiene extensión de archivo, es un identificador de Supabase
+    return !filePath.includes(path.sep) && !filePath.includes('/');
+  }
+
+  /**
+   * Genera una URL firmada de acceso temporal restringido (Signed URL) para un archivo.
+   * Por defecto expira en 3600 segundos (1 hora), conforme a la Ley 21.719.
+   * @param {string} filePath - Path relativo o URL legacy
+   * @param {number} [expiresIn=3600] - Tiempo de validez en segundos
+   * @returns {Promise<string|null>}
+   */
+  static async getSignedUrl(filePath, expiresIn = 3600) {
+    if (!this.isConfigured() || !filePath) return null;
+
+    try {
+      const cleanPath = this.objectPath(filePath);
+      if (!cleanPath) return null;
+
+      const { data, error } = await supabaseClient.storage
+        .from(BUCKET)
+        .createSignedUrl(cleanPath, expiresIn);
+
+      if (error || !data?.signedUrl) {
+        console.warn(`[SupabaseService] No se pudo generar Signed URL para (${cleanPath}):`, error?.message);
+        return null;
+      }
+
+      return data.signedUrl;
+    } catch (err) {
+      console.warn('[SupabaseService] Error al solicitar Signed URL:', err.message);
+      return null;
+    }
   }
 
   /**
    * Sube un buffer a Supabase Storage en el bucket de documentos médicos.
+   * Devuelve únicamente el path interno relativo dentro del bucket para proteger la confidencialidad.
    * @param {Buffer} fileBuffer
    * @param {string} originalName
    * @param {string} mimeType
-   * @returns {Promise<{ publicUrl: string, fileName: string }>}
+   * @returns {Promise<{ filePath: string, fileName: string }>}
    */
   static async uploadFile(fileBuffer, originalName, mimeType) {
     if (!this.isConfigured()) {
@@ -92,11 +149,9 @@ class SupabaseService {
       throw new Error(`Error subiendo a Supabase Storage: ${error.message}`);
     }
 
-    // Construir URL pública según especificación
-    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${uniqueName}`;
-
+    // Retornar solo el path relativo interno en el bucket (Ley 21.719 - Confidencialidad)
     return {
-      publicUrl,
+      filePath: uniqueName,
       fileName: uniqueName,
     };
   }

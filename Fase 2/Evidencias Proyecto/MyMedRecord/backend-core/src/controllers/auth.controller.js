@@ -1,12 +1,7 @@
+
 const AuthService = require('../services/auth.service');
 const config = require('../config/env');
-
-const COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: config.NODE_ENV === 'production',
-  sameSite: 'strict',
-  maxAge: 24 * 60 * 60 * 1000, // 24 horas
-};
+const { COOKIE_OPTIONS } = require('../config/cookie');
 
 class AuthController {
   // =====================================================
@@ -29,6 +24,7 @@ class AuthController {
         regionCode,
         city,
         address,
+        acceptedTerms,
       } = req.body;
 
       const { user, token } = await AuthService.register({
@@ -45,6 +41,9 @@ class AuthController {
         regionCode,
         city,
         address,
+        acceptedTerms,
+        ipAddress: req.ip || req.socket?.remoteAddress || 'unknown',
+        userAgent: req.get('user-agent') || null,
       });
 
       res.cookie(
