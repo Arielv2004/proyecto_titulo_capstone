@@ -1350,7 +1350,7 @@ export const PatientDashboard = () => {
         // Información al médico y paciente
         ctx.fillStyle = '#536b70';
         ctx.font = '13px "DM Sans", system-ui, sans-serif';
-        ctx.fillText('Quien use el QR debe declarar su RUT y nombre para abrir la ficha.', canvas.width / 2, 805);
+        ctx.fillText('El médico canjea este pase una vez desde su cuenta.', canvas.width / 2, 805);
 
         ctx.fillStyle = '#536b70';
         ctx.font = 'italic 12px "DM Sans", system-ui, sans-serif';
@@ -2527,7 +2527,7 @@ export const PatientDashboard = () => {
                     Pase de acceso temporal
                   </h3>
                   <p className="text-xs text-muted dark:text-muted">
-                    Comparte tu ficha durante el tiempo elegido
+                    Pase de un solo uso para una cuenta médica habilitada
                   </p>
                 </div>
               </div>
@@ -2662,7 +2662,7 @@ export const PatientDashboard = () => {
                     <span>Actividad de este acceso</span>
                   </div>
                   <p className="text-xs text-muted dark:text-muted leading-relaxed">
-                    Quien use el QR debe declarar su RUT y nombre. Esos datos quedan en la actividad de Accesos, pero el portal no verifica su identidad en esta modalidad.
+                    El médico debe iniciar sesión con su cuenta habilitada. El canje queda registrado y puedes revocar el permiso desde Accesos.
                   </p>
                 </div>
 

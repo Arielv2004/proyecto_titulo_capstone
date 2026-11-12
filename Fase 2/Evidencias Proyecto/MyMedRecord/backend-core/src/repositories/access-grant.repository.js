@@ -83,7 +83,8 @@ class AccessGrantRepository {
    * Actualizar datos del médico que consultó el QR
    * e incrementar contador de accesos
    */
-  static async recordDoctorAccess({
+  static async claimQr(client, {
+    doctorId,
     token,
     doctorRut,
     doctorName,
@@ -95,16 +96,21 @@ class AccessGrantRepository {
         doctor_rut = $1,
         doctor_name = $2,
         doctor_institution = $3,
-        access_count = access_count + 1
-      WHERE token = $4
+        doctor_id = $5,
+        access_count = 1
+      WHERE token = $4 AND grant_type = 'QR_TEMPORAL'
+        AND access_count = 0 AND NOT is_revoked
+        AND starts_at <= NOW() AND expires_at > NOW()
+        AND (doctor_id IS NULL OR doctor_id = $5)
       RETURNING *;
     `;
 
-    const result = await db.query(query, [
+    const result = await client.query(query, [
       doctorRut,
       doctorName,
       doctorInstitution,
       token,
+      doctorId,
     ]);
 
     return result.rows[0];
@@ -142,6 +148,7 @@ class AccessGrantRepository {
       FROM access_grants
       WHERE patient_id = $1
         AND grant_type = 'QR_TEMPORAL'
+        AND access_count = 0
         AND is_revoked = FALSE
         AND expires_at > NOW()
       ORDER BY created_at DESC

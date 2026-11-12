@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Html5Qrcode } from 'html5-qrcode';
-import { formatRut, validateRut } from '../utils/rutValidator';
 import { useMetaTags } from '../hooks/useMetaTags';
 import api from '../services/api';
-import { HeartHandshake, ShieldCheck, QrCode, Camera, Upload, AlertCircle, CheckCircle2, UserCheck, Info, ArrowLeft, RefreshCw, ChevronRight, Keyboard } from 'lucide-react';
+import { HeartHandshake, ShieldCheck, QrCode, Camera, Upload, AlertCircle, CheckCircle2, Info, ArrowLeft, RefreshCw, ChevronRight, Keyboard } from 'lucide-react';
 import { ClinicalRecord } from '../components/doctor/ClinicalRecord';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { openDocumentBlob, prepareDocumentWindow } from '../services/documentsApi';
@@ -15,15 +14,10 @@ export const DoctorQrAccessPage = () => {
   const [searchParams] = useSearchParams();
   const tokenFromUrl = searchParams.get('token') || '';
 
-  // Formulario del Médico
-  const [doctorData, setDoctorData] = useState({
-    rut: '',
-    name: '',
-    institution: '',
-    token: tokenFromUrl,
-  });
-
-  const [rutTouched, setRutTouched] = useState(false);
+  const [token, setToken] = useState(tokenFromUrl);
+  const [consultationProof, setConsultationProof] = useState('');
+  const validating = useRef(false);
+  const openedLink = useRef(false);
   const [activeScanTab, setActiveScanTab] = useState(tokenFromUrl ? 'MANUAL' : 'CAMERA'); // 'CAMERA' | 'UPLOAD' | 'MANUAL'
   const [isScanning, setIsScanning] = useState(false);
   const [scannerError, setScannerError] = useState('');
@@ -47,7 +41,7 @@ export const DoctorQrAccessPage = () => {
     setOpeningFileId(documentId);
     try {
       const { data } = await api.post('/access-grants/qr/document-file', {
-        token: doctorData.token, documentId, doctorRut: doctorData.rut, doctorName: doctorData.name,
+        token, documentId, consultationProof,
       }, { responseType: 'blob' });
       openDocumentBlob(data, tab);
     } catch (error) {
@@ -60,11 +54,11 @@ export const DoctorQrAccessPage = () => {
   };
 
   useEffect(() => {
-    if (!clinicalData || !doctorData.token) return undefined;
+    if (!clinicalData || !token) return undefined;
     let active = true;
     const check = async () => {
       try {
-        const { data } = await api.post('/access-grants/qr/check', { token: doctorData.token });
+        const { data } = await api.post('/access-grants/qr/check', { token, consultationProof });
         if (active) setTimeLeft(data.minutesRemaining);
       } catch (error) {
         if (active && [403, 410].includes(error.response?.status)) {
@@ -76,25 +70,11 @@ export const DoctorQrAccessPage = () => {
     const interval = window.setInterval(check, 30000);
     window.addEventListener('focus', check);
     return () => { active = false; window.clearInterval(interval); window.removeEventListener('focus', check); };
-  }, [clinicalData, doctorData.token]);
+  }, [clinicalData, token, consultationProof]);
 
   const html5QrCodeRef = useRef(null);
   const fileInputRef = useRef(null);
   const cameraCaptureInputRef = useRef(null);
-  const doctorDataRef = useRef(doctorData);
-
-  useEffect(() => {
-    doctorDataRef.current = doctorData;
-  }, [doctorData]);
-
-  const isRutValid = doctorData.rut.trim() !== '' && validateRut(doctorData.rut);
-
-  const handleRutChange = (e) => {
-    const formatted = formatRut(e.target.value);
-    setDoctorData({ ...doctorData, rut: formatted });
-    setRutTouched(true);
-  };
-
   async function startCamera() {
     setScannerError('');
     if (!navigator?.mediaDevices?.getUserMedia) {
@@ -171,13 +151,7 @@ export const DoctorQrAccessPage = () => {
       if (match && match[1]) token = match[1];
     }
 
-    setDoctorData((prev) => ({ ...prev, token }));
-    await stopCamera();
-
-    const currentDoc = doctorDataRef.current;
-    if (validateRut(currentDoc.rut) && currentDoc.name.trim()) {
-      executeValidation(token, currentDoc.rut, currentDoc.name, currentDoc.institution);
-    }
+    await executeValidation(token);
   }
 
   // Redimensionar imagen para escaneo óptimo de códigos QR (evita fallos de memoria con fotos de 12-48MP de celulares)
@@ -279,31 +253,30 @@ export const DoctorQrAccessPage = () => {
   // Enviar validación a la API
   const handleFormSubmit = (e) => {
     e.preventDefault();
-    if (!validateRut(doctorData.rut)) {
-      setApiError('Por favor ingresa un RUT chileno profesional válido (Módulo 11).');
-      return;
-    }
-    if (!doctorData.token.trim()) {
-      setApiError('Por favor escanea o ingresa el código del token QR.');
-      return;
-    }
-
-    executeValidation(doctorData.token, doctorData.rut, doctorData.name, doctorData.institution);
+    executeValidation(token);
   };
 
-  const executeValidation = async (token, doctorRut, doctorName, doctorInstitution) => {
+  useEffect(() => {
+    if (tokenFromUrl && !openedLink.current) {
+      openedLink.current = true;
+      executeValidation(tokenFromUrl);
+    }
+  }, [tokenFromUrl]);
+
+  async function executeValidation(value) {
+    if (validating.current || !value.trim()) return;
+    validating.current = true;
+    setToken(value.trim());
     setIsValidating(true);
     setApiError('');
 
     try {
       const res = await api.post('/access-grants/validate', {
-        token: token.trim(),
-        doctorRut: doctorRut.trim(),
-        doctorName: doctorName.trim(),
-        doctorInstitution: doctorInstitution.trim(),
+        token: value.trim(),
       });
 
       if (res.data.success) {
+        setConsultationProof(res.data.data.consultationProof);
         setClinicalData(res.data.data.clinicalData);
         setTimeLeft(res.data.data.grant.minutesRemaining);
         await stopCamera();
@@ -312,6 +285,7 @@ export const DoctorQrAccessPage = () => {
       const msg = err.response?.data?.message || 'Error al validar el Código QR o el acceso ha expirado.';
       setApiError(msg);
     } finally {
+      validating.current = false;
       setIsValidating(false);
     }
   };
@@ -387,7 +361,7 @@ export const DoctorQrAccessPage = () => {
                 Portal de Acceso Médico
               </h1>
               <p className="text-sm text-muted dark:text-muted mt-1">
-                Consulta una ficha médica solo cuando el paciente te haya dado acceso mediante un pase QR temporal.
+                Inicia sesión con tu cuenta médica para canjear el pase de un solo uso del paciente.
               </p>
             </div>
 
@@ -399,70 +373,12 @@ export const DoctorQrAccessPage = () => {
             )}
 
             <form onSubmit={handleFormSubmit} className="space-y-5">
-              {/* Paso 1: Datos Profesionales del Médico */}
-              <div className="mm-qr-step p-5 bg-canvas dark:bg-surface-muted/60 rounded-2xl border border-line/80 dark:border-line space-y-3">
-                <span className="mm-qr-step-title block text-xs font-bold uppercase tracking-wider text-ink dark:text-body flex items-center gap-1.5">
-                  <UserCheck className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                  1. Identificación profesional
-                </span>
-                <p className="text-xs text-muted">Estos datos los declara quien usa el QR y quedan registrados en la actividad. El portal no comprueba su identidad profesional en este acceso.</p>
-
-                <div className="mm-qr-fields grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-body dark:text-body mb-1">
-                      RUT del Médico *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={doctorData.rut}
-                      onChange={handleRutChange}
-                      placeholder="Ej.: 12.345.678-5"
-                      className={`w-full px-3.5 py-2.5 bg-surface dark:bg-surface border rounded-xl text-sm font-mono focus:outline-none transition-all ${rutTouched && doctorData.rut
-                        ? isRutValid
-                          ? 'border-emerald-500 text-body dark:text-ink focus:ring-2 focus:ring-emerald-100'
-                          : 'border-rose-400 text-body dark:text-ink focus:ring-2 focus:ring-rose-100'
-                        : 'border-line dark:border-line focus:border-blue-700 dark:focus:border-teal-400'
-                        }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-body dark:text-body mb-1">
-                      Nombre y Apellido *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={doctorData.name}
-                      onChange={(e) => setDoctorData({ ...doctorData, name: e.target.value })}
-                      placeholder="Ej.: Dra. María González"
-                      className="w-full px-3.5 py-2.5 bg-surface dark:bg-surface border border-line dark:border-line rounded-xl text-sm text-body dark:text-ink focus:border-blue-700 dark:focus:border-teal-400 focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-body dark:text-body mb-1">
-                      Centro de Salud *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={doctorData.institution}
-                      onChange={(e) => setDoctorData({ ...doctorData, institution: e.target.value })}
-                      placeholder="Ej.: Hospital Regional"
-                      className="w-full px-3.5 py-2.5 bg-surface dark:bg-surface border border-line dark:border-line rounded-xl text-sm text-body dark:text-ink focus:border-blue-700 dark:focus:border-teal-400 focus:outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-
               {/* Paso 2: Escaneo del Código QR */}
               <div className="mm-qr-step p-5 bg-canvas dark:bg-surface-muted/60 rounded-2xl border border-line/80 dark:border-line space-y-4">
                 <div className="mm-qr-method-head flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <span className="mm-qr-step-title block text-xs font-bold uppercase tracking-wider text-ink dark:text-body flex items-center gap-1.5">
                     <QrCode className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                    2. Código QR del paciente
+                    Código QR del paciente
                   </span>
 
                   {/* Selector de Métodos de Escaneo */}
@@ -650,8 +566,8 @@ export const DoctorQrAccessPage = () => {
                     </label>
                     <input
                       type="text"
-                      value={doctorData.token}
-                      onChange={(e) => setDoctorData({ ...doctorData, token: e.target.value })}
+                      value={token}
+                      onChange={(e) => setToken(e.target.value)}
                       placeholder="ej: MMR-12H-48E7C4A8B982DD05"
                       className="w-full px-3.5 py-2.5 bg-surface dark:bg-surface border border-line dark:border-line rounded-xl text-sm font-mono text-body dark:text-ink uppercase"
                     />
@@ -659,15 +575,15 @@ export const DoctorQrAccessPage = () => {
                 )}
 
                 {/* Token detectado */}
-                {doctorData.token && (
+                {token && (
                   <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 rounded-xl flex items-center justify-between">
                     <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-300">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                      <span>Código detectado: <strong className="font-mono">{doctorData.token}</strong></span>
+                      <span>Código detectado: <strong className="font-mono">{token}</strong></span>
                     </div>
                     <button
                       type="button"
-                      onClick={() => setDoctorData({ ...doctorData, token: '' })}
+                      onClick={() => setToken('')}
                       className="text-xs text-emerald-700 dark:text-emerald-400 hover:underline font-bold"
                     >
                       Limpiar
@@ -679,7 +595,7 @@ export const DoctorQrAccessPage = () => {
               {/* Botón de Desbloqueo */}
               <button
                 type="submit"
-                disabled={isValidating || !doctorData.token}
+                disabled={isValidating || !token}
                 className="mm-qr-submit w-full py-3.5 bg-action hover:bg-action-hover active:scale-[0.99] text-on-action font-bold rounded-2xl transition-all shadow-xs flex items-center justify-center gap-2 text-sm cursor-pointer disabled:opacity-50"
               >
                 <span>{isValidating ? 'Validando vigencia y registrando auditoría...' : 'Validar y Consultar Ficha Clínica'}</span>
@@ -688,7 +604,7 @@ export const DoctorQrAccessPage = () => {
             </form>
           </div>
         </main>
-      ) : <ClinicalRecord data={clinicalData} timeLeft={timeLeft} onFinish={() => { setClinicalData(null); setTimeLeft(null); }} onOpenFile={handleOpenFile} fileError={fileError} openingFileId={openingFileId} backLabel="Volver al acceso QR" />}
+      ) : <ClinicalRecord data={clinicalData} timeLeft={timeLeft} onFinish={() => { setClinicalData(null); setTimeLeft(null); setToken(''); setConsultationProof(''); }} onOpenFile={handleOpenFile} fileError={fileError} openingFileId={openingFileId} backLabel="Volver al acceso QR" />}
 
       {/* Footer */}
       <footer className="py-4 text-center text-xs text-muted dark:text-muted border-t border-line dark:border-line bg-surface dark:bg-surface transition-colors mt-auto">

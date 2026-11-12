@@ -223,8 +223,8 @@ class AccessGrantService {
     details,
     ipAddress,
     userAgent,
-  }) {
-    await db.query(
+  }, client = db) {
+    await client.query(
       `INSERT INTO audit_logs (
          user_id,
          patient_id,
@@ -441,6 +441,7 @@ class AccessGrantService {
     }
 
     validateGrantDates(grant);
+    if (grant.access_count > 0) throw serviceError('Este pase QR ya se utilizó.', 410);
 
     if (String(grant.patient_id).toLowerCase() === doctor.id.toLowerCase()) {
       throw serviceError(
@@ -463,29 +464,6 @@ class AccessGrantService {
     const doctorName =
       `${doctor.first_name} ${doctor.last_name}`.trim();
 
-    await AccessGrantRepository.recordDoctorAccess({
-      token: grant.token,
-      doctorRut: doctor.rut,
-      doctorName,
-      doctorInstitution: doctor.institution_name,
-    });
-
-    await this.writeAudit({
-      userId: doctor.id,
-      patientId: grant.patient_id,
-      action: 'CONSULTA_MEDICA_QR',
-      details: {
-        grantId: grant.id,
-        doctorId: doctor.id,
-        doctor_rut: doctor.rut,
-        doctor_name: doctorName,
-        doctor_institution: doctor.institution_name,
-        expires_at: grant.expires_at,
-      },
-      ipAddress,
-      userAgent,
-    });
-
     const clinicalData =
       await AccessGrantRepository.getPatientClinicalData(grant.patient_id);
 
@@ -494,6 +472,42 @@ class AccessGrantService {
         'No se encontró la ficha clínica del paciente.',
         404
       );
+    }
+
+    const client = await db.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const claimed = await AccessGrantRepository.claimQr(client, {
+        doctorId: doctor.id,
+        token: grant.token,
+        doctorRut: doctor.rut,
+        doctorName,
+        doctorInstitution: doctor.institution_name,
+      });
+
+      if (!claimed) throw serviceError('El pase ya se utilizó o dejó de estar vigente. Solicita otro al paciente.', 410);
+
+      await this.writeAudit({
+        userId: doctor.id,
+        patientId: grant.patient_id,
+        action: 'CONSULTA_MEDICA_QR',
+        details: {
+          grantId: grant.id,
+          doctorId: doctor.id,
+          doctor_rut: doctor.rut,
+          doctor_name: doctorName,
+          doctor_institution: doctor.institution_name,
+          expires_at: grant.expires_at,
+        },
+        ipAddress,
+        userAgent,
+      }, client);
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
 
     return {

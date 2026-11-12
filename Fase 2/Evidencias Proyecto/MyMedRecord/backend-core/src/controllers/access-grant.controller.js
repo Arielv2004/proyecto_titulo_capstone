@@ -1,3 +1,5 @@
+const { createHmac, timingSafeEqual } = require('node:crypto');
+const { JWT } = require('../config/env');
 const AccessGrantService = require('../services/access-grant.service');
 const AccessGrantRepository = require('../repositories/access-grant.repository');
 const DocumentRepository = require('../repositories/document.repository');
@@ -126,6 +128,15 @@ function remainingMinutes(grant) {
   );
 }
 
+// Only the browser that redeemed the QR receives this proof. Scope it to
+// the authenticated session and grant, separately from login tokens.
+function consultationProof(req, grantId) {
+  const session = req.cookies?.[JWT.COOKIE_NAME] || req.headers.authorization?.split(' ')[1];
+  return createHmac('sha256', JWT.SECRET)
+    .update(JSON.stringify(['qr-consultation', grantId, req.user.id, session]))
+    .digest('hex');
+}
+
 // Comprueba la sesión, el estado profesional y la titularidad
 // antes de consultar vigencia o entregar un archivo.
 async function authorizedDoctorGrant(req, token, grantType) {
@@ -150,22 +161,16 @@ async function authorizedDoctorGrant(req, token, grantType) {
     String(grant.doctor_id || '').toLowerCase() ===
     String(doctor.id).toLowerCase();
 
-  if (grantType === 'DIRECTO' && !sameDoctor) {
-    throw controllerError(
-      'No tienes autorización para consultar esta ficha.',
-      403
-    );
+  if (!sameDoctor) {
+    throw controllerError('No tienes autorización para consultar esta ficha.', 403);
   }
 
-  if (
-    grantType === 'QR_TEMPORAL' &&
-    grant.doctor_id &&
-    !sameDoctor
-  ) {
-    throw controllerError(
-      'Este permiso QR pertenece a otro médico.',
-      403
-    );
+  if (grantType === 'QR_TEMPORAL') {
+    const proof = req.body?.consultationProof;
+    if (grant.access_count < 1 || typeof proof !== 'string' || !/^[a-f0-9]{64}$/.test(proof) ||
+        !timingSafeEqual(Buffer.from(proof), Buffer.from(consultationProof(req, grant.id)))) {
+      throw controllerError('La sesión de consulta QR no está autorizada.', 403);
+    }
   }
 
   if (
@@ -539,7 +544,7 @@ class AccessGrantController {
         success: true,
         message:
           'Acceso autorizado. Ficha clínica recuperada exitosamente.',
-        data: result,
+        data: { ...result, consultationProof: consultationProof(req, result.grant.id) },
       });
     } catch (error) {
       next(error);
