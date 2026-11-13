@@ -5,6 +5,7 @@ import { useMetaTags } from '../hooks/useMetaTags';
 import api from '../services/api';
 import { HeartHandshake, ShieldCheck, QrCode, Camera, Upload, AlertCircle, CheckCircle2, Info, ArrowLeft, RefreshCw, ChevronRight, Keyboard } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
+import { formatRut, validateRut } from '../utils/rutValidator';
 import { VisitorQrConsultation } from '../components/doctor/VisitorQrConsultation';
 import { ClinicalRecord } from '../components/doctor/ClinicalRecord';
 import { ThemeToggle } from '../components/common/ThemeToggle';
@@ -20,6 +21,9 @@ export const DoctorQrAccessPage = () => {
   const tokenFromUrl = searchParams.get('token') || '';
 
   const [token, setToken] = useState(tokenFromUrl);
+  const [visitorName, setVisitorName] = useState('');
+  const [visitorRut, setVisitorRut] = useState('');
+  const [visitorInstitution, setVisitorInstitution] = useState('');
   const [consultationProof, setConsultationProof] = useState('');
   const validating = useRef(false);
   const openedLink = useRef(false);
@@ -158,7 +162,7 @@ export const DoctorQrAccessPage = () => {
 
     setToken(token);
     setActiveScanTab('MANUAL');
-    await executeValidation(token);
+    if (isDoctor) await executeValidation(token);
   }
 
   // Redimensionar imagen para escaneo óptimo de códigos QR (evita fallos de memoria con fotos de 12-48MP de celulares)
@@ -264,7 +268,7 @@ export const DoctorQrAccessPage = () => {
   };
 
   useEffect(() => {
-    if (!visitorId && !checkingSession && tokenFromUrl && !openedLink.current) {
+    if (isDoctor && !visitorId && !checkingSession && tokenFromUrl && !openedLink.current) {
       openedLink.current = true;
       executeValidation(tokenFromUrl);
     }
@@ -272,6 +276,14 @@ export const DoctorQrAccessPage = () => {
 
   async function executeValidation(value) {
     if (checkingSession || validating.current || !value.trim()) return;
+    if (!isDoctor && (visitorName.trim().length < 2 || !validateRut(visitorRut))) {
+      setApiError('Revisa tu nombre y el dígito verificador de tu RUT antes de enviar la solicitud.');
+      return;
+    }
+    if (!isDoctor && !visitorInstitution.trim()) {
+      setApiError('Ingresa el nombre de tu centro de salud.');
+      return;
+    }
     validating.current = true;
     setToken(value.trim());
     setIsValidating(true);
@@ -280,9 +292,12 @@ export const DoctorQrAccessPage = () => {
     try {
       if (!isDoctor) {
         const { data } = await api.post('/access-grants/qr/visitor', {
-          token: value.trim(),
+          token: value.trim(), name: visitorName.trim(), rut: visitorRut, institution: visitorInstitution.trim(),
         });
         setToken('');
+        setVisitorName('');
+        setVisitorRut('');
+        setVisitorInstitution('');
         setSearchParams({ consulta: data.data.id }, { replace: true });
         return;
       }
@@ -376,18 +391,43 @@ export const DoctorQrAccessPage = () => {
                 Consultar una ficha por QR
               </h1>
               <p className="text-sm text-muted dark:text-muted mt-1">
-                {isDoctor ? 'Canjea el pase de un solo uso desde tu cuenta médica.' : 'El primer escaneo reserva el pase en este navegador. Después ingresa tu nombre y RUT para pedir aprobación al paciente.'}
+                {isDoctor ? 'Canjea el pase de un solo uso desde tu cuenta médica.' : 'Ingresa tu nombre, RUT y centro de salud y presenta el pase QR. El paciente verá tus datos y podrá aprobar la consulta.'}
               </p>
             </div>
 
             {apiError && (
-              <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-2xl text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center gap-2.5 animate-in fade-in duration-200">
+              <div role="alert" className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-2xl text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center gap-2.5 animate-in fade-in duration-200">
                 <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />
                 <span>{apiError}</span>
               </div>
             )}
 
             <form onSubmit={handleFormSubmit} className="space-y-5">
+              {!checkingSession && !isDoctor && (
+                <div role="group" aria-labelledby="qr-visitor-heading" className="mm-qr-step min-w-0 rounded-2xl border border-line bg-canvas dark:bg-surface-muted/60 p-5">
+                  <h2 id="qr-visitor-heading" className="mb-4 text-sm font-bold text-ink">Tus datos</h2>
+                  <div className="mm-qr-fields grid gap-4 md:grid-cols-3">
+                    <label className="grid gap-1.5 text-sm font-semibold">
+                      Nombre y apellido
+                      <input type="text" autoComplete="name" placeholder="Camila González" required minLength={2} maxLength={150}
+                        value={visitorName} onChange={e => setVisitorName(e.target.value)}
+                        className="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 font-normal text-ink" />
+                    </label>
+                    <label className="grid gap-1.5 text-sm font-semibold">
+                      RUT
+                      <input type="text" required maxLength={12} placeholder="12.345.678-5"
+                        value={visitorRut} onChange={e => setVisitorRut(formatRut(e.target.value))}
+                        className="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 font-normal text-ink" />
+                    </label>
+                    <label className="grid gap-1.5 text-sm font-semibold">
+                      Centro de salud
+                      <input type="text" autoComplete="organization" placeholder="CESFAM Los Aromos" required maxLength={200}
+                        value={visitorInstitution} onChange={e => setVisitorInstitution(e.target.value)}
+                        className="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 font-normal text-ink" />
+                    </label>
+                  </div>
+                </div>
+              )}
               {/* Escaneo del código QR */}
               <div className="mm-qr-step p-5 bg-canvas dark:bg-surface-muted/60 rounded-2xl border border-line/80 dark:border-line space-y-4">
                 <div className="mm-qr-method-head flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -613,7 +653,7 @@ export const DoctorQrAccessPage = () => {
                 disabled={checkingSession || isValidating || !token.trim()}
                 className="mm-qr-submit w-full py-3.5 bg-action hover:bg-action-hover active:scale-[0.99] text-on-action font-bold rounded-2xl transition-all shadow-xs flex items-center justify-center gap-2 text-sm cursor-pointer disabled:opacity-50"
               >
-                <span>{isValidating ? 'Validando vigencia y registrando auditoría...' : (isDoctor ? 'Consultar ficha clínica' : 'Canjear pase QR')}</span>
+                <span>{isValidating ? 'Enviando…' : (isDoctor ? 'Consultar ficha clínica' : 'Solicitar acceso al paciente')}</span>
                 <ChevronRight className="w-4 h-4 text-teal-300" />
               </button>
             </form>

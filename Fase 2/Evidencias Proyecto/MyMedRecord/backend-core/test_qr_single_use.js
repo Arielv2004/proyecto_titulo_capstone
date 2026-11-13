@@ -64,23 +64,29 @@ test('canje QR concurrente, consulta temporal y acceso directo independiente', a
         const owner = (await db.query('SELECT patient_id FROM access_grants WHERE token=$1', [token])).rows[0].patient_id;
         const patientAuth = jwt.sign({id: owner, role: 'PACIENTE'}, process.env.JWT_SECRET);
         const generate = async () => (await (await post('generate', patientAuth, {durationHours: 1})).json()).data;
-        const visitor = pass => fetch(base + 'qr/visitor', {
+        const identity = {name: 'Visitante de prueba', rut: '12.345.678-5', institution: 'Centro de prueba'};
+        const visitor = (pass, fields = identity) => fetch(base + 'qr/visitor', {
           method: 'POST', headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({token: pass}),
+          body: JSON.stringify({token: pass, ...fields}),
         });
         const pass = await generate();
+        assert.equal((await visitor(pass.token, {})).status, 400);
+        for (const institution of [undefined, '   ', 'a'.repeat(201)]) {
+          assert.equal((await visitor(pass.token, {...identity, institution})).status, 400);
+        }
+        assert.equal((await visitor(pass.token, {...identity, name: ' '})).status, 400);
+        assert.equal((await visitor(pass.token, {...identity, rut: '12.345.678-0'})).status, 400);
         assert.equal((await visitor('DIRECTO-DEMO-2026-TOKEN')).status, 410);
         const replies = await Promise.all([visitor(pass.token), visitor(pass.token)]);
         assert.deepEqual(replies.map(r => r.status).sort(), [202,410]);
         const accepted = replies.find(r => r.status === 202);
-        assert.equal((await accepted.json()).data.status, 'IDENTIFYING');
+        assert.equal((await accepted.json()).data.status, 'PENDING');
         const headers = {cookie: accepted.headers.get('set-cookie').split(';')[0]};
         const url = base + 'qr/visitor/' + pass.id + '/';
         const identify = rut => fetch(url+'identify', {method:'POST', headers:{...headers, 'Content-Type':'application/json'},
-          body:JSON.stringify({name:'Visitante de prueba', rut})});
-        assert.equal((await post('qr/visitor/'+pass.id+'/decision', patientAuth, {decision:'APPROVED'})).status,409);
-        assert.equal((await identify('123')).status, 400);
-        assert.equal((await identify('12.345.678-5')).status, 202);
+          body:JSON.stringify({...identity, rut})});
+        const pending = await fetch(base + 'qr/visitor/requests', {headers: {Authorization: 'Bearer ' + patientAuth}});
+        assert.deepEqual((await pending.json()).data.find(row => row.id === pass.id), {id: pass.id, ...identity});
         assert.equal((await identify('12.345.678-5')).status, 409);
         assert.equal((await post('validate', first, {token: pass.token})).status, 410);
         assert.equal((await fetch(url+'record', {headers})).status, 403);

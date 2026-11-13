@@ -1578,7 +1578,7 @@ export const PatientDashboard = () => {
                               {grant.doctorName ? (
                                 <div>
                                   <span className="font-bold text-ink block">{grant.doctorName}</span>
-                                  <span className="text-xs text-muted">{grant.grantType === 'QR_TEMPORAL' && !grant.doctorId ? 'Identidad declarada' : grant.doctorInstitution || 'Centro de Salud'}</span>
+                                  <span className="text-xs text-muted">{grant.grantType === 'QR_TEMPORAL' && !grant.doctorId ? ['Identidad declarada', grant.doctorInstitution].filter(Boolean).join(' · ') : grant.doctorInstitution || 'Centro de Salud'}</span>
                                 </div>
                               ) : (
                                 <span className="text-muted italic">{grant.accessCount ? 'Pase canjeado' : 'Pendiente de escaneo'}</span>
@@ -2678,7 +2678,7 @@ export const PatientDashboard = () => {
                     <span>Actividad de este acceso</span>
                   </div>
                   <p className="text-xs text-muted dark:text-muted leading-relaxed">
-                    Un médico habilitado puede canjear el pase desde su cuenta. Si alguien lo usa sin cuenta, verás su nombre y RUT declarados y podrás aprobar o rechazar la consulta.
+                    Un médico habilitado puede canjear el pase desde su cuenta. Si alguien lo usa sin cuenta, verás el nombre, RUT y centro de salud que declaró y podrás aprobar o rechazar la consulta.
                   </p>
                 </div>
 
@@ -2738,7 +2738,7 @@ export const PatientDashboard = () => {
                   </span>
                   <ul className="text-xs text-muted dark:text-muted space-y-1 list-disc list-inside">
                     <li>Comparte el QR con la persona que consultará tu ficha.</li>
-                    <li>El visitante sin cuenta declara su nombre y RUT. Tú apruebas su solicitud desde el portal.</li>
+                    <li>El visitante sin cuenta declara su nombre, RUT y centro de salud. Tú apruebas su solicitud desde el portal.</li>
                     <li>Tiene acceso de solo lectura únicamente durante las {qrDuration} horas elegidas.</li>
                     <li>Cada pase admite un único canje, incluso si rechazas la solicitud.</li>
                     <li>Puedes anular el permiso en cualquier momento con el botón de revocar.</li>

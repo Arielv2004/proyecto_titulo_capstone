@@ -43,26 +43,40 @@ function audit(req, grant, action, client = db, documentId = null) {
 
 router.use((req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 
+function visitorIdentity(body) {
+  const { name, rut, institution } = body || {};
+  if (typeof name !== 'string' || name.trim().length < 2 || name.length > 150 ||
+      typeof rut !== 'string' || !/^[0-9.kK-]{8,12}$/.test(rut.trim()) || !isValidRut(rut)) {
+    throw fail('Ingresa tu nombre y un RUT válido.', 400);
+  }
+  if (typeof institution !== 'string' || !institution.trim() || institution.trim().length > 200) {
+    throw fail('Ingresa el nombre de tu centro de salud (máximo 200 caracteres).', 400);
+  }
+  return { name: name.trim(), rut: rut.trim().toUpperCase(), institution: institution.trim() };
+}
+
 router.post('/', handle(async (req, res) => {
   const { token } = req.body || {};
   if (typeof token !== 'string' || !token.trim() || token.length > 100) {
     throw fail('Ingresa un pase QR válido.', 400);
   }
+  const { name, rut, institution } = visitorIdentity(req.body);
   const credential = randomBytes(32).toString('hex');
   const grant = await transaction(async client => {
     const claimed = await grants.claimQr(client, {
-      token: token.trim(), doctorId: null, doctorRut: null,
-      doctorName: null, doctorInstitution: null,
+      token: token.trim(), doctorId: null, doctorRut: rut,
+      doctorName: name, doctorInstitution: institution,
     });
     if (!claimed) throw fail('El pase ya se utilizó o no está disponible. Pide otro al paciente.', 410);
     await client.query(`INSERT INTO qr_visitor_requests (grant_id, credential_hash, request_expires_at)
       VALUES ($1, $2, LEAST(NOW() + INTERVAL '5 minutes', $3::timestamptz))`,
       [claimed.id, hash(credential), claimed.expires_at]);
     await audit(req, claimed, 'QR_VISITOR_REDEEM', client);
+    await audit(req, claimed, 'QR_VISITOR_REQUEST', client);
     return claimed;
   });
   res.cookie(cookie, credential, { ...cookieOptions(grant.id), expires: new Date(grant.expires_at) });
-  res.status(202).json({ data: { id: grant.id, status: 'IDENTIFYING' } });
+  res.status(202).json({ data: { id: grant.id, status: 'PENDING' } });
 }));
 
 const liveGrant = `g.grant_type = 'QR_TEMPORAL' AND g.doctor_id IS NULL AND g.access_count = 1
@@ -70,7 +84,7 @@ const liveGrant = `g.grant_type = 'QR_TEMPORAL' AND g.doctor_id IS NULL AND g.ac
   AND EXISTS (SELECT 1 FROM users u WHERE u.id = g.patient_id AND u.is_active)`;
 
 router.get('/requests', auth, patientOnly, handle(async (req, res) => {
-  const result = await db.query(`SELECT g.id, g.doctor_name AS name, g.doctor_rut AS rut
+  const result = await db.query(`SELECT g.id, g.doctor_name AS name, g.doctor_rut AS rut, g.doctor_institution AS institution
     FROM qr_visitor_requests v JOIN access_grants g ON g.id=v.grant_id
     WHERE g.patient_id=$1 AND ${liveGrant} AND v.status='PENDING'
     AND g.doctor_name IS NOT NULL AND v.request_expires_at > NOW() ORDER BY v.request_expires_at`, [req.user.id]);
@@ -107,17 +121,13 @@ async function visitorSession(req, approved = true) {
 }
 
 router.post('/:id/identify', handle(async (req, res) => {
-  const { name, rut } = req.body || {};
-  if (typeof name !== 'string' || name.trim().length < 2 || name.length > 150 ||
-      typeof rut !== 'string' || !/^[0-9.kK-]{8,12}$/.test(rut.trim()) || !isValidRut(rut)) {
-    throw fail('Ingresa tu nombre y un RUT válido.', 400);
-  }
+  const { name, rut, institution } = visitorIdentity(req.body);
   const session = await visitorSession(req, false);
   await transaction(async client => {
-    const result = await client.query(`UPDATE access_grants g SET doctor_name=$2, doctor_rut=$3
+    const result = await client.query(`UPDATE access_grants g SET doctor_name=$2, doctor_rut=$3, doctor_institution=$4
       FROM qr_visitor_requests v WHERE g.id=$1 AND v.grant_id=g.id AND g.doctor_name IS NULL
       AND ${liveGrant} AND v.status='PENDING' AND v.request_expires_at>NOW()
-      RETURNING g.id, g.patient_id`, [session.id, name.trim(), rut.trim().toUpperCase()]);
+      RETURNING g.id, g.patient_id`, [session.id, name, rut, institution]);
     if (!result.rowCount) throw fail('La solicitud ya fue enviada o expiró.', 409);
     await client.query(`UPDATE qr_visitor_requests SET request_expires_at=LEAST($2::timestamptz, NOW()+INTERVAL '5 minutes')
       WHERE grant_id=$1`, [session.id, session.expires_at]);

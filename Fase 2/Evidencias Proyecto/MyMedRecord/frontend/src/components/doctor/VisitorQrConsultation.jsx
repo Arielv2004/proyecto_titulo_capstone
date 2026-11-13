@@ -9,6 +9,7 @@ export function VisitorQrConsultation({ id, onClose }) {
   const [identifying, setIdentifying] = useState(false);
   const [name, setName] = useState('');
   const [rut, setRut] = useState('');
+  const [institution, setInstitution] = useState('');
   const [sending, setSending] = useState(false);
   const [record, setRecord] = useState(null);
   const [minutes, setMinutes] = useState(null);
@@ -85,10 +86,14 @@ export function VisitorQrConsultation({ id, onClose }) {
       setFileError('Ingresa tu nombre y un RUT válido.');
       return;
     }
+    if (!institution.trim()) {
+      setFileError('Ingresa el nombre de tu centro de salud.');
+      return;
+    }
     setSending(true);
     setFileError('');
     try {
-      await api.post(endpoint + '/identify', { name: name.trim(), rut: rut.trim() });
+      await api.post(endpoint + '/identify', { name: name.trim(), rut: rut.trim(), institution: institution.trim() });
       setIdentifying(false);
       setMessage('Esperando aprobación del paciente. La solicitud caduca en cinco minutos.');
     } catch (err) {
@@ -109,10 +114,13 @@ export function VisitorQrConsultation({ id, onClose }) {
       <p className="text-sm text-muted">El paciente verá estos datos declarados y decidirá si te da acceso.</p>
       <div className="grid sm:grid-cols-2 gap-3">
         <label className="text-sm font-bold">Nombre y apellido
-          <input required maxLength={150} autoComplete="name" value={name} onChange={e => setName(e.target.value)} className="mt-1 w-full rounded-xl border border-line bg-surface px-3 py-2" />
+          <input required maxLength={150} autoComplete="name" placeholder="Camila González" value={name} onChange={e => setName(e.target.value)} className="mt-1 w-full rounded-xl border border-line bg-surface px-3 py-2" />
         </label>
         <label className="text-sm font-bold">RUT
           <input required maxLength={12} placeholder="12.345.678-5" value={rut} onChange={e => setRut(e.target.value)} className="mt-1 w-full rounded-xl border border-line bg-surface px-3 py-2" />
+        </label>
+        <label className="text-sm font-bold sm:col-span-2">Centro de salud
+          <input required maxLength={200} autoComplete="organization" placeholder="CESFAM Los Aromos" value={institution} onChange={e => setInstitution(e.target.value)} className="mt-1 w-full rounded-xl border border-line bg-surface px-3 py-2" />
         </label>
       </div>
       <button className="mm-button mm-button--primary" disabled={sending}>Solicitar acceso al paciente</button>

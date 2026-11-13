@@ -40,8 +40,9 @@ export function QrApprovalRequests() {
   return <section className="mm-card space-y-3" aria-label="Solicitudes de visitantes por QR">
     <h2 className="font-bold text-ink">Solicitudes de acceso por QR</h2>
     {(error || loadFailed) && <p role="alert">{error || 'No se pudieron cargar las solicitudes QR.'}</p>}
-    {requests.map(({ id, name, rut }) => <div key={id} className="space-y-2">
+    {requests.map(({ id, name, rut, institution }) => <div key={id} className="space-y-2">
       <p><strong>{name}</strong> · RUT declarado {rut}</p>
+      {institution && <p className="text-sm break-words">Centro de salud declarado: {institution}</p>}
       <p className="text-sm text-muted">Esta persona ingresó sus datos sin cuenta. Si la reconoces, puedes permitirle consultar tu ficha y abrir tus documentos hasta que venza o revoques el pase.</p>
       <div className="flex flex-wrap gap-2">
         <button type="button" className="mm-button mm-button--primary" disabled={busy} onClick={() => decide(id, 'APPROVED')}>Aprobar consulta</button>
