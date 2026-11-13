@@ -12,6 +12,7 @@ import {
 
 export function DoctorHome({ shares, loading, error, onRefresh, onOpen, onQr }) {
   const [query, setQuery] = useState('');
+  const [status, setStatus] = useState('TODOS');
   const normalize = (value) =>
     String(value || '')
       .normalize('NFD')
@@ -19,9 +20,8 @@ export function DoctorHome({ shares, loading, error, onRefresh, onOpen, onQr }) 
       .toLowerCase();
   const active = shares.filter((g) => g.status === 'ACTIVO' && !g.isRevoked);
   const filtered = shares.filter((g) =>
-    normalize(`${g.patient?.firstName} ${g.patient?.lastName} ${g.patient?.rut}`).includes(
-      normalize(query),
-    ),
+    (status === 'TODOS' || (status === 'REVOCADO' ? g.isRevoked : g.status === status && !g.isRevoked)) &&
+    normalize(`${g.patient?.firstName} ${g.patient?.lastName} ${g.patient?.rut}`).includes(normalize(query)),
   );
   return (
     <div className="mm-stack">
@@ -69,6 +69,11 @@ export function DoctorHome({ shares, loading, error, onRefresh, onOpen, onQr }) 
             placeholder="Buscar por nombre o RUT"
           />
         </label>
+        <label className="mt-3 block text-sm font-semibold">Estado del permiso
+          <select value={status} onChange={event => setStatus(event.target.value)} className="ml-3 rounded-lg border border-line bg-surface px-3 py-2 text-body">
+            <option value="TODOS">Todos</option><option value="ACTIVO">Vigentes</option><option value="EXPIRADO">Vencidos</option><option value="REVOCADO">Revocados</option>
+          </select>
+        </label>
         {loading ? (
           <LoadingState label="Consultando permisos de acceso" />
         ) : error ? (
@@ -84,7 +89,7 @@ export function DoctorHome({ shares, loading, error, onRefresh, onOpen, onQr }) 
             description={
               query
                 ? 'Prueba con otro nombre o RUT dentro de los permisos recibidos.'
-                : 'El paciente puede elegirte desde su portal o mostrarte su código QR.'
+                : status !== 'TODOS' ? 'No hay permisos en este estado.' : 'El paciente puede elegirte desde su portal o mostrarte su código QR.'
             }
             action={
               query ? (
@@ -126,6 +131,7 @@ export function DoctorHome({ shares, loading, error, onRefresh, onOpen, onQr }) 
                           ? 'Permiso revocado'
                           : 'Sin autorización vigente'}
                     </StatusBadge>
+                    {grant.expiresAt && <span className="mm-caption">Vence {new Date(grant.expiresAt).toLocaleString('es-CL')}</span>}
                     <span className="mm-caption">
                       {available
                         ? `${grant.minutesRemaining ?? '—'} min restantes`
