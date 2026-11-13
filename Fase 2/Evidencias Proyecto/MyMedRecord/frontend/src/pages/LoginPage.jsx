@@ -229,7 +229,7 @@ export const LoginPage = () => {
               <QrCode className="w-4 h-4 text-teal-700 dark:text-teal-400" />
 
               <span>
-                ¿Eres Médico? Escanear QR de Paciente
+                Escanear QR sin cuenta
               </span>
             </Link>
           </div>

@@ -52,6 +52,45 @@ test('canje QR concurrente, consulta temporal y acceso directo independiente', a
       const original = await post('qr/document-file', auth, request);
       assert.equal(original.status, 200);
       assert.equal(await original.text(), 'documento ficticio');
+      await t.test('un visitante consume el mismo pase y necesita aprobación en su navegador', async () => {
+        const owner = (await db.query('SELECT patient_id FROM access_grants WHERE token=$1', [token])).rows[0].patient_id;
+        const patientAuth = jwt.sign({id: owner, role: 'PACIENTE'}, process.env.JWT_SECRET);
+        const generate = async () => (await (await post('generate', patientAuth, {durationHours: 1})).json()).data;
+        const visitor = pass => fetch(base + 'qr/visitor', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({token: pass}),
+        });
+        const pass = await generate();
+        assert.equal((await visitor('DIRECTO-DEMO-2026-TOKEN')).status, 410);
+        const replies = await Promise.all([visitor(pass.token), visitor(pass.token)]);
+        assert.deepEqual(replies.map(r => r.status).sort(), [202,410]);
+        const accepted = replies.find(r => r.status === 202);
+        assert.equal((await accepted.json()).data.status, 'IDENTIFYING');
+        const headers = {cookie: accepted.headers.get('set-cookie').split(';')[0]};
+        const url = base + 'qr/visitor/' + pass.id + '/';
+        const identify = rut => fetch(url+'identify', {method:'POST', headers:{...headers, 'Content-Type':'application/json'},
+          body:JSON.stringify({name:'Visitante de prueba', rut})});
+        assert.equal((await post('qr/visitor/'+pass.id+'/decision', patientAuth, {decision:'APPROVED'})).status,409);
+        assert.equal((await identify('123')).status, 400);
+        assert.equal((await identify('12.345.678-5')).status, 202);
+        assert.equal((await identify('12.345.678-5')).status, 409);
+        assert.equal((await post('validate', first, {token: pass.token})).status, 410);
+        assert.equal((await fetch(url+'record', {headers})).status, 403);
+        assert.equal((await fetch(url+'documents/'+request.documentId, {headers})).status, 403);
+        assert.equal((await post('qr/visitor/'+pass.id+'/decision', first, {decision:'APPROVED'})).status, 403);
+        assert.equal((await post('qr/visitor/'+pass.id+'/decision', patientAuth, {decision:'APPROVED'})).status, 204);
+        assert.equal((await fetch(url+'record')).status, 403);
+        assert.equal((await fetch(url+'record', {headers})).status, 200);
+        assert.equal(await (await fetch(url+'documents/'+request.documentId, {headers})).text(), 'documento ficticio');
+        await db.query('UPDATE access_grants SET is_revoked=TRUE WHERE id=$1', [pass.id]);
+        assert.equal((await fetch(url+'record', {headers})).status, 410);
+        assert.equal((await fetch(url+'documents/'+request.documentId, {headers})).status, 410);
+        const other = await generate();
+        const race = await Promise.all([post('validate', first, {token:other.token}), visitor(other.token)]);
+        assert.equal(race.filter(r => r.ok).length, 1);
+        assert.equal(race.filter(r => r.status === 410).length, 1);
+        assert.equal((await direct()).status, 200);
+      });
       await db.query("UPDATE access_grants SET starts_at=NOW()-interval '2 hours', expires_at=NOW()-interval '1 hour' WHERE token=$1", [token]);
       assert.equal((await post('qr/check', auth, consultation)).status, 403);
       await db.query("UPDATE access_grants SET expires_at=NOW()+interval '1 hour', is_revoked=TRUE WHERE token=$1", [token]);

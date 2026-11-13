@@ -4,14 +4,19 @@ import { Html5Qrcode } from 'html5-qrcode';
 import { useMetaTags } from '../hooks/useMetaTags';
 import api from '../services/api';
 import { HeartHandshake, ShieldCheck, QrCode, Camera, Upload, AlertCircle, CheckCircle2, Info, ArrowLeft, RefreshCw, ChevronRight, Keyboard } from 'lucide-react';
+import { useAuthStore } from '../store/useAuthStore';
+import { VisitorQrConsultation } from '../components/doctor/VisitorQrConsultation';
 import { ClinicalRecord } from '../components/doctor/ClinicalRecord';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { openDocumentBlob, prepareDocumentWindow } from '../services/documentsApi';
 
 export const DoctorQrAccessPage = () => {
-  useMetaTags('Portal de Acceso Médico por QR', 'Acceso profesional temporal y auditado a fichas clínicas de pacientes bajo Ley N° 21.668 en MyMedRecord.');
+  useMetaTags('Consulta por QR', 'Acceso temporal a una ficha compartida por el paciente.');
 
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const visitorId = searchParams.get('consulta');
+  const { user, isLoading: checkingSession } = useAuthStore();
+  const isDoctor = user?.role === 'MEDICO';
   const tokenFromUrl = searchParams.get('token') || '';
 
   const [token, setToken] = useState(tokenFromUrl);
@@ -133,7 +138,7 @@ export const DoctorQrAccessPage = () => {
 
   // Inicializar o detener escáner de cámara en vivo
   useEffect(() => {
-    if (activeScanTab === 'CAMERA' && !clinicalData && isSecureEnv) {
+    if (!checkingSession && !visitorId && activeScanTab === 'CAMERA' && !clinicalData && isSecureEnv) {
       startCamera();
     } else {
       stopCamera();
@@ -141,7 +146,7 @@ export const DoctorQrAccessPage = () => {
     return () => {
       stopCamera();
     };
-  }, [activeScanTab, clinicalData, isSecureEnv]);
+  }, [activeScanTab, clinicalData, isSecureEnv, checkingSession, visitorId, isDoctor]);
 
   // Manejar cuando un QR es detectado (cámara o foto)
   async function handleQrDecoded(text) {
@@ -151,6 +156,8 @@ export const DoctorQrAccessPage = () => {
       if (match && match[1]) token = match[1];
     }
 
+    setToken(token);
+    setActiveScanTab('MANUAL');
     await executeValidation(token);
   }
 
@@ -257,20 +264,28 @@ export const DoctorQrAccessPage = () => {
   };
 
   useEffect(() => {
-    if (tokenFromUrl && !openedLink.current) {
+    if (!visitorId && !checkingSession && tokenFromUrl && !openedLink.current) {
       openedLink.current = true;
       executeValidation(tokenFromUrl);
     }
-  }, [tokenFromUrl]);
+  }, [tokenFromUrl, visitorId, checkingSession, isDoctor]);
 
   async function executeValidation(value) {
-    if (validating.current || !value.trim()) return;
+    if (checkingSession || validating.current || !value.trim()) return;
     validating.current = true;
     setToken(value.trim());
     setIsValidating(true);
     setApiError('');
 
     try {
+      if (!isDoctor) {
+        const { data } = await api.post('/access-grants/qr/visitor', {
+          token: value.trim(),
+        });
+        setToken('');
+        setSearchParams({ consulta: data.data.id }, { replace: true });
+        return;
+      }
       const res = await api.post('/access-grants/validate', {
         token: value.trim(),
       });
@@ -321,11 +336,11 @@ export const DoctorQrAccessPage = () => {
               <span className="mm-qr-header-brand text-base font-extrabold text-ink dark:text-ink tracking-tight flex items-center gap-1.5">
                 MyMedRecord
                 <span className="mm-qr-header-badge text-xs uppercase font-bold tracking-wider px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-accent-ink dark:text-teal-300 rounded border border-blue-200/60 dark:border-blue-800">
-                  Acceso Médico
+                  Acceso QR
                 </span>
               </span>
               <p className="mm-qr-header-subtitle text-xs text-muted dark:text-muted font-medium">
-                Portal Médico Autorizado (Ley N° 21.668)
+                Consulta temporal de la ficha
               </p>
             </div>
           </Link>
@@ -343,7 +358,7 @@ export const DoctorQrAccessPage = () => {
       {/* ========================================================================= */}
       {/* VISTA 1: IDENTIFICACIÓN Y ESCÁNER (ANTES DE DESBLOQUEAR LA FICHA)         */}
       {/* ========================================================================= */}
-      {!clinicalData ? (
+      {visitorId ? <VisitorQrConsultation key={visitorId} id={visitorId} onClose={() => { setSearchParams({}, { replace: true }); setApiError(''); }} /> : !clinicalData ? (
         <main id="main-content" tabIndex={-1} className="mm-shell mm-qr-shell">
           <div className="mm-qr-back mb-4">
             <Link to="/login" className="mm-qr-back-link" aria-label="Volver al inicio de sesión">
@@ -358,10 +373,10 @@ export const DoctorQrAccessPage = () => {
                 <QrCode className="w-6 h-6" />
               </div>
               <h1 className="text-2xl font-black text-ink dark:text-ink tracking-tight">
-                Portal de Acceso Médico
+                Consultar una ficha por QR
               </h1>
               <p className="text-sm text-muted dark:text-muted mt-1">
-                Inicia sesión con tu cuenta médica para canjear el pase de un solo uso del paciente.
+                {isDoctor ? 'Canjea el pase de un solo uso desde tu cuenta médica.' : 'El primer escaneo reserva el pase en este navegador. Después ingresa tu nombre y RUT para pedir aprobación al paciente.'}
               </p>
             </div>
 
@@ -373,7 +388,7 @@ export const DoctorQrAccessPage = () => {
             )}
 
             <form onSubmit={handleFormSubmit} className="space-y-5">
-              {/* Paso 2: Escaneo del Código QR */}
+              {/* Escaneo del código QR */}
               <div className="mm-qr-step p-5 bg-canvas dark:bg-surface-muted/60 rounded-2xl border border-line/80 dark:border-line space-y-4">
                 <div className="mm-qr-method-head flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <span className="mm-qr-step-title block text-xs font-bold uppercase tracking-wider text-ink dark:text-body flex items-center gap-1.5">
@@ -595,10 +610,10 @@ export const DoctorQrAccessPage = () => {
               {/* Botón de Desbloqueo */}
               <button
                 type="submit"
-                disabled={isValidating || !token}
+                disabled={checkingSession || isValidating || !token.trim()}
                 className="mm-qr-submit w-full py-3.5 bg-action hover:bg-action-hover active:scale-[0.99] text-on-action font-bold rounded-2xl transition-all shadow-xs flex items-center justify-center gap-2 text-sm cursor-pointer disabled:opacity-50"
               >
-                <span>{isValidating ? 'Validando vigencia y registrando auditoría...' : 'Validar y Consultar Ficha Clínica'}</span>
+                <span>{isValidating ? 'Validando vigencia y registrando auditoría...' : (isDoctor ? 'Consultar ficha clínica' : 'Canjear pase QR')}</span>
                 <ChevronRight className="w-4 h-4 text-teal-300" />
               </button>
             </form>

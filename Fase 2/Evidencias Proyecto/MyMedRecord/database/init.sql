@@ -12,6 +12,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- 2. Limpieza de tablas previas
 DROP TABLE IF EXISTS password_reset_tokens CASCADE;
 DROP TABLE IF EXISTS audit_logs CASCADE;
+DROP TABLE IF EXISTS qr_visitor_requests CASCADE;
 DROP TABLE IF EXISTS appointments CASCADE;
 DROP TABLE IF EXISTS access_grants CASCADE;
 DROP TABLE IF EXISTS lab_test_items CASCADE;
@@ -200,6 +201,15 @@ CREATE TABLE access_grants (
 );
 
 -- ==============================================================================
+-- Consultas QR solicitadas por visitantes sin cuenta.
+CREATE TABLE IF NOT EXISTS qr_visitor_requests (
+    grant_id UUID PRIMARY KEY REFERENCES access_grants(id) ON DELETE CASCADE,
+    credential_hash CHAR(64) NOT NULL UNIQUE,
+    status VARCHAR(10) NOT NULL DEFAULT 'PENDING'
+        CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'ENDED')),
+    request_expires_at TIMESTAMPTZ NOT NULL
+);
+
 -- TABLA 6: appointments
 -- Agenda médica temporal del prototipo.
 --

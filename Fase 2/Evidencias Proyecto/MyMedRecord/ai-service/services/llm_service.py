@@ -1,5 +1,6 @@
 import json
 import asyncio
+import logging
 import warnings
 from google import genai
 from google.genai import types
@@ -93,79 +94,40 @@ class LLMService:
         Analiza el texto clínico crudo y extrae entidades estructuradas usando Gemini.
         Con fallback entre modelos activos si uno falla por saturación (503/429).
         """
-        # Si no hay API key configurada, devolver respuesta vacía con el texto crudo
-        if not settings.LLM_API_KEY or settings.LLM_API_KEY == "tu_api_key_de_llm_aqui":
-            h_type = _heuristic_type(raw_text)
-            return DocumentExtractionResponse(
-                suggested_title=f"{h_type.capitalize()[:10]} - General"[:20],
-                is_medical_document=(h_type != "OTRO"),
-                document_type=h_type,
-                raw_text=raw_text,
-                diagnoses=[],
-                medications=[],
-                lab_metrics=[],
-                summary="⚠️ LLM no configurado. Configure LLM_API_KEY en .env",
-            )
-
-        # Modelos activos soportados para fallback (en orden de prioridad)
-        models_to_try = [settings.LLM_MODEL]
-        for fallback in ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.8-flash", "gemini-3.1-flash-lite"]:
-            if fallback not in models_to_try:
-                models_to_try.append(fallback)
-
-        client = genai.Client(api_key=settings.LLM_API_KEY)
-        last_error = None
-
-        for model_name in models_to_try:
-            for attempt in range(2):  # 2 intentos por modelo
-                try:
-                    response = await client.aio.models.generate_content(
-                        model=model_name,
-                        contents=[f"--- TEXTO DEL DOCUMENTO ---\n{raw_text}"],
-                        config=types.GenerateContentConfig(
-                            system_instruction=SYSTEM_PROMPT,
-                            response_mime_type="application/json",
-                            response_schema=ClinicalExtractionData,
-                            temperature=0.1,
-                        ),
-                    )
-
-                    if response.parsed:
-                        extracted = response.parsed
-                        return DocumentExtractionResponse(
-                            raw_text=raw_text,
-                            **extracted.model_dump(),
+        if settings.LLM_API_KEY and settings.LLM_API_KEY != "tu_api_key_de_llm_aqui":
+            # Dos intentos de 18 s dejan margen para el OCR dentro de los 60 s de la API.
+            fallback_model = "gemini-2.5-flash" if settings.LLM_MODEL == "gemini-3.1-flash-lite" else "gemini-3.1-flash-lite"
+            async with genai.Client(api_key=settings.LLM_API_KEY).aio as client:
+                for model_name in (settings.LLM_MODEL, fallback_model):
+                    try:
+                        response = await asyncio.wait_for(
+                            client.models.generate_content(
+                                model=model_name,
+                                contents=[f"--- TEXTO DEL DOCUMENTO ---\n{raw_text}"],
+                                config=types.GenerateContentConfig(
+                                    system_instruction=SYSTEM_PROMPT,
+                                    response_mime_type="application/json",
+                                    response_schema=ClinicalExtractionData,
+                                    temperature=0.1,
+                                ),
+                            ),
+                            timeout=18,
                         )
+                        extracted = response.parsed or ClinicalExtractionData.model_validate_json(response.text)
+                        return DocumentExtractionResponse(raw_text=raw_text, **extracted.model_dump())
+                    except Exception as exc:
+                        code = getattr(exc, "code", None)
+                        logging.getLogger(__name__).warning(
+                            "Extracción con %s fallida (%s)", model_name, code or type(exc).__name__
+                        )
+                        if code in (401, 403):
+                            break
 
-                    data = json.loads(response.text)
-                    data["raw_text"] = raw_text
-                    return DocumentExtractionResponse(**data)
-
-                except Exception as e:
-                    last_error = e
-                    err_str = str(e).lower()
-                    # Si es error 503, 429 o timeout, esperar y reintentar
-                    if any(code in err_str for code in ["503", "429", "unavailable", "timeout", "demand"]):
-                        wait = 1.5 * (attempt + 1)
-                        await asyncio.sleep(wait)
-                        continue
-                    # Si el modelo no existe o ya no está disponible (404), saltar al siguiente modelo
-                    if any(code in err_str for code in ["404", "not_found", "no longer available"]):
-                        break
-                    # Otros errores: pasar al siguiente modelo
-                    break
-
-        # Si todos los modelos fallaron, fallback heurístico
-        h_type = _heuristic_type(raw_text)
         return DocumentExtractionResponse(
-            suggested_title=f"{h_type.capitalize()[:10]} - General"[:20],
-            is_medical_document=(h_type != "OTRO"),
-            document_type=h_type,
+            extraction_status="text_only",
+            suggested_title="Documento",
+            document_type=_heuristic_type(raw_text),
             raw_text=raw_text,
-            diagnoses=[],
-            medications=[],
-            lab_metrics=[],
-            summary=f"⚠️ Error al procesar con LLM después de varios intentos: {str(last_error)[:200]}. Texto crudo guardado.",
         )
 
 
@@ -181,7 +143,7 @@ def _heuristic_type(text: str) -> str:
         "cada 6", "cada 4", "por día", "por dia", "veces al día", "veces al dia",
         "paracetamol", "amoxicilina", "ibuprofeno", "azitromicina", "metformina",
         "losartan", "enalapril", "atorvastatina", "omeprazol", "salbutamol",
-        "miligramos", "mg ", " mg", "gotas"
+        "miligramos", "gotas"
     ]
     if any(k in lower for k in recipe_keywords):
         return "RECETA"

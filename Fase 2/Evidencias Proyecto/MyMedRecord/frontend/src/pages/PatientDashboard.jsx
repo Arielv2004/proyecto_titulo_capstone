@@ -10,6 +10,7 @@ import { documentsApi, mapDocumentFromApi, openDocumentBlob, prepareDocumentWind
 import { useAuthStore } from '../store/useAuthStore';
 import { Home, Pill, Stethoscope, ClipboardPenLine, Microscope, HeartPulse, ScanSearch, Camera, QrCode, FileText, Sparkles, ShieldCheck, Building2, User, Clock, CheckCircle2, AlertCircle, Download, Share2, X, HelpCircle, Activity, AlertTriangle, UserCheck, Droplet, Save, Plus, Trash2, Copy, Check, RefreshCw, ExternalLink, Timer, Images, ChevronRight } from 'lucide-react';
 
+import { QrApprovalRequests } from '../components/patient/QrApprovalRequests';
 import { QRCodeSVG } from 'qrcode.react';
 import api from '../services/api';
 
@@ -443,8 +444,10 @@ export const PatientDashboard = () => {
           '')
         : '';
 
-      const unreadableFlag =
-        isMedicalDoc && (Boolean(isUnreadable) || (initialMeds.length === 0 && !initialDiag.trim() && !(analysis?.lab_metrics?.length)));
+      const hasExtractedFields = initialMeds.length > 0 || Boolean(initialDiag.trim()) || Boolean(analysis?.lab_metrics?.length);
+      const unreadableFlag = isMedicalDoc && (
+        Boolean(isUnreadable) || (!hasExtractedFields && analysis?.extraction_status !== 'text_only')
+      );
 
       setTempDocument({
         tempId,
@@ -1350,7 +1353,7 @@ export const PatientDashboard = () => {
         // Información al médico y paciente
         ctx.fillStyle = '#536b70';
         ctx.font = '13px "DM Sans", system-ui, sans-serif';
-        ctx.fillText('El médico canjea este pase una vez desde su cuenta.', canvas.width / 2, 805);
+        ctx.fillText('Pase de un solo uso. Sin cuenta se requiere aprobación del paciente.', canvas.width / 2, 805);
 
         ctx.fillStyle = '#536b70';
         ctx.font = 'italic 12px "DM Sans", system-ui, sans-serif';
@@ -1388,6 +1391,7 @@ export const PatientDashboard = () => {
         {/* ========================================================================= */}
         {/* PESTAÑA 1: INICIO (HOME PRINCIPAL) */}
         {/* ========================================================================= */}
+        {!showQrModal && <QrApprovalRequests />}
         {currentTab === 'home' && <PatientHome
           loading={loadingDocs} error={docsError}
           documents={documents}
@@ -1501,16 +1505,16 @@ export const PatientDashboard = () => {
                         <div className="text-xs sm:text-xs text-muted dark:text-body flex items-center justify-between">
                           <span className="font-medium truncate">
                             {grant.doctorName ? (
-                              <span className="text-ink dark:text-body font-bold">{grant.doctorName} {grant.doctorInstitution ? `· ${grant.doctorInstitution}` : ''}</span>
+                              <span className="text-ink dark:text-body font-bold">{grant.doctorName} {grant.grantType === 'QR_TEMPORAL' && !grant.doctorId && '· Identidad declarada'} {grant.doctorInstitution ? `· ${grant.doctorInstitution}` : ''}</span>
                             ) : (
-                              <span className="text-muted italic text-xs">Pendiente de escaneo por médico</span>
+                              <span className="text-muted italic text-xs">{grant.accessCount ? 'Pase canjeado' : 'Pendiente de escaneo'}</span>
                             )}
                           </span>
                         </div>
 
                         {grant.status === 'ACTIVO' && (
                           <div className="pt-0.5 flex items-center gap-1.5">
-                            {grant.grantType === 'QR_TEMPORAL' && (
+                            {grant.grantType === 'QR_TEMPORAL' && !grant.accessCount && (
                               <button
                                 onClick={() => openQrModal(grant)}
                                 className="flex-1 py-1 bg-action hover:bg-action-hover text-on-action font-bold rounded-lg text-xs flex items-center justify-center gap-1 transition-all cursor-pointer shadow-2xs"
@@ -1574,10 +1578,10 @@ export const PatientDashboard = () => {
                               {grant.doctorName ? (
                                 <div>
                                   <span className="font-bold text-ink block">{grant.doctorName}</span>
-                                  <span className="text-xs text-muted">{grant.doctorInstitution || 'Centro de Salud'}</span>
+                                  <span className="text-xs text-muted">{grant.grantType === 'QR_TEMPORAL' && !grant.doctorId ? 'Identidad declarada' : grant.doctorInstitution || 'Centro de Salud'}</span>
                                 </div>
                               ) : (
-                                <span className="text-muted italic">Pendiente de escaneo</span>
+                                <span className="text-muted italic">{grant.accessCount ? 'Pase canjeado' : 'Pendiente de escaneo'}</span>
                               )}
                             </td>
                             <td className="py-2.5 px-3">
@@ -1595,7 +1599,7 @@ export const PatientDashboard = () => {
                             <td className="py-2.5 px-3 text-right">
                               {grant.status === 'ACTIVO' ? (
                                 <div className="flex justify-end gap-1.5">
-                                  {grant.grantType === 'QR_TEMPORAL' && (
+                                  {grant.grantType === 'QR_TEMPORAL' && !grant.accessCount && (
                                     <button
                                       onClick={() => openQrModal(grant)}
                                       className="px-2.5 py-1 bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/40 dark:hover:bg-teal-900/60 border border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-200 font-bold rounded-lg transition-colors cursor-pointer text-xs inline-flex items-center gap-1"
@@ -1914,7 +1918,7 @@ export const PatientDashboard = () => {
                       tempDocument?.analysis?.is_medical_document === false
                         ? 'El archivo no parece contener información médica'
                         : tempDocument?.isUnreadable
-                          ? 'No pudimos leer con certeza el documento'
+                          ? 'La extracción automática quedó pendiente'
                           : 'Tú tienes el control: revisa o corrige los datos'
                     )}
                     {uploadModalState === 'confirmed' && (
@@ -2072,10 +2076,12 @@ export const PatientDashboard = () => {
                         <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                         <div className="space-y-1">
                           <h4 className="font-extrabold text-amber-950 dark:text-amber-200 text-xs">
-                            No pudimos leer bien esta imagen
+                            {tempDocument.analysis?.extraction_status === 'unavailable' ? 'El servicio de análisis no está disponible' : 'No pudimos leer el texto del documento'}
                           </h4>
                           <p className="text-xs text-amber-800 dark:text-amber-300/90 leading-relaxed">
-                            La foto puede estar borrosa, con poca luz o la letra es difícil de reconocer automáticamente.
+                            {tempDocument.analysis?.extraction_status === 'unavailable'
+                              ? 'Puedes volver a intentarlo o guardar el archivo para revisarlo después.'
+                              : 'Comprueba que el texto sea legible e intenta subir el documento de nuevo.'}
                           </p>
                         </div>
                       </div>
@@ -2124,6 +2130,15 @@ export const PatientDashboard = () => {
                   ) : (
                     /* CASO B: LECTURA EXITOSA CON CAMPOS EDITABLES */
                     <div className="space-y-4">
+                      {tempDocument.analysis?.extraction_status === 'text_only' && (
+                        <div className="rounded-xl border border-line bg-canvas p-3 text-sm text-body" role="status">
+                          <p>Se leyó el texto, pero Gemini no pudo organizarlo. Revisa el tipo y completa los campos antes de guardar.</p>
+                          <details className="mt-2">
+                            <summary className="cursor-pointer font-bold">Ver texto extraído</summary>
+                            <p className="mt-2 whitespace-pre-wrap break-words">{tempDocument.analysis.raw_text}</p>
+                          </details>
+                        </div>
+                      )}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <label className="text-xs font-bold text-body">Tipo de documento
                           <select value={editedData.document_type} onChange={(e) => setEditedData({ ...editedData, document_type: e.target.value })} className="mt-1 w-full rounded-xl border border-line bg-surface px-3 py-2 text-body">
@@ -2527,7 +2542,7 @@ export const PatientDashboard = () => {
                     Pase de acceso temporal
                   </h3>
                   <p className="text-xs text-muted dark:text-muted">
-                    Pase de un solo uso para una cuenta médica habilitada
+                    Pase de un solo uso para consultar tu ficha
                   </p>
                 </div>
               </div>
@@ -2539,6 +2554,7 @@ export const PatientDashboard = () => {
               </button>
             </div>
 
+            <QrApprovalRequests />
             {/* Error banner si ocurre */}
             {grantError && (
               <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 rounded-2xl text-xs flex items-center gap-2">
@@ -2662,7 +2678,7 @@ export const PatientDashboard = () => {
                     <span>Actividad de este acceso</span>
                   </div>
                   <p className="text-xs text-muted dark:text-muted leading-relaxed">
-                    El médico debe iniciar sesión con su cuenta habilitada. El canje queda registrado y puedes revocar el permiso desde Accesos.
+                    Un médico habilitado puede canjear el pase desde su cuenta. Si alguien lo usa sin cuenta, verás su nombre y RUT declarados y podrás aprobar o rechazar la consulta.
                   </p>
                 </div>
 
@@ -2721,10 +2737,10 @@ export const PatientDashboard = () => {
                     ¿Cómo funciona este acceso?
                   </span>
                   <ul className="text-xs text-muted dark:text-muted space-y-1 list-disc list-inside">
-                    <li>El médico escanea tu QR desde su celular o sube una foto.</li>
-                    <li>Ingresa su RUT y Centro de Salud / Consulta para identificarse legalmente.</li>
+                    <li>Comparte el QR con la persona que consultará tu ficha.</li>
+                    <li>El visitante sin cuenta declara su nombre y RUT. Tú apruebas su solicitud desde el portal.</li>
                     <li>Tiene acceso de solo lectura únicamente durante las {qrDuration} horas elegidas.</li>
-                    <li>Válido para cualquier médico: consultas privadas, CESFAM, clínicas u hospitales.</li>
+                    <li>Cada pase admite un único canje, incluso si rechazas la solicitud.</li>
                     <li>Puedes anular el permiso en cualquier momento con el botón de revocar.</li>
                   </ul>
                 </div>

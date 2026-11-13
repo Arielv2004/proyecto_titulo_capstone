@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Literal, Optional
 from datetime import datetime, timezone
 
 class MedicationEntity(BaseModel):
@@ -35,6 +35,8 @@ class ClinicalExtractionData(BaseModel):
     summary: Optional[str] = Field(None, description="Resumen clínico breve en español")
 
 class DocumentExtractionResponse(ClinicalExtractionData):
+    extraction_status: Literal["structured", "text_only"] = "structured"
+    is_medical_document: Optional[bool] = None
     raw_text: str = Field("", description="Texto crudo extraído por OCR")
     processed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 

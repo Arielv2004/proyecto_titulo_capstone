@@ -111,7 +111,7 @@ class DocumentService {
         // 4. Normalizar tipo de documento
         const isMedicalDoc = aiResult?.is_medical_document !== false;
         const documentType = isMedicalDoc ? this._normalizeDocumentType(aiResult.document_type) : 'OTRO';
-        const suggestedTitle = (aiResult?.suggested_title || '').trim().slice(0, 50) || (isMedicalDoc ? 'Documento Médico' : 'Documento');
+        const suggestedTitle = (aiResult?.suggested_title || '').trim().slice(0, 50) || (aiResult?.is_medical_document === true ? 'Documento Médico' : 'Documento');
 
         // 5. Actualizar documento con el tipo real, título generado por IA y el texto OCR
         await this._updateDocumentAfterAi(doc.id, {
@@ -217,7 +217,8 @@ class DocumentService {
                 lab_metrics: [],
                 summary: null,
                 raw_text: '',
-                is_medical_document: false,
+                extraction_status: err.response?.status === 422 ? 'unreadable' : 'unavailable',
+                is_medical_document: null,
             };
         }
 
@@ -262,7 +263,6 @@ class DocumentService {
             analysis: {
                 ...aiResult,
                 suggested_title: suggestedTitle,
-                is_medical_document: isMedicalDoc,
             },
             isUnreadable,
         };

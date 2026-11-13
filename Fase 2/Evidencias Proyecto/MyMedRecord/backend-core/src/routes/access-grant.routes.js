@@ -16,6 +16,8 @@ const rbacMiddleware = require(
 const patientOnly = rbacMiddleware('PACIENTE');
 const doctorOnly = rbacMiddleware('MEDICO');
 
+router.use('/qr/visitor', require('./qr-visitor.routes'));
+
 // =====================================================
 // GESTIÓN DE ACCESOS DEL PACIENTE
 // =====================================================
