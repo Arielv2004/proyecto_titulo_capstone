@@ -32,6 +32,20 @@ export const DoctorQrAccessPage = () => {
   const [isValidating, setIsValidating] = useState(false);
   const [apiError, setApiError] = useState('');
 
+  const scanRef = useRef(null);
+  const claimScan = React.useCallback((token) => {
+    if (scanRef.current?.token !== token) {
+      const promise = api.post('/access-grants/qr/scan', { token })
+        .then(({ data }) => data.credential);
+      scanRef.current = { token, promise };
+    }
+    return scanRef.current.promise;
+  }, []);
+  useEffect(() => {
+    if (tokenFromUrl) claimScan(tokenFromUrl).catch(error =>
+      setApiError(error.response?.data?.message || 'No se pudo registrar la lectura del QR.'));
+  }, [tokenFromUrl, claimScan]);
+
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const isSecureEnv = typeof window !== 'undefined'
     && (window.isSecureContext || ['localhost', '127.0.0.1'].includes(window.location.hostname))
@@ -194,6 +208,12 @@ export const DoctorQrAccessPage = () => {
     setDoctorData((prev) => ({ ...prev, token }));
     await stopCamera();
 
+    try {
+      await claimScan(token);
+    } catch (error) {
+      setApiError(error.response?.data?.message || 'No se pudo registrar la lectura del QR.');
+      return;
+    }
     const currentDoc = doctorDataRef.current;
     if (validateRut(currentDoc.rut) && currentDoc.name.trim()) {
       executeValidation(token, currentDoc.rut, currentDoc.name, currentDoc.institution);
@@ -317,7 +337,7 @@ export const DoctorQrAccessPage = () => {
 
     try {
       const res = await api.post('/access-grants/validate', {
-        token: token.trim(),
+        token: await claimScan(token.trim()),
         doctorRut: doctorRut.trim(),
         doctorName: doctorName.trim(),
         doctorInstitution: doctorInstitution.trim(),

@@ -108,7 +108,11 @@ async function check(label,fn){console.log('RUN '+label);await fn();results.push
   grant=(await patient.call('POST','/access-grants/generate',{durationHours:1})).body.data;
   grant2=(await patient.call('POST','/access-grants/generate',{durationHours:1})).body.data;
   assert.notEqual(grant.token,grant2.token);
-  const requested=await guest.call('POST','/access-grants/validate',{token:grant.token,doctorRut:'12.345.678-5',doctorName:'Invitado ficticio'});
+  const attempts=await Promise.all([guest,stranger].map(client=>client.call('POST','/access-grants/qr/scan',{token:grant.token})));
+  assert.deepEqual(attempts.map(r=>r.status).sort(),[200,410]);
+  const credential=attempts.find(r=>r.status===200).body.credential;
+  assert.equal((await stranger.call('POST','/access-grants/validate',{token:grant.token,doctorRut:'12.345.678-5',doctorName:'Otra persona'})).status,410);
+  const requested=await guest.call('POST','/access-grants/validate',{token:credential,doctorRut:'12.345.678-5',doctorName:'Invitado ficticio'});
   assert.equal(requested.status,202,JSON.stringify(requested.body));
   assert.equal(requested.body.data.clinicalData,undefined);
   assert.equal((await guest.call('GET','/access-grants/qr/record')).status,403);
@@ -128,7 +132,8 @@ async function check(label,fn){console.log('RUN '+label);await fn();results.push
   await patient.call('PATCH','/access-grants/'+grant.id+'/revoke',{});
   assert.equal((await guest.call('GET','/access-grants/qr/record')).status,403);
   assert.equal((await second.call('GET','/access-grants/qr/record')).status,200);
-  const third=browser();const r=await third.call('POST','/access-grants/validate',{token:grant2.token,doctorRut:'12.345.678-5',doctorName:'Expirado ficticio'});
+  const thirdGrant=(await patient.call('POST','/access-grants/generate',{durationHours:1})).body.data;
+  const third=browser();const r=await third.call('POST','/access-grants/validate',{token:thirdGrant.token,doctorRut:'12.345.678-5',doctorName:'Expirado ficticio'});
   await db.query("UPDATE qr_consultations SET request_expires_at=NOW()-INTERVAL '1 second' WHERE id=$1",[r.body.data.id]);
   assert.equal((await third.call('GET','/access-grants/qr/status')).status,410);
  });

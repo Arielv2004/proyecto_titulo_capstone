@@ -2415,7 +2415,7 @@ export const PatientDashboard = () => {
                     Pase de acceso temporal
                   </h3>
                   <p className="text-xs text-muted dark:text-muted">
-                    Comparte tu ficha durante el tiempo elegido
+                    Un solo escaneo por pase. Tú apruebas la consulta.
                   </p>
                 </div>
               </div>

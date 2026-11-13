@@ -132,3 +132,9 @@ La prueba `ai-service/.venv/Scripts/python.exe ai-service/test_gemini_flow.py` v
 ## Ajustes de interfaz posteriores
 
 Se retiraron contacto de emergencia en perfil/ficha mÃ©dica y el bloque de exportaciÃ³n JSON y aceptaciÃ³n del aviso en Mi perfil. No se eliminaron datos almacenados ni endpoints de privacidad. Se restauraron los textos originales de selecciÃ³n/progreso de subida y se mantienen el texto OCR desplegable y los avisos de fallo. Las pruebas del flujo Gemini usan respuestas simuladas; la clave del entorno sigue pendiente. No se publicÃ³ ni integrÃ³ esta entrega a main.
+
+## Verificación local del 1 de noviembre de 2026
+
+Se configuró Gemini mediante .env privado y se verificó extracción real sobre texto ficticio con gemini-3.5-flash. El modelo gemini-2.5-flash devolvió 404 en la prueba; por eso el entorno local utiliza el modelo verificado. No se publican claves.
+
+El dominio del proyecto Storage no resolvía. En desarrollo, ALLOW_STORAGE_OFFLINE=true permite iniciar el backend únicamente ante error de conexión a Storage, sin omitir las comprobaciones de migraciones, rol o sesión. Un bucket público sigue bloqueando el inicio, y producción no admite esta excepción. Las cargas conservan su comprobación de Storage y fallan hasta recuperar el proveedor; no hay almacenamiento alternativo automático. Se verificó inicio de sesión de las dos cuentas de demostración tras restablecer sus contraseñas localmente.

@@ -18,6 +18,7 @@ class SupabaseService {
   static async assertPrivate() {
     if(!client) throw new Error('Storage no configurado.');
     const {data,error}=await client.storage.getBucket(bucket);
+    if (error?.message === 'fetch failed') { const unavailable = new Error('Storage no disponible.'); unavailable.code = 'STORAGE_UNREACHABLE'; throw unavailable; }
     if(error || !data || data.public) throw new Error('El bucket debe ser privado antes de iniciar.');
   }
   static async makePrivate() {

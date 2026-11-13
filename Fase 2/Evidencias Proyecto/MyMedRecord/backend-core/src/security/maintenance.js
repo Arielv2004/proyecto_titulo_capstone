@@ -28,7 +28,12 @@ async function run() {
     for(const row of queue) await erase(row.document_id);
     await db.query('DELETE FROM auth_sessions WHERE expires_at<NOW()');
     await db.query('DELETE FROM security_rate_limits WHERE expires_at<NOW()');
-    await db.query("DELETE FROM qr_consultations WHERE expires_at<NOW() OR (status<>'APPROVED' AND request_expires_at<NOW())");
+    // Keep passes issued before single-use scanning spent after their request is purged.
+    await db.query(`WITH expired AS (
+      DELETE FROM qr_consultations WHERE expires_at<NOW() OR (status<>'APPROVED' AND request_expires_at<NOW())
+      RETURNING grant_id
+    ) UPDATE access_grants SET access_count=1, token_hash=NULL
+      WHERE grant_type='QR_TEMPORAL' AND access_count=0 AND id IN (SELECT grant_id FROM expired)`);
   } finally{running=false;}
 }
 function start() {

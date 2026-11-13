@@ -106,6 +106,8 @@ class AccessGrantRepository {
       FROM access_grants
       WHERE patient_id = $1
         AND grant_type = 'QR_TEMPORAL'
+        AND access_count = 0
+        AND NOT EXISTS (SELECT 1 FROM qr_consultations WHERE grant_id=access_grants.id)
         AND is_revoked = FALSE
         AND expires_at > NOW()
       ORDER BY created_at DESC

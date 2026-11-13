@@ -3,7 +3,6 @@ const {randomUUID}=require('node:crypto');
 const {seal,open,digest,randomToken}=require('./crypto');
 const grants=require('../repositories/access-grant.repository');
 const documents=require('../services/document.service');
-const {requireLiveGrant}=require('./access-policy');
 const {isValidRut}=require('../utils/rut.util');
 const COOKIE='mymedrecord_consultation';
 const fail=(message,statusCode=403)=>Object.assign(new Error(message),{statusCode});
@@ -23,19 +22,41 @@ async function session(req,approved=true) {
   req.auditPatientId=row.patient_id;
   return row;
 }
+// Exchange the public QR once. Only its first reader receives the credential
+// needed to complete identification. Neither operation grants clinical access.
+async function takePass(token, replacementHash) {
+  const reserved = token.startsWith('scan.');
+  const result = await db.query(`UPDATE access_grants g
+    SET token_hash=$2, access_count=1
+    WHERE g.token_hash=$1 AND grant_type='QR_TEMPORAL'
+      AND access_count=$3 AND NOT is_revoked AND expires_at>NOW()
+      AND COALESCE(starts_at,created_at)<=NOW()
+      AND EXISTS (SELECT 1 FROM users WHERE id=g.patient_id AND is_active)
+      AND NOT EXISTS (SELECT 1 FROM qr_consultations WHERE grant_id=g.id)
+    RETURNING g.id,g.patient_id,g.expires_at`,[digest(token),replacementHash,reserved ? 1 : 0]);
+  if (!result.rowCount) throw fail('Este pase ya se utilizó o dejó de estar vigente. Solicita otro al paciente.',410);
+  return result.rows[0];
+}
+exports.scan=wrap(async(req,res)=>{
+  const token=req.body?.token;
+  if(typeof token!=='string'||!token.trim()||token.length>150||token.trim().startsWith('scan.')) throw fail('Código QR no válido.',400);
+  const credential='scan.'+randomToken();
+  await takePass(token.trim(),digest(credential));
+  res.set('Cache-Control','no-store').json({success:true,credential});
+});
 exports.request=wrap(async(req,res)=>{
   const {token,doctorRut,doctorName,doctorInstitution=''}=req.body||{};
   if(typeof token!=='string'||token.length>150||!isValidRut(doctorRut)||typeof doctorName!=='string'||!doctorName.trim()||doctorName.length>150||typeof doctorInstitution!=='string'||doctorInstitution.length>150) throw fail('Completa una identificación válida.',400);
-  const grant=requireLiveGrant(await grants.findByToken(token.trim()));
-  if(grant.grant_type!=='QR_TEMPORAL') throw fail('Pase QR no válido.');
-  const active=(await db.query('SELECT id FROM users WHERE id=$1 AND is_active=TRUE',[grant.patient_id])).rowCount;
-  if(!active) throw fail('Pase QR no disponible.');
   const id=randomUUID(),credential=randomToken();
-  await db.query(`INSERT INTO qr_consultations(id,grant_id,credential_hash,status,declared_identity,request_expires_at,expires_at)
-    VALUES($1,$2,$3,'PENDING',$4,LEAST(NOW()+INTERVAL '5 minutes',$5),$5)`,
-    [id,grant.id,digest(credential),seal({doctorRut:doctorRut.trim(),doctorName:doctorName.trim(),doctorInstitution:doctorInstitution.trim()},'consultation:'+id),grant.expires_at]);
+  const grant=await db.transaction(async()=>{
+    const grant=await takePass(token.trim(),null);
+    await db.query(`INSERT INTO qr_consultations(id,grant_id,credential_hash,status,declared_identity,request_expires_at,expires_at)
+      VALUES($1,$2,$3,'PENDING',$4,LEAST(NOW()+INTERVAL '5 minutes',$5),$5)`,
+      [id,grant.id,digest(credential),seal({doctorRut:doctorRut.trim(),doctorName:doctorName.trim(),doctorInstitution:doctorInstitution.trim()},'consultation:'+id),grant.expires_at]);
+    await audit(req,grant.patient_id,'QR_REQUEST',id);
+    return grant;
+  });
   res.cookie(COOKIE,credential,{httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'strict',path:'/',expires:new Date(grant.expires_at)});
-  await audit(req,grant.patient_id,'QR_REQUEST',id);
   res.status(202).json({success:true,data:{id,status:'PENDING',requestExpiresAt:new Date(Math.min(Date.now()+300000,new Date(grant.expires_at).getTime()))}});
 });
 exports.status=wrap(async(req,res)=>{

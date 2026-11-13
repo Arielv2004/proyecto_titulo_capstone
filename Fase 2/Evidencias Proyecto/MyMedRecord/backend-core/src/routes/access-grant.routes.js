@@ -117,6 +117,7 @@ router.post('/qr/document-file', require('../security/consultations').file);
 router.post('/qr/check', require('../security/consultations').check);
 
 const consultations=require('../security/consultations');
+router.post('/qr/scan',require('../security/http').rateLimit('qr-scan',10,300),consultations.scan);
 router.get('/qr/status',consultations.status);
 router.get('/qr/record',consultations.record);
 router.post('/qr/end',consultations.end);
