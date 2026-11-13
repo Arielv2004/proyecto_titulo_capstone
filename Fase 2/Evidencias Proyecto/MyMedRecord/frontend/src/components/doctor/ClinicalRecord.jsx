@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { formatClinicalDate } from '../../utils/clinicalDate';
+import { formatBirthDateWithAge, formatClinicalDate } from '../../utils/clinicalDate';
+import { formatPermissionDuration } from '../../utils/permissionDuration';
 import { ArrowLeft, Clock, FileText, Phone, Printer, ExternalLink, Search, SlidersHorizontal } from 'lucide-react';
 import { Button, Card, EmptyState, Notice, PageHeader, StatusBadge } from '../ui/ClinicalUI';
 
@@ -51,7 +52,7 @@ export function ClinicalRecord({ data, timeLeft, onFinish, onOpenFile, fileError
         title="Consentimiento temporal vigente"
         action={
           <StatusBadge tone="success" icon={Clock}>
-            {timeLeft ?? '—'} min restantes
+            Tiempo restante: {formatPermissionDuration(timeLeft)}
           </StatusBadge>
         }
       >
@@ -85,7 +86,7 @@ export function ClinicalRecord({ data, timeLeft, onFinish, onOpenFile, fileError
           <dl className="mm-summary-list">
             <div>
               <dt>Fecha de nacimiento</dt>
-              <dd>{formatClinicalDate(profile.birthDate)}</dd>
+              <dd>{formatBirthDateWithAge(profile.birthDate)}</dd>
             </div>
             <div>
               <dt>Género registrado</dt>

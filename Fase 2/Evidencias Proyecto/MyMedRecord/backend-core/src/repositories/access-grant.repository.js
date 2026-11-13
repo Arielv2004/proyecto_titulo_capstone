@@ -279,7 +279,9 @@ class AccessGrantRepository {
     // =====================================================
 
     const profileQuery = `
-      SELECT *
+      SELECT to_char(birth_date, 'YYYY-MM-DD') AS birth_date,
+             gender, blood_type, health_insurance, is_organ_donor, allergies,
+             chronic_conditions, emergency_contact_name, emergency_contact_phone, updated_at
       FROM patient_profiles
       WHERE user_id = $1;
     `;

@@ -14,7 +14,7 @@ class PatientProfileRepository {
         u.email,
         u.phone,
         pp.id as profile_id,
-        pp.birth_date,
+        to_char(pp.birth_date, 'YYYY-MM-DD') AS birth_date,
         pp.gender,
         pp.blood_type,
         pp.health_insurance,
@@ -74,7 +74,9 @@ class PatientProfileRepository {
         emergency_contact_name = EXCLUDED.emergency_contact_name,
         emergency_contact_phone = EXCLUDED.emergency_contact_phone,
         updated_at = CURRENT_TIMESTAMP
-      RETURNING *;
+      RETURNING id, user_id, to_char(birth_date, 'YYYY-MM-DD') AS birth_date,
+                gender, blood_type, health_insurance, is_organ_donor, allergies,
+                chronic_conditions, emergency_contact_name, emergency_contact_phone, updated_at;
     `;
 
     const values = [

@@ -1,3 +1,4 @@
+import { formatPermissionDuration } from '../utils/permissionDuration';
 import { PatientRecords } from '../components/patient/PatientRecords';
 import { GrantTokenButton } from '../components/patient/GrantTokenButton';
 import { PatientHelp } from '../components/patient/PatientHelp';
@@ -40,6 +41,7 @@ const doctorCanReceiveRecords = (doctor) =>
   doctor?.is_available_for_sharing === true;
 
 const emptyPatientProfile = () => ({
+  birthDate: null,
   bloodType: '',
   healthInsurance: '',
   isOrganDonor: null,
@@ -246,6 +248,7 @@ export const PatientDashboard = () => {
         if (mounted) {
           const d = res.data.data;
           const p = {
+            birthDate: d.birth_date,
             bloodType: d.blood_type || '',
             healthInsurance: d.health_insurance || '',
             isOrganDonor: d.is_organ_donor ?? null,
@@ -857,8 +860,8 @@ export const PatientDashboard = () => {
       isCompleted
     };
     try {
-      await api.put('/patient-profile/me', updated);
-      setPatientProfile(updated);
+      const { data } = await api.put('/patient-profile/me', updated);
+      setPatientProfile({ ...updated, birthDate: data.data.birth_date });
       clearLegacyPatientProfileCache();
       fetchAuditLogs();
     } catch (err) {
@@ -1147,15 +1150,12 @@ export const PatientDashboard = () => {
 
     const updateTimer = () => {
       const diff = new Date(activeGrant.expires_at) - new Date();
-      if (diff <= 0) {
+      if (!Number.isFinite(diff) || diff <= 0) {
         setRemainingTimeText('Expirado');
         setActiveGrant(null);
         return;
       }
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const secs = Math.floor((diff % (1000 * 60)) / 1000);
-      setRemainingTimeText(`${hours}h ${mins}m ${secs}s`);
+      setRemainingTimeText(formatPermissionDuration(Math.ceil(diff / 60000)));
     };
 
     updateTimer();
@@ -1492,7 +1492,7 @@ export const PatientDashboard = () => {
                           {grant.status === 'ACTIVO' ? (
                             <span className="text-xs font-mono font-bold text-emerald-900 dark:text-emerald-300 bg-surface dark:bg-surface px-1.5 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800 flex items-center gap-1 shrink-0">
                               <Timer className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                              {grant.minutesRemaining} min
+                              {formatPermissionDuration(grant.minutesRemaining)}
                             </span>
                           ) : (
                             <span className="text-xs text-muted font-mono">
@@ -1568,7 +1568,7 @@ export const PatientDashboard = () => {
                               {grant.status === 'ACTIVO' ? (
                                 <span className="font-bold text-emerald-700 flex items-center gap-1">
                                   <Timer className="w-3.5 h-3.5" />
-                                  {grant.minutesRemaining} min
+                                  {formatPermissionDuration(grant.minutesRemaining)}
                                 </span>
                               ) : (
                                 <span className="text-muted">Vencido</span>

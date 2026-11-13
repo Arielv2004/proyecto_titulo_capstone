@@ -297,7 +297,7 @@ export const DoctorQrAccessPage = () => {
         await stopCamera();
       }
     } catch (err) {
-      const msg = err.response?.data?.message || 'Error al validar el Código QR o el acceso ha expirado.';
+      const msg = err.response?.data?.message || 'No se pudo validar el pase. Si ya fue utilizado o venció, solicita uno nuevo al paciente.';
       setApiError(msg);
     } finally {
       validating.current = false;

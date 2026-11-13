@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-import { ArrowRight, QrCode, RefreshCw, Search, Users } from 'lucide-react';
+import { ArrowRight, Search, Users } from 'lucide-react';
+import { formatPermissionDuration } from '../../utils/permissionDuration';
 import {
   Button,
   Card,
   EmptyState,
+  InfoPopover,
   LoadingState,
   Notice,
   PageHeader,
   StatusBadge,
 } from '../ui/ClinicalUI';
 
-export function DoctorHome({ shares, loading, error, onRefresh, onOpen, onQr }) {
+export function DoctorHome({ shares, loading, error, onOpen }) {
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('TODOS');
   const normalize = (value) =>
@@ -31,10 +33,9 @@ export function DoctorHome({ shares, loading, error, onRefresh, onOpen, onQr }) 
         hideTitle
         description="Encuentra las fichas que tus pacientes han compartido contigo."
         actions={
-          <Button onClick={onQr}>
-            <QrCode size={18} />
-            Acceder con QR
-          </Button>
+          <InfoPopover label="Acceso bajo consentimiento">
+            <p>Solo aparecen las fichas que los pacientes han compartido contigo. Puedes abrirlas mientras su permiso esté vigente.</p>
+          </InfoPopover>
         }
       />
       <div className="mm-doctor-stats" aria-label="Resumen de permisos recibidos">
@@ -53,10 +54,15 @@ export function DoctorHome({ shares, loading, error, onRefresh, onOpen, onQr }) 
         title="Fichas compartidas contigo"
         description="La autorización del paciente se comprueba al abrir cada ficha."
         action={
-          <Button variant="ghost" onClick={onRefresh} disabled={loading}>
-            <RefreshCw size={17} />
-            Actualizar
-          </Button>
+          <label className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+            Estado del permiso
+            <select value={status} onChange={event => setStatus(event.target.value)} className="rounded-lg border border-line bg-surface px-3 py-2 text-body">
+              <option value="TODOS">Todos</option>
+              <option value="ACTIVO">Vigentes</option>
+              <option value="EXPIRADO">Vencidos</option>
+              <option value="REVOCADO">Revocados</option>
+            </select>
+          </label>
         }
       >
         <label className="mm-search">
@@ -69,11 +75,6 @@ export function DoctorHome({ shares, loading, error, onRefresh, onOpen, onQr }) 
             placeholder="Buscar por nombre o RUT"
           />
         </label>
-        <label className="mt-3 block text-sm font-semibold">Estado del permiso
-          <select value={status} onChange={event => setStatus(event.target.value)} className="ml-3 rounded-lg border border-line bg-surface px-3 py-2 text-body">
-            <option value="TODOS">Todos</option><option value="ACTIVO">Vigentes</option><option value="EXPIRADO">Vencidos</option><option value="REVOCADO">Revocados</option>
-          </select>
-        </label>
         {loading ? (
           <LoadingState label="Consultando permisos de acceso" />
         ) : error ? (
@@ -85,23 +86,18 @@ export function DoctorHome({ shares, loading, error, onRefresh, onOpen, onQr }) 
         ) : filtered.length === 0 ? (
           <EmptyState
             icon={Users}
-            title={query ? 'No encontramos coincidencias' : 'Aún no tienes fichas compartidas'}
+            title={query || status !== 'TODOS' ? 'No encontramos coincidencias' : 'Aún no tienes fichas compartidas'}
             description={
               query
                 ? 'Prueba con otro nombre o RUT dentro de los permisos recibidos.'
-                : status !== 'TODOS' ? 'No hay permisos en este estado.' : 'El paciente puede elegirte desde su portal o mostrarte su código QR.'
+                : status !== 'TODOS' ? 'No hay permisos en este estado.' : 'Cuando un paciente comparta su ficha contigo, aparecerá aquí.'
             }
             action={
               query ? (
                 <Button variant="secondary" onClick={() => setQuery('')}>
                   Limpiar búsqueda
                 </Button>
-              ) : (
-                <Button variant="secondary" onClick={onQr}>
-                  <QrCode size={17} />
-                  Leer código QR
-                </Button>
-              )
+              ) : null
             }
           />
         ) : (
@@ -134,7 +130,7 @@ export function DoctorHome({ shares, loading, error, onRefresh, onOpen, onQr }) 
                     {grant.expiresAt && <span className="mm-caption">Vence {new Date(grant.expiresAt).toLocaleString('es-CL')}</span>}
                     <span className="mm-caption">
                       {available
-                        ? `${grant.minutesRemaining ?? '—'} min restantes`
+                        ? `Tiempo restante: ${formatPermissionDuration(grant.minutesRemaining)}`
                         : 'Se requiere un nuevo permiso'}
                     </span>
                   </div>
@@ -148,10 +144,6 @@ export function DoctorHome({ shares, loading, error, onRefresh, onOpen, onQr }) 
           </div>
         )}
       </Card>
-      <Notice title="Acceso bajo consentimiento">
-        La búsqueda se limita a las fichas compartidas contigo. Puedes volver a este listado al
-        finalizar la consulta.
-      </Notice>
     </div>
   );
 }
