@@ -34,12 +34,20 @@ test('canje QR concurrente, consulta temporal y acceso directo independiente', a
     const post = (route, auth, data) => fetch(base + route, {method: 'POST',
       headers: {Authorization: 'Bearer ' + auth, 'Content-Type': 'application/json'}, body: JSON.stringify(data)});
     const direct = () => fetch(base + 'direct/DIRECTO-DEMO-2026-TOKEN', {headers: {Authorization: 'Bearer ' + first}});
-    assert.equal((await direct()).status, 200);
+    function assertPatientPhone(record) {
+      assert.equal(record.patient.phone, '+56 9 1111 1111');
+      assert.equal(Object.hasOwn(record.profile, 'emergencyContactName'), false);
+      assert.equal(Object.hasOwn(record.profile, 'emergencyContactPhone'), false);
+    }
+    const shared = await direct();
+    assert.equal(shared.status, 200);
+    assertPatientPhone((await shared.json()).data.clinicalData);
     const attempts = await Promise.all([first,second].map(auth => post('validate', auth, {token})));
     assert.deepEqual(attempts.map(r => r.status).sort(), [200,410]);
     const winner = attempts.findIndex(r => r.ok);
     const auth = [first, second][winner];
     const {data} = await attempts[winner].json();
+    assertPatientPhone(data.clinicalData);
     const consultation = {token, consultationProof: data.consultationProof};
     assert.equal((await post('qr/check', auth, consultation)).status, 200);
     assert.equal((await post('qr/check', [second, first][winner], consultation)).status, 403);
@@ -80,7 +88,9 @@ test('canje QR concurrente, consulta temporal y acceso directo independiente', a
         assert.equal((await post('qr/visitor/'+pass.id+'/decision', first, {decision:'APPROVED'})).status, 403);
         assert.equal((await post('qr/visitor/'+pass.id+'/decision', patientAuth, {decision:'APPROVED'})).status, 204);
         assert.equal((await fetch(url+'record')).status, 403);
-        assert.equal((await fetch(url+'record', {headers})).status, 200);
+        const visitorRecord = await fetch(url+'record', {headers});
+        assert.equal(visitorRecord.status, 200);
+        assertPatientPhone((await visitorRecord.json()).data.clinicalData);
         assert.equal(await (await fetch(url+'documents/'+request.documentId, {headers})).text(), 'documento ficticio');
         await db.query('UPDATE access_grants SET is_revoked=TRUE WHERE id=$1', [pass.id]);
         assert.equal((await fetch(url+'record', {headers})).status, 410);

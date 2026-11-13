@@ -661,24 +661,6 @@ html.dark {
   color: var(--muted);
   font-size: 0.8125rem;
 }
-.mm-summary-list > div + div {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--line);
-}
-.mm-summary-list dt {
-  font-size: 0.75rem;
-  color: var(--muted);
-  margin-bottom: 0.3rem;
-}
-.mm-summary-list dd {
-  font-size: 0.9375rem;
-  color: var(--ink);
-  overflow-wrap: anywhere;
-}
-.mm-summary-list + .mm-button {
-  margin-top: 1rem;
-}
 .mm-empty {
   display: flex;
   flex-direction: column;
@@ -923,16 +905,13 @@ html.dark {
 .mm-profile-section--health {
   grid-column: 1 / -1;
 }
-.mm-profile-section--emergency {
-  grid-column: 1 / -1;
-}
 .mm-profile-fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.9rem 1.25rem;
 }
 .mm-profile-fields--account {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
 }
 .mm-profile-fields > div {
   min-width: 0;
@@ -949,8 +928,42 @@ html.dark {
 }
 .mm-clinical-summary {
   display: grid;
-  grid-template-columns: 1.4fr 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
   gap: 1.25rem;
+}
+.mm-clinical-history > div + div {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+.mm-clinical-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.875rem 1rem;
+}
+.mm-clinical-birth {
+  grid-column: 1 / -1;
+  padding-bottom: 0.875rem;
+  border-bottom: 1px solid var(--line);
+}
+.mm-clinical-summary dt {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.mm-clinical-summary dd {
+  margin-top: 0.15rem;
+  color: var(--ink);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+.mm-clinical-phone {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 24px;
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 .mm-prescription {
   border: 1px solid var(--line);
@@ -1123,8 +1136,7 @@ textarea {
   }
   .mm-profile-section--history,
   .mm-profile-section--account,
-  .mm-profile-section--health,
-  .mm-profile-section--emergency {
+  .mm-profile-section--health {
     grid-column: auto;
   }
   .mm-profile-section {

@@ -44,7 +44,13 @@ class PatientProfileController {
         emergencyContactPhone,
         birthDate,
         gender,
+        phone,
       } = req.body;
+
+      if (phone != null && (typeof phone !== 'string' || phone.length > 20 ||
+          (phone.trim() && !/^\+?\d{7,15}$/.test(phone.trim().replace(/ /g, ''))))) {
+        return res.status(400).json({ success: false, message: 'Ingresa un teléfono personal con entre 7 y 15 dígitos.' });
+      }
 
       const updated = await PatientProfileRepository.upsertProfile(userId, {
         bloodType,
@@ -56,6 +62,7 @@ class PatientProfileController {
         emergencyContactPhone,
         birthDate,
         gender,
+        phone: typeof phone === 'string' ? phone.trim() || null : phone,
       });
 
       // Registrar acción en la bitácora legal inmutable (Ley N° 21.668)

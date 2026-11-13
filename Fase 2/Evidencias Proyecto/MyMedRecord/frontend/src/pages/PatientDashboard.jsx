@@ -47,8 +47,7 @@ const emptyPatientProfile = () => ({
   isOrganDonor: null,
   allergies: [],
   chronicConditions: [],
-  emergencyContactName: '',
-  emergencyContactPhone: '',
+  phone: '',
   isCompleted: false,
 });
 
@@ -151,8 +150,7 @@ export const PatientDashboard = () => {
     isOrganDonor: true,
     allergies: [],
     chronicConditions: [],
-    emergencyContactName: '',
-    emergencyContactPhone: ''
+    phone: ''
   });
 
   // Filtros y búsqueda en pestaña de Documentos
@@ -254,8 +252,7 @@ export const PatientDashboard = () => {
             isOrganDonor: d.is_organ_donor ?? null,
             allergies: Array.isArray(d.allergies) ? d.allergies : [],
             chronicConditions: Array.isArray(d.chronic_conditions) ? d.chronic_conditions : [],
-            emergencyContactName: d.emergency_contact_name || '',
-            emergencyContactPhone: d.emergency_contact_phone || '',
+            phone: d.phone || '',
             isCompleted: !!(d.blood_type && d.health_insurance)
           };
           setPatientProfile(p);
@@ -843,8 +840,7 @@ export const PatientDashboard = () => {
       isOrganDonor: patientProfile.isOrganDonor,
       allergies: [...(patientProfile.allergies || [])],
       chronicConditions: [...(patientProfile.chronicConditions || [])],
-      emergencyContactName: patientProfile.emergencyContactName || '',
-      emergencyContactPhone: patientProfile.emergencyContactPhone || ''
+      phone: patientProfile.phone || ''
     });
     setShowProfileEditModal(true);
   };
@@ -860,13 +856,17 @@ export const PatientDashboard = () => {
       isCompleted
     };
     try {
-      const { data } = await api.put('/patient-profile/me', updated);
-      setPatientProfile({ ...updated, birthDate: data.data.birth_date });
+      const payload = { ...updated };
+      if (payload.phone === patientProfile.phone) delete payload.phone;
+      const { data } = await api.put('/patient-profile/me', payload);
+      setPatientProfile({ ...updated, phone: data.data.phone || '', birthDate: data.data.birth_date });
       clearLegacyPatientProfileCache();
       fetchAuditLogs();
     } catch (err) {
       console.error('Error guardando perfil en backend:', err);
-      setProfileSaveError('No pudimos guardar los cambios. Conservamos lo que ingresaste para que puedas intentarlo otra vez.');
+      setProfileSaveError(err.response?.status === 400 && err.response.data?.message
+        ? err.response.data.message
+        : 'No pudimos guardar los cambios. Conservamos lo que ingresaste para que puedas intentarlo otra vez.');
       return;
     } finally {
       setSavingProfile(false);
@@ -2792,7 +2792,7 @@ export const PatientDashboard = () => {
                     Modificar Mi Perfil de Salud
                   </h3>
                   <p className="text-xs text-muted dark:text-muted">
-                    Toca las opciones para seleccionarlas. Sin necesidad de escribir.
+                    Actualiza tu teléfono personal y tus antecedentes de salud.
                   </p>
                 </div>
               </div>
@@ -2806,6 +2806,13 @@ export const PatientDashboard = () => {
 
             <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
               {profileSaveError && <Notice title="Cambios sin guardar" tone="danger">{profileSaveError}</Notice>}
+              <label className="block space-y-2 rounded-2xl border border-line bg-canvas/70 p-3">
+                <span className="block font-bold text-ink">Teléfono personal</span>
+                <input type="tel" autoComplete="tel" maxLength={20}
+                  pattern="[ ]*[+]?(?:[ ]*[0-9]){7,15}[ ]*" title="Ingresa entre 7 y 15 dígitos. Puedes usar espacios y un signo + al inicio."
+                  className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm"
+                  value={editFormData.phone} onChange={event => setEditFormData({ ...editFormData, phone: event.target.value })} />
+              </label>
               {/* 1. Previsión de Salud */}
               <div className="space-y-2 p-3 bg-canvas/70 dark:bg-surface-muted/50 rounded-2xl border border-line/80 dark:border-line/60">
                 <div className="flex items-center justify-between">

@@ -281,7 +281,7 @@ class AccessGrantRepository {
     const profileQuery = `
       SELECT to_char(birth_date, 'YYYY-MM-DD') AS birth_date,
              gender, blood_type, health_insurance, is_organ_donor, allergies,
-             chronic_conditions, emergency_contact_name, emergency_contact_phone, updated_at
+             chronic_conditions, updated_at
       FROM patient_profiles
       WHERE user_id = $1;
     `;
@@ -368,6 +368,7 @@ class AccessGrantRepository {
         rut: user.rut,
         firstName: user.first_name,
         lastName: user.last_name,
+        phone: user.phone,
       },
 
       profile: {
@@ -379,10 +380,6 @@ class AccessGrantRepository {
         allergies: profile.allergies || [],
         chronicConditions:
           profile.chronic_conditions || [],
-        emergencyContactName:
-          profile.emergency_contact_name,
-        emergencyContactPhone:
-          profile.emergency_contact_phone,
         updatedAt: profile.updated_at || null,
       },
       prescriptions: prescriptionsRes.rows,

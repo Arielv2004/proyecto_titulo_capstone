@@ -59,11 +59,8 @@ export function ClinicalRecord({ data, timeLeft, onFinish, onOpenFile, fileError
         Consulta disponible mientras esté vigente el permiso del paciente.
       </Notice>
       <div className="mm-clinical-summary">
-        <Card
-          title="Antecedentes"
-          description={`Información declarada por el paciente. Actualización: ${sourceDate}.`}
-        >
-          <dl className="mm-summary-list">
+        <Card title="Antecedentes" description={`Información declarada por el paciente. Actualización: ${sourceDate}.`}>
+          <dl className="mm-clinical-history">
             <div>
               <dt>Alergias</dt>
               <dd>
@@ -83,8 +80,8 @@ export function ClinicalRecord({ data, timeLeft, onFinish, onOpenFile, fileError
           </dl>
         </Card>
         <Card title="Datos de la ficha">
-          <dl className="mm-summary-list">
-            <div>
+          <dl className="mm-clinical-details">
+            <div className="mm-clinical-birth">
               <dt>Fecha de nacimiento</dt>
               <dd>{formatBirthDateWithAge(profile.birthDate)}</dd>
             </div>
@@ -100,27 +97,14 @@ export function ClinicalRecord({ data, timeLeft, onFinish, onOpenFile, fileError
               <dt>Previsión</dt>
               <dd>{profile.healthInsurance || 'Sin registrar'}</dd>
             </div>
-          </dl>
-        </Card>
-        <Card title="Contacto de emergencia">
-          <span className="mm-icon mb-4">
-            <Phone size={22} aria-hidden="true" />
-          </span>
-          <dl className="mm-summary-list">
             <div>
-              <dt>Nombre</dt>
-              <dd>{profile.emergencyContactName || 'Sin registrar'}</dd>
-            </div>
-            <div>
-              <dt>Teléfono</dt>
+              <dt>Teléfono del paciente</dt>
               <dd>
-                {profile.emergencyContactPhone ? (
-                  <a className="mm-text-link" href={`tel:${profile.emergencyContactPhone}`}>
-                    {profile.emergencyContactPhone}
+                {patient.phone?.trim() ? (
+                  <a className="mm-clinical-phone" href={`tel:${patient.phone.replace(/\s/g, '')}`}>
+                    <Phone size={15} aria-hidden="true" /> {patient.phone}
                   </a>
-                ) : (
-                  'Sin registrar'
-                )}
+                ) : 'No registrado'}
               </dd>
             </div>
           </dl>
