@@ -8,7 +8,7 @@ export const formatBiologicalSex = value => BIOLOGICAL_SEX_OPTIONS.find(([code])
 export function formatGender(value, other) {
   if (!value) return 'Sin registrar';
   if (value === 'OTRA_IDENTIDAD') return other ? `Otra identidad: ${other}` : 'Otra identidad';
-  return GENDER_OPTIONS.find(([code]) => code === value)?.[1] || `${value} (registrado anteriormente)`;
+  return GENDER_OPTIONS.find(([code]) => code === value)?.[1] || ({ MASCULINO: 'Masculino', FEMENINO: 'Femenino' })[value] || value;
 }
 export const isPatientProfileComplete = profile => Boolean(
   BIOLOGICAL_SEX_OPTIONS.some(([code]) => code === profile.biologicalSex) && profile.bloodType && profile.healthInsurance,

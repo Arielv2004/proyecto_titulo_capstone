@@ -4,7 +4,7 @@ El paciente declara sexo biológico (Femenino o Masculino) y, opcionalmente, gé
 (Mujer, Hombre, No binario, Otra identidad o Prefiero no informar). Otra identidad
 requiere un texto de 1 a 80 caracteres. Son datos independientes: nunca se infiere
 uno a partir del otro. Los géneros históricos no reconocidos se conservan y se
-identifican como registrados anteriormente.
+muestran sin anotaciones técnicas; Masculino y Femenino mantienen sus etiquetas.
 
 El perfil está completo con sexo biológico, grupo sanguíneo y previsión. Un perfil
 incompleto abre el formulario una vez por sesión del navegador, puede posponerse

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BIOLOGICAL_SEX_OPTIONS, GENDER_OPTIONS, isKnownGender } from '../../utils/patientIdentity';
+import { BIOLOGICAL_SEX_OPTIONS, GENDER_OPTIONS, isKnownGender, formatGender } from '../../utils/patientIdentity';
 
 const inputClass = 'w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink';
 
@@ -20,7 +20,7 @@ export function PatientIdentityFields({ value, onChange }) {
           <span className="block font-bold text-ink">Género <span className="font-normal text-muted">(opcional)</span></span>
           <select className={inputClass} value={value.gender} onChange={e => update({ gender: e.target.value, genderOther: '' })}>
             <option value="">Sin registrar</option>
-            {value.gender && !isKnownGender(value.gender) && <option value={value.gender}>{value.gender} (registrado anteriormente)</option>}
+            {value.gender && !isKnownGender(value.gender) && <option value={value.gender}>{formatGender(value.gender)}</option>}
             {GENDER_OPTIONS.map(([code, label]) => <option key={code} value={code}>{label}</option>)}
           </select>
         </label>

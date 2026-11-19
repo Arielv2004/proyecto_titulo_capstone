@@ -4,7 +4,6 @@ import { Edit3, Download, Trash2, ShieldAlert, CheckCircle2, AlertCircle, FileTe
 import { Button, Card, InfoPopover, LoadingState, Notice, PageHeader } from '../ui/ClinicalUI';
 import { DeleteAccountDialog } from './DeleteAccountDialog';
 import { userApi } from '../../services/userApi';
-import { formatBirthDateWithAge } from '../../utils/clinicalDate';
 import { useAuthStore } from '../../store/useAuthStore';
 import { formatBiologicalSex, formatGender } from '../../utils/patientIdentity';
 
@@ -153,9 +152,7 @@ export function PatientProfile({ user, profile, loading, error, onEdit, saved })
                 <h3 id="profile-health-title">Datos de salud</h3>
                 <dl className="mm-profile-fields">
                   <div><dt>Grupo sanguíneo</dt><dd>{profile.bloodType || 'No registrado'}</dd></div>
-                  <div><dt>Fecha de nacimiento</dt><dd>{formatBirthDateWithAge(profile.birthDate)}</dd></div>
                   <div><dt>Previsión</dt><dd>{profile.healthInsurance || 'No registrada'}</dd></div>
-                  <div><dt>Donación de órganos declarada</dt><dd>{profile.isOrganDonor === true ? 'Sí' : profile.isOrganDonor === false ? 'No' : 'No registrada'}</dd></div>
                 </dl>
               </section>
               <section className="mm-profile-section mm-profile-section--history" aria-labelledby="profile-history-title">

@@ -7,7 +7,7 @@ test('un género antiguo nunca completa ni infiere sexo biológico', () => {
   const profile = mapPatientProfile({ gender: 'MASCULINO', blood_type: 'O+', health_insurance: 'FONASA' });
   assert.equal(profile.biologicalSex, '');
   assert.equal(profile.isCompleted, false);
-  assert.equal(formatGender(profile.gender), 'MASCULINO (registrado anteriormente)');
+  assert.equal(formatGender(profile.gender), 'Masculino');
   assert.equal(formatBiologicalSex(profile.biologicalSex), 'Sin registrar');
   assert.equal(mapPatientProfile({ biological_sex: 'FEMENINO', blood_type: 'O+', health_insurance: 'FONASA' }).isCompleted, true);
 });
