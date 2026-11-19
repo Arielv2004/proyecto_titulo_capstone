@@ -911,7 +911,7 @@ html.dark {
   gap: 0.9rem 1.25rem;
 }
 .mm-profile-fields--account {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .mm-profile-fields > div {
   min-width: 0;

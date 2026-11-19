@@ -280,7 +280,7 @@ class AccessGrantRepository {
 
     const profileQuery = `
       SELECT to_char(birth_date, 'YYYY-MM-DD') AS birth_date,
-             gender, blood_type, health_insurance, is_organ_donor, allergies,
+             gender, biological_sex, gender_other, blood_type, health_insurance, is_organ_donor, allergies,
              chronic_conditions, updated_at
       FROM patient_profiles
       WHERE user_id = $1;
@@ -374,6 +374,8 @@ class AccessGrantRepository {
       profile: {
         birthDate: profile.birth_date,
         gender: profile.gender,
+        biologicalSex: profile.biological_sex,
+        genderOther: profile.gender_other,
         bloodType: profile.blood_type,
         healthInsurance: profile.health_insurance,
         isOrganDonor: profile.is_organ_donor,

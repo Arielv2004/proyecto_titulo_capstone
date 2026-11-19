@@ -18,6 +18,9 @@ import api from '../services/api';
 import { Navbar } from '../components/common/Navbar';
 import { BottomNav } from '../components/common/BottomNav';
 import { PatientProfile } from '../components/patient/PatientProfile';
+import { PatientIdentityFields } from '../components/patient/PatientIdentityFields';
+import { mapPatientProfile, isPatientProfileComplete, BIOLOGICAL_SEX_OPTIONS } from '../utils/patientIdentity';
+import { claimProfilePrompt } from '../utils/profileOnboarding';
 import { PatientHome } from '../components/patient/PatientHome';
 import { UploadCamera } from '../components/patient/UploadCamera';
 import { SectionNav, Notice, PageHeader, Button, InfoPopover, LoadingState } from '../components/ui/ClinicalUI';
@@ -42,6 +45,7 @@ const doctorCanReceiveRecords = (doctor) =>
 
 const emptyPatientProfile = () => ({
   birthDate: null,
+  biologicalSex: '', gender: '', genderOther: '',
   bloodType: '',
   healthInsurance: '',
   isOrganDonor: null,
@@ -75,6 +79,9 @@ export const PatientDashboard = () => {
 
   const [showProfileEditModal, setShowProfileEditModal] = useState(false);
   const [profileSaveError, setProfileSaveError] = useState('');
+  const [confirmProfileSave, setConfirmProfileSave] = useState(false);
+  const [profileIsOnboarding, setProfileIsOnboarding] = useState(false);
+  const profileSaveLock = useRef(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
 
@@ -145,6 +152,7 @@ export const PatientDashboard = () => {
   ];
 
   const [editFormData, setEditFormData] = useState({
+    biologicalSex: '', gender: '', genderOther: '',
     bloodType: '',
     healthInsurance: '',
     isOrganDonor: true,
@@ -245,17 +253,14 @@ export const PatientDashboard = () => {
         }
         if (mounted) {
           const d = res.data.data;
-          const p = {
-            birthDate: d.birth_date,
-            bloodType: d.blood_type || '',
-            healthInsurance: d.health_insurance || '',
-            isOrganDonor: d.is_organ_donor ?? null,
-            allergies: Array.isArray(d.allergies) ? d.allergies : [],
-            chronicConditions: Array.isArray(d.chronic_conditions) ? d.chronic_conditions : [],
-            phone: d.phone || '',
-            isCompleted: !!(d.blood_type && d.health_insurance)
-          };
+          const p = mapPatientProfile(d);
           setPatientProfile(p);
+          if (!p.isCompleted && claimProfilePrompt(user?.id)) {
+            setEditFormData({ ...p, allergies: [...p.allergies], chronicConditions: [...p.chronicConditions] });
+            setProfileIsOnboarding(true);
+            setConfirmProfileSave(false);
+            setShowProfileEditModal(true);
+          }
           clearLegacyPatientProfileCache();
         }
       } catch (err) {
@@ -834,7 +839,12 @@ export const PatientDashboard = () => {
 
   const handleOpenEditProfile = () => {
     setProfileSaveError('');
+    setProfileIsOnboarding(false);
+    setConfirmProfileSave(false);
     setEditFormData({
+      biologicalSex: patientProfile.biologicalSex || '',
+      gender: patientProfile.gender || '',
+      genderOther: patientProfile.genderOther || '',
       bloodType: patientProfile.bloodType || '',
       healthInsurance: patientProfile.healthInsurance || '',
       isOrganDonor: patientProfile.isOrganDonor,
@@ -845,32 +855,55 @@ export const PatientDashboard = () => {
     setShowProfileEditModal(true);
   };
 
-  const handleSaveProfile = async (e) => {
+  const handleSaveProfile = (e) => {
     e.preventDefault();
-    if (savingProfile) return;
+    if (profileSaveLock.current) return;
+    setProfileSaveError('');
+    if (!BIOLOGICAL_SEX_OPTIONS.some(([code]) => code === editFormData.biologicalSex)) {
+      setProfileSaveError('Selecciona tu sexo biológico antes de guardar.');
+      return;
+    }
+    if (editFormData.gender === 'OTRA_IDENTIDAD' && (!editFormData.genderOther.trim() || editFormData.genderOther.trim().length > 80)) {
+      setProfileSaveError('Especifica tu identidad de género con entre 1 y 80 caracteres.');
+      return;
+    }
+    setConfirmProfileSave(true);
+  };
+
+  const confirmAndSaveProfile = async () => {
+    if (profileSaveLock.current) return;
+    profileSaveLock.current = true;
     setSavingProfile(true);
     setProfileSaveError('');
-    const isCompleted = Boolean(editFormData.bloodType && editFormData.healthInsurance);
+    const isCompleted = isPatientProfileComplete(editFormData);
     const updated = {
       ...editFormData,
       isCompleted
     };
     try {
-      const payload = { ...updated };
+      const payload = { ...updated, gender: updated.gender || null, genderOther: updated.gender === 'OTRA_IDENTIDAD' ? updated.genderOther.trim() : null };
+      // Preserve unrecognized legacy gender values until the patient explicitly changes them.
+      if (updated.gender === patientProfile.gender && updated.genderOther === patientProfile.genderOther) {
+        delete payload.gender;
+        delete payload.genderOther;
+      }
       if (payload.phone === patientProfile.phone) delete payload.phone;
       const { data } = await api.put('/patient-profile/me', payload);
-      setPatientProfile({ ...updated, phone: data.data.phone || '', birthDate: data.data.birth_date });
+      setPatientProfile(mapPatientProfile(data.data));
       clearLegacyPatientProfileCache();
       fetchAuditLogs();
     } catch (err) {
+      setConfirmProfileSave(false);
       console.error('Error guardando perfil en backend:', err);
       setProfileSaveError(err.response?.status === 400 && err.response.data?.message
         ? err.response.data.message
         : 'No pudimos guardar los cambios. Conservamos lo que ingresaste para que puedas intentarlo otra vez.');
       return;
     } finally {
+      profileSaveLock.current = false;
       setSavingProfile(false);
     }
+    setConfirmProfileSave(false);
     setShowProfileEditModal(false);
     setShowSuccessAlert(true);
     setTimeout(() => {
@@ -1388,6 +1421,11 @@ export const PatientDashboard = () => {
       ]} /></div>
 
       <main id="main-content" tabIndex={-1} className={`mm-shell mm-patient-shell space-y-6${currentTab === 'home' ? ' mm-patient-shell--home' : ''}`}>
+        {!profileLoading && !profileError && !patientProfile.isCompleted && (
+          <Notice title="Perfil pendiente" tone="warning" action={<Button variant="secondary" onClick={handleOpenEditProfile}>Completar perfil</Button>}>
+            Completa tu sexo biológico, grupo sanguíneo y previsión. Puedes seguir usando el portal mientras tanto.
+          </Notice>
+        )}
         {/* ========================================================================= */}
         {/* PESTAÑA 1: INICIO (HOME PRINCIPAL) */}
         {/* ========================================================================= */}
@@ -2779,7 +2817,7 @@ export const PatientDashboard = () => {
       {/* ========================================================================= */}
       {/* MODAL: EDITAR / COMPLETAR ANTECEDENTES DE SALUD (ONBOARDING) */}
       {/* ========================================================================= */}
-      {showProfileEditModal && (
+      {showProfileEditModal && !confirmProfileSave && (
         <DialogFrame label="Editar perfil de salud" onClose={savingProfile ? undefined : () => setShowProfileEditModal(false)} className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="w-full max-w-xl bg-surface dark:bg-surface border border-line dark:border-line rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-start justify-between pb-3 border-b border-stone-100 dark:border-line">
@@ -2789,15 +2827,15 @@ export const PatientDashboard = () => {
                 </div>
                 <div>
                   <h3 className="text-base sm:text-lg font-extrabold text-ink dark:text-ink">
-                    Modificar Mi Perfil de Salud
+                    {profileIsOnboarding ? 'Completa tu perfil de salud' : 'Modificar Mi Perfil de Salud'}
                   </h3>
                   <p className="text-xs text-muted dark:text-muted">
-                    Actualiza tu teléfono personal y tus antecedentes de salud.
+                    Actualiza los datos de tu cuenta y tus antecedentes de salud.
                   </p>
                 </div>
               </div>
               <button
-                aria-label="Cerrar diálogo" onClick={() => setShowProfileEditModal(false)}
+                disabled={savingProfile} aria-label="Cerrar diálogo" onClick={() => { if (!profileSaveLock.current) setShowProfileEditModal(false); }}
                 className="p-1.5 text-muted hover:text-muted rounded-xl hover:bg-surface-muted dark:hover:bg-slate-800 cursor-pointer"
               >
                 <X className="w-5 h-5" />
@@ -2806,13 +2844,7 @@ export const PatientDashboard = () => {
 
             <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
               {profileSaveError && <Notice title="Cambios sin guardar" tone="danger">{profileSaveError}</Notice>}
-              <label className="block space-y-2 rounded-2xl border border-line bg-canvas/70 p-3">
-                <span className="block font-bold text-ink">Teléfono personal</span>
-                <input type="tel" autoComplete="tel" maxLength={20}
-                  pattern="[ ]*[+]?(?:[ ]*[0-9]){7,15}[ ]*" title="Ingresa entre 7 y 15 dígitos. Puedes usar espacios y un signo + al inicio."
-                  className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm"
-                  value={editFormData.phone} onChange={event => setEditFormData({ ...editFormData, phone: event.target.value })} />
-              </label>
+              <PatientIdentityFields value={editFormData} onChange={setEditFormData} />
               {/* 1. Previsión de Salud */}
               <div className="space-y-2 p-3 bg-canvas/70 dark:bg-surface-muted/50 rounded-2xl border border-line/80 dark:border-line/60">
                 <div className="flex items-center justify-between">
@@ -3016,11 +3048,11 @@ export const PatientDashboard = () => {
               </div>
 
               {/* Notificación de Validación de Completitud en Vivo */}
-              {(!editFormData.healthInsurance || !editFormData.bloodType) ? (
+              {!isPatientProfileComplete(editFormData) ? (
                 <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex items-center gap-2.5 text-xs text-amber-900 dark:text-amber-200">
                   <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                   <span className="leading-snug">
-                    Para retirar la advertencia de <strong>"Perfil Pendiente"</strong>, debes seleccionar al menos tu <strong>Previsión de Salud</strong> y tu <strong>Grupo Sanguíneo</strong>.
+                    Para retirar la advertencia de <strong>"Perfil Pendiente"</strong>, debes seleccionar tu <strong>Sexo biológico</strong>, tu <strong>Previsión de Salud</strong> y tu <strong>Grupo Sanguíneo</strong>.
                   </span>
                 </div>
               ) : (
@@ -3036,10 +3068,10 @@ export const PatientDashboard = () => {
               <div className="pt-3 border-t border-stone-100 dark:border-line flex items-center justify-end gap-2.5">
                 <button
                   type="button"
-                  aria-label="Cerrar diálogo" onClick={() => setShowProfileEditModal(false)}
+                  disabled={savingProfile} onClick={() => { if (!profileSaveLock.current) setShowProfileEditModal(false); }}
                   className="px-4 py-2.5 rounded-xl border border-line dark:border-line hover:bg-surface-muted dark:hover:bg-slate-800 text-muted dark:text-body font-bold text-xs cursor-pointer"
                 >
-                  Cancelar
+                  {profileIsOnboarding ? 'Completar después' : 'Cancelar'}
                 </button>
 
                 <button
@@ -3052,6 +3084,24 @@ export const PatientDashboard = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </DialogFrame>
+      )}
+
+      {showProfileEditModal && confirmProfileSave && (
+        <DialogFrame label="Confirmar cambios del perfil" onClose={savingProfile ? undefined : () => setConfirmProfileSave(false)} className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-3xl border border-line bg-surface p-5 sm:p-6 shadow-2xl space-y-5">
+            <div className="flex items-start gap-3">
+              <span className="rounded-xl bg-deep-brand p-2.5 text-teal-300"><Save size={22} aria-hidden="true" /></span>
+              <div className="space-y-2">
+                <h2 className="text-lg font-extrabold text-ink">¿Quieres guardar los cambios de tu perfil?</h2>
+                <p className="text-sm text-muted">Puedes volver a editar antes de confirmar.</p>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row justify-end gap-2">
+              <Button variant="secondary" disabled={savingProfile} onClick={() => setConfirmProfileSave(false)}>Volver a editar</Button>
+              <Button disabled={savingProfile} onClick={confirmAndSaveProfile}>{savingProfile ? 'Guardando…' : 'Confirmar y guardar'}</Button>
+            </div>
           </div>
         </DialogFrame>
       )}

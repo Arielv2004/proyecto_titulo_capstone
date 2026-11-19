@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import api from '../services/api';
+import { resetProfilePrompt } from '../utils/profileOnboarding';
 
 export const useAuthStore = create((set) => ({
   user: null,
@@ -15,9 +16,11 @@ export const useAuthStore = create((set) => ({
       if (res.data.success && res.data.data?.user) {
         set({ user: res.data.data.user, isAuthenticated: true, isLoading: false });
       } else {
+        resetProfilePrompt();
         set({ user: null, isAuthenticated: false, isLoading: false });
       }
     } catch {
+      resetProfilePrompt();
       set({ user: null, isAuthenticated: false, isLoading: false });
     }
   },
@@ -27,6 +30,7 @@ export const useAuthStore = create((set) => ({
     try {
       const res = await api.post('/auth/login', { email, password });
       const user = res.data.data.user;
+      resetProfilePrompt();
       set({ user, isAuthenticated: true, isLoading: false });
       return { success: true, user };
     } catch (err) {
@@ -41,6 +45,7 @@ export const useAuthStore = create((set) => ({
     try {
       const res = await api.post('/auth/register', userData);
       const user = res.data.data.user;
+      resetProfilePrompt();
       set({ user, isAuthenticated: true, isLoading: false });
       return { success: true, user };
     } catch (err) {
@@ -54,12 +59,14 @@ export const useAuthStore = create((set) => ({
     try {
       await api.post('/auth/logout');
     } finally {
+      resetProfilePrompt();
       set({ user: null, isAuthenticated: false, error: null });
     }
   },
 
   // Limpiar sesión localmente sin invocar endpoint (útil tras eliminar cuenta)
   clearSession: () => {
+    resetProfilePrompt();
     set({ user: null, isAuthenticated: false, error: null, isLoading: false });
   },
 }));

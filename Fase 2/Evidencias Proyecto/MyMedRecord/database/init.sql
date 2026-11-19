@@ -71,6 +71,10 @@ CREATE TABLE patient_profiles (
     user_id UUID UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     birth_date DATE,
     gender VARCHAR(20),
+    biological_sex VARCHAR(10) CONSTRAINT patient_profiles_biological_sex_check
+        CHECK (biological_sex IS NULL OR biological_sex IN ('FEMENINO', 'MASCULINO')),
+    gender_other VARCHAR(80) CONSTRAINT patient_profiles_gender_other_check
+        CHECK (gender_other IS NULL OR length(btrim(gender_other)) BETWEEN 1 AND 80),
     blood_type VARCHAR(5),
     health_insurance VARCHAR(50),
     is_organ_donor BOOLEAN DEFAULT TRUE,

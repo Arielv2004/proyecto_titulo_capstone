@@ -12,6 +12,8 @@ class ClinicalRecordRepository {
         pp.user_id,
         pp.birth_date,
         pp.gender,
+        pp.biological_sex,
+        pp.gender_other,
         pp.blood_type,
         pp.health_insurance,
         pp.is_organ_donor,

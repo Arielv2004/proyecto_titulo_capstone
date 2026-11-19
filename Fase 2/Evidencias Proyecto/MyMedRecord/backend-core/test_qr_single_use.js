@@ -26,6 +26,7 @@ test('canje QR concurrente, consulta temporal y acceso directo independiente', a
     for (const file of ['database/init.sql', 'agregar_ubicacion_medicos.sql']) {
       await db.query(await fs.readFile(path.join(__dirname, '..', file), 'utf8'));
     }
+    await db.query("UPDATE patient_profiles SET biological_sex='FEMENINO', gender='OTRA_IDENTIDAD', gender_other='Identidad de prueba'");
     const doctor = (await db.query("SELECT id FROM users WHERE role='MEDICO' LIMIT 1")).rows[0];
     const session = () => jwt.sign({id: doctor.id, role: 'MEDICO', jti: randomUUID()}, process.env.JWT_SECRET);
     const first = session(), second = session();
@@ -36,6 +37,9 @@ test('canje QR concurrente, consulta temporal y acceso directo independiente', a
     const direct = () => fetch(base + 'direct/DIRECTO-DEMO-2026-TOKEN', {headers: {Authorization: 'Bearer ' + first}});
     function assertPatientPhone(record) {
       assert.equal(record.patient.phone, '+56 9 1111 1111');
+      assert.equal(record.profile.biologicalSex, 'FEMENINO');
+      assert.equal(record.profile.gender, 'OTRA_IDENTIDAD');
+      assert.equal(record.profile.genderOther, 'Identidad de prueba');
       assert.equal(Object.hasOwn(record.profile, 'emergencyContactName'), false);
       assert.equal(Object.hasOwn(record.profile, 'emergencyContactPhone'), false);
     }

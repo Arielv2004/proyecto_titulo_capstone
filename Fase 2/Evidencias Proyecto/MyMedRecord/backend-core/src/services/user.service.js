@@ -106,6 +106,8 @@ class UserService {
         id: profile.id,
         birth_date: profile.birth_date,
         gender: profile.gender,
+        biological_sex: profile.biological_sex,
+        gender_other: profile.gender_other,
         blood_type: profile.blood_type,
         health_insurance: profile.health_insurance,
         is_organ_donor: profile.is_organ_donor,

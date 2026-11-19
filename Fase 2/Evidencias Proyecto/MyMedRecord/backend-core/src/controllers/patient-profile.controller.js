@@ -1,5 +1,6 @@
 const PatientProfileRepository = require('../repositories/patient-profile.repository');
 const db = require('../config/db');
+const { validatePatientIdentity } = require('../utils/patient-identity');
 
 class PatientProfileController {
   /**
@@ -43,7 +44,6 @@ class PatientProfileController {
         emergencyContactName,
         emergencyContactPhone,
         birthDate,
-        gender,
         phone,
       } = req.body;
 
@@ -52,6 +52,9 @@ class PatientProfileController {
         return res.status(400).json({ success: false, message: 'Ingresa un teléfono personal con entre 7 y 15 dígitos.' });
       }
 
+      const current = await PatientProfileRepository.findByUserId(userId);
+      if (!current) return res.status(403).json({ success: false, message: 'Solo puedes editar tu propio perfil de paciente.' });
+      const identity = validatePatientIdentity(req.body, current);
       const updated = await PatientProfileRepository.upsertProfile(userId, {
         bloodType,
         healthInsurance,
@@ -61,7 +64,7 @@ class PatientProfileController {
         emergencyContactName,
         emergencyContactPhone,
         birthDate,
-        gender,
+        ...identity,
         phone: typeof phone === 'string' ? phone.trim() || null : phone,
       });
 

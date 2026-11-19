@@ -6,6 +6,7 @@ import { DeleteAccountDialog } from './DeleteAccountDialog';
 import { userApi } from '../../services/userApi';
 import { formatBirthDateWithAge } from '../../utils/clinicalDate';
 import { useAuthStore } from '../../store/useAuthStore';
+import { formatBiologicalSex, formatGender } from '../../utils/patientIdentity';
 
 export function PatientProfile({ user, profile, loading, error, onEdit, saved }) {
   const navigate = useNavigate();
@@ -142,6 +143,8 @@ export function PatientProfile({ user, profile, loading, error, onEdit, saved })
                 <dl className="mm-profile-fields mm-profile-fields--account">
                   <div><dt>Nombre</dt><dd>{[user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'No registrado'}</dd></div>
                   <div><dt>RUT</dt><dd>{user?.rut || 'No registrado'}</dd></div>
+                  <div><dt>Sexo biológico</dt><dd>{formatBiologicalSex(profile.biologicalSex)}</dd></div>
+                  <div><dt>Género</dt><dd>{formatGender(profile.gender, profile.genderOther)}</dd></div>
                   <div><dt>Teléfono personal</dt><dd>{profile.phone || 'No registrado'}</dd></div>
                   <div><dt>Correo electrónico</dt><dd>{user?.email || 'No registrado'}</dd></div>
                 </dl>

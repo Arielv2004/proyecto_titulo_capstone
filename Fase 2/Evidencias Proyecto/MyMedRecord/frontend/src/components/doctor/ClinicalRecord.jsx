@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatBiologicalSex, formatGender } from '../../utils/patientIdentity';
 import { formatBirthDateWithAge, formatClinicalDate } from '../../utils/clinicalDate';
 import { formatPermissionDuration } from '../../utils/permissionDuration';
 import { ArrowLeft, Clock, FileText, Phone, Printer, ExternalLink, Search, SlidersHorizontal } from 'lucide-react';
@@ -86,8 +87,12 @@ export function ClinicalRecord({ data, timeLeft, onFinish, onOpenFile, fileError
               <dd>{formatBirthDateWithAge(profile.birthDate)}</dd>
             </div>
             <div>
-              <dt>Género registrado</dt>
-              <dd>{profile.gender || 'Sin registrar'}</dd>
+              <dt>Sexo biológico</dt>
+              <dd>{formatBiologicalSex(profile.biologicalSex)}</dd>
+            </div>
+            <div>
+              <dt>Género</dt>
+              <dd>{formatGender(profile.gender, profile.genderOther)}</dd>
             </div>
             <div>
               <dt>Grupo sanguíneo declarado</dt>

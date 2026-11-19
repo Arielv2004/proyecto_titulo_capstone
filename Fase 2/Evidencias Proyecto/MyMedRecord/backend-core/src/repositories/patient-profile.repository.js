@@ -16,6 +16,8 @@ class PatientProfileRepository {
         pp.id as profile_id,
         to_char(pp.birth_date, 'YYYY-MM-DD') AS birth_date,
         pp.gender,
+        pp.biological_sex,
+        pp.gender_other,
         pp.blood_type,
         pp.health_insurance,
         pp.is_organ_donor,
@@ -58,6 +60,8 @@ class PatientProfileRepository {
         user_id,
         birth_date,
         gender,
+        biological_sex,
+        gender_other,
         blood_type,
         health_insurance,
         is_organ_donor,
@@ -67,10 +71,12 @@ class PatientProfileRepository {
         emergency_contact_phone,
         updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
+      VALUES ($1, $2, $3, $15, $18, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
       ON CONFLICT (user_id) DO UPDATE SET
         birth_date = COALESCE(EXCLUDED.birth_date, patient_profiles.birth_date),
-        gender = COALESCE(EXCLUDED.gender, patient_profiles.gender),
+        gender = CASE WHEN $17 THEN EXCLUDED.gender ELSE patient_profiles.gender END,
+        biological_sex = CASE WHEN $16 THEN EXCLUDED.biological_sex ELSE patient_profiles.biological_sex END,
+        gender_other = CASE WHEN $19 THEN EXCLUDED.gender_other ELSE patient_profiles.gender_other END,
         blood_type = EXCLUDED.blood_type,
         health_insurance = EXCLUDED.health_insurance,
         is_organ_donor = EXCLUDED.is_organ_donor,
@@ -80,7 +86,7 @@ class PatientProfileRepository {
         emergency_contact_phone = CASE WHEN $14 THEN EXCLUDED.emergency_contact_phone ELSE patient_profiles.emergency_contact_phone END,
         updated_at = CURRENT_TIMESTAMP
       RETURNING id, user_id, to_char(birth_date, 'YYYY-MM-DD') AS birth_date,
-                gender, blood_type, health_insurance, is_organ_donor, allergies,
+                gender, biological_sex, gender_other, blood_type, health_insurance, is_organ_donor, allergies,
                 chronic_conditions, emergency_contact_name, emergency_contact_phone, updated_at,
                 CASE WHEN $11 THEN (SELECT phone FROM changed_phone)
                      ELSE (SELECT phone FROM users WHERE id = $1) END AS phone;
@@ -101,6 +107,11 @@ class PatientProfileRepository {
       data.phone ?? null,
       data.emergencyContactName !== undefined,
       data.emergencyContactPhone !== undefined,
+      data.biologicalSex ?? null,
+      data.biologicalSex !== undefined,
+      data.gender !== undefined,
+      data.genderOther ?? null,
+      data.genderOther !== undefined,
     ];
 
     const result = await db.query(query, values);
