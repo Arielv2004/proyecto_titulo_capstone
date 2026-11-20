@@ -2,6 +2,8 @@
 
 Evidencias digitales complementarias de la Documentación General del proyecto. Evaluación de noviembre de 2026 con datos de prueba y una receta manuscrita anonimizada.
 
+Ubicación dentro del proyecto: `docs/pruebas/`.
+
 ## Abrir los resultados
 
 Descargue o clone el repositorio y abra [el resumen navegable](01_Informe/00_Resumen.html) en un navegador. GitHub muestra el código del HTML: este paquete no publica un sitio web. Conserve las carpetas asociadas a los reportes.
