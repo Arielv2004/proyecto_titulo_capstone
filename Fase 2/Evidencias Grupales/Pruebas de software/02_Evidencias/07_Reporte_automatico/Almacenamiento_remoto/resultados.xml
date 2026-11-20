@@ -1,0 +1,12 @@
+<testsuites id="" name="" tests="1" failures="0" skipped="0" errors="0" time="10.243536">
+<testsuite name="almacenamiento-remoto.spec.cjs" timestamp="2026-11-19T21:46:29.449Z" hostname="" tests="1" failures="0" skipped="0" time="9.675" errors="0">
+<testcase name="EXT-SUPABASE | Bucket privado temporal y enlaces firmados" classname="almacenamiento-remoto.spec.cjs" time="9.675">
+<system-out>
+<![CDATA[◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+
+[[ATTACHMENT|Artefactos_tecnicos\almacenamiento-remoto-EXT--576aa-temporal-y-enlaces-firmados\attachments\Almacenamiento-remoto-02bb8209b8a6db5be45332e3ac0da03aa9ae5a65.json]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>

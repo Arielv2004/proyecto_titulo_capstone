@@ -1,0 +1,14 @@
+{
+  "scope": "Bucket privado temporal creado exclusivamente para este caso. Contenido ficticio, sin datos clínicos.",
+  "bucket": "mmr-qa-953376d8-98e3-4731-abf2-aed8d7c498ee",
+  "checks": {
+    "publicAccessStatus": 400,
+    "signedDownloadStatus": 200,
+    "expiredDownloadStatus": 400,
+    "privateDownloadMatches": true
+  },
+  "cleanup": {
+    "fileRemoved": true,
+    "bucketRemoved": true
+  }
+}

@@ -1,0 +1,170 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "[EQUIPO_LOCAL]\\Desktop\\MyMedRecord - Archivo previo\\Herramientas_reproducibles\\Automatizacion\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "almacenamiento-remoto.spec.cjs"
+    ],
+    "configFile": "[EQUIPO_LOCAL]\\Desktop\\MyMedRecord - Archivo previo\\Herramientas_reproducibles\\Automatizacion\\playwright.config.cjs",
+    "rootDir": "[EQUIPO_LOCAL]/Desktop/MyMedRecord - Archivo previo/Herramientas_reproducibles/Automatizacion/casos",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "D:/Evidencias MyMedRecord/Cierre_20261119_SUPABASE/07_Informe/Artefactos_tecnicos",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "[EQUIPO_LOCAL]/Desktop/MyMedRecord - Archivo previo/Herramientas_reproducibles/Automatizacion/casos",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 180000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "D:\\Evidencias MyMedRecord\\Cierre_20261119_SUPABASE\\07_Informe\\Artefactos_tecnicos",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "",
+        "testDir": "[EQUIPO_LOCAL]\\Desktop\\MyMedRecord - Archivo previo\\Herramientas_reproducibles\\Automatizacion\\casos",
+        "snapshotDir": "[EQUIPO_LOCAL]\\Desktop\\MyMedRecord - Archivo previo\\Herramientas_reproducibles\\Automatizacion\\casos",
+        "testIgnore": [],
+        "testMatch": "**/*.@(spec|test).?(c|m)[jt]s?(x)",
+        "timeout": 180000,
+        "use": {
+          "browserName": "chromium",
+          "trace": "retain-on-failure",
+          "screenshot": "only-on-failure",
+          "video": "retain-on-failure"
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": ""
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "html",
+        {
+          "outputFolder": "D:\\Evidencias MyMedRecord\\Cierre_20261119_SUPABASE\\07_Informe\\HTML",
+          "open": "never"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "D:\\Evidencias MyMedRecord\\Cierre_20261119_SUPABASE\\07_Informe\\resultados.json"
+        }
+      ],
+      [
+        "junit",
+        {
+          "outputFile": "D:\\Evidencias MyMedRecord\\Cierre_20261119_SUPABASE\\07_Informe\\resultados.xml"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.65.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "almacenamiento-remoto.spec.cjs",
+      "file": "almacenamiento-remoto.spec.cjs",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "EXT-SUPABASE | Bucket privado temporal y enlaces firmados",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9675,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T21:46:29.858Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "Almacenamiento remoto",
+                      "contentType": "application/json",
+                      "path": "D:\\Evidencias MyMedRecord\\Cierre_20261119_SUPABASE\\07_Informe\\Artefactos_tecnicos\\almacenamiento-remoto-EXT--576aa-temporal-y-enlaces-firmados\\attachments\\Almacenamiento-remoto-02bb8209b8a6db5be45332e3ac0da03aa9ae5a65.json"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "b08a0bb6854acea146f1-a26d05beb6d1fb4e54ca",
+          "file": "almacenamiento-remoto.spec.cjs",
+          "line": 6,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-19T21:46:29.342Z",
+    "duration": 10243.536,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

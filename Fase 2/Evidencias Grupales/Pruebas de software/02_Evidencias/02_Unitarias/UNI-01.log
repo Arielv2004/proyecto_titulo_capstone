@@ -1,0 +1,14 @@
+[32m✔ vigencia de permisos en horas y minutos [90m(2.0094ms)[39m[39m
+[32m✔ edad por aniversarios de calendario, incluso en meses cortos [90m(22.1316ms)[39m[39m
+[32m✔ fechas ausentes, imposibles y futuras [90m(0.1679ms)[39m[39m
+[32m✔ un género antiguo nunca completa ni infiere sexo biológico [90m(0.8375ms)[39m[39m
+[32m✔ género opcional, preferencia explícita y otra identidad se distinguen [90m(0.1408ms)[39m[39m
+[32m✔ la apertura inicial no se repite hasta iniciar otra sesión [90m(17.5523ms)[39m[39m
+[34mℹ tests 6[39m
+[34mℹ suites 0[39m
+[34mℹ pass 6[39m
+[34mℹ fail 0[39m
+[34mℹ cancelled 0[39m
+[34mℹ skipped 0[39m
+[34mℹ todo 0[39m
+[34mℹ duration_ms 121.9124[39m

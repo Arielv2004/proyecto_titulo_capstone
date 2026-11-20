@@ -1,0 +1,8 @@
+{
+  "scenario": "Base temporal local, listado de documentos con datos semilla, sin OCR/IA ni almacenamiento remoto",
+  "clients": 5,
+  "requests": 100,
+  "errors": [],
+  "p95ms": 13.541399999998248,
+  "criterion": "100 respuestas correctas y p95 < 3000 ms; criterio técnico preliminar, no SLA ni capacidad de producción"
+}

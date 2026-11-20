@@ -1,0 +1,15 @@
+<testsuites id="" name="" tests="1" failures="0" skipped="0" errors="0" time="30.920600999999998">
+<testsuite name="ampliacion.spec.cjs" timestamp="2026-11-19T21:37:00.250Z" hostname="" tests="1" failures="0" skipped="0" time="26.13" errors="0">
+<testcase name="E2E-08 | Receta manuscrita: revisión y confirmación desde navegador" classname="ampliacion.spec.cjs" time="26.13">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-E2E-08-Receta-m-755da-onfirmación-desde-navegador\attachments\E2E-08-manuscrita-revision-72c9383ba1a6ae58cf81a9ebe409a92c6369835d.png]]
+
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-E2E-08-Receta-m-755da-onfirmación-desde-navegador\attachments\paciente-830c21d8f7441cab1015521216469177fffedb93.png]]
+
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-E2E-08-Receta-m-755da-onfirmación-desde-navegador\trace.zip]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>
