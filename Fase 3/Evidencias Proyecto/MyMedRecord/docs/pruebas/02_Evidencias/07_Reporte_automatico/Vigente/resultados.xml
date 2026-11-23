@@ -1,0 +1,392 @@
+<testsuites id="" name="" tests="35" failures="1" skipped="0" errors="1" time="296.89455599999997">
+<testsuite name="ampliacion.spec.cjs" timestamp="2026-11-19T21:29:09.093Z" hostname="" tests="7" failures="0" skipped="0" time="85.67" errors="0">
+<testcase name="E2E-04 | Receta real: subir, corregir, confirmar y persistir" classname="ampliacion.spec.cjs" time="24.826">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-E2E-04-Receta-r-f3459-regir-confirmar-y-persistir\attachments\E2E-04-revision-corregida-ac95922b4f7ae2f587c30493d902e7a4b5d7b648.png]]
+
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-E2E-04-Receta-r-f3459-regir-confirmar-y-persistir\attachments\paciente-adcc1c10cc077df70ced14ee141b349d17be27b8.png]]
+
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-E2E-04-Receta-r-f3459-regir-confirmar-y-persistir\trace.zip]]
+]]>
+</system-out>
+</testcase>
+<testcase name="E2E-05 | Compartir directamente, consultar y revocar" classname="ampliacion.spec.cjs" time="5.257">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-E2E-05-Compartir-directamente-consultar-y-revocar\attachments\E2E-05-consulta-autorizada-bc6ac3349802e12f74d130de446c21d444be512a.png]]
+
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-E2E-05-Compartir-directamente-consultar-y-revocar\attachments\paciente-c26e6d754fdc3c56d488e5307f5f96598cbf9e13.png]]
+
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-E2E-05-Compartir-directamente-consultar-y-revocar\attachments\medico-489efcc7dac60f0177e3341b44008f674e747a7a.png]]
+
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-E2E-05-Compartir-directamente-consultar-y-revocar\trace.zip]]
+]]>
+</system-out>
+<system-err>
+<![CDATA[[2m6:29:41 p.m.[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mError al abrir ficha compartida: AxiosError: Request failed with status code 403
+    at settle (http://127.0.0.1:59273/node_modules/.vite/deps/axios.js?v=d61a86e9:1934:14)
+    at XMLHttpRequest.onloadend (http://127.0.0.1:59273/node_modules/.vite/deps/axios.js?v=d61a86e9:2367:4)
+[2m6:29:41 p.m.[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mError al abrir ficha compartida: AxiosError: Request failed with status code 403
+    at settle (http://127.0.0.1:59273/node_modules/.vite/deps/axios.js?v=d61a86e9:1934:14)
+    at XMLHttpRequest.onloadend (http://127.0.0.1:59273/node_modules/.vite/deps/axios.js?v=d61a86e9:2367:4)
+]]>
+</system-err>
+</testcase>
+<testcase name="E2E-06 | Visitante QR: aprobación, consulta, segundo canje y revocación" classname="ampliacion.spec.cjs" time="12.901">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-E2E-06-Visitant-1b3ab--segundo-canje-y-revocación\attachments\E2E-06-sin-aprobacion-d6efbc182c972b61a56adecd2842fb55ff6d66f8.png]]
+
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-E2E-06-Visitant-1b3ab--segundo-canje-y-revocación\attachments\E2E-06-consulta-aprobada-63eb06588c1a12e44e3d4822a7ae71ef6adc5823.png]]
+
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-E2E-06-Visitant-1b3ab--segundo-canje-y-revocación\attachments\paciente-e71f480021af2e0b4aaaffadfebe534733a0a873.png]]
+
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-E2E-06-Visitant-1b3ab--segundo-canje-y-revocación\attachments\visitante-70727820019e3d8f0eec1cf2e851b66108250c6a.png]]
+
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-E2E-06-Visitant-1b3ab--segundo-canje-y-revocación\attachments\otro-navegador-dd6f8acd2a1c223f5c727c5767b9f96c49e43a94.png]]
+
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-E2E-06-Visitant-1b3ab--segundo-canje-y-revocación\trace.zip]]
+]]>
+</system-out>
+<system-err>
+<![CDATA[[2m6:29:44 p.m.[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError al iniciar cámara: Error getting userMedia, error = NotSupportedError: Not supported
+[2m6:29:50 p.m.[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError al iniciar cámara: Error getting userMedia, error = NotSupportedError: Not supported
+]]>
+</system-err>
+</testcase>
+<testcase name="E2E-07 | Paciente rechaza solicitud QR y no permite consulta" classname="ampliacion.spec.cjs" time="7.719">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-E2E-07-Paciente-42733-ud-QR-y-no-permite-consulta\attachments\paciente-3848be89a5e2aa7883ea83a2dad5da90d1067cea.png]]
+
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-E2E-07-Paciente-42733-ud-QR-y-no-permite-consulta\attachments\visitante-b0b0bce176bdf256a976f12010f14886baf8f79a.png]]
+
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-E2E-07-Paciente-42733-ud-QR-y-no-permite-consulta\trace.zip]]
+]]>
+</system-out>
+<system-err>
+<![CDATA[[2m6:29:58 p.m.[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError al iniciar cámara: Error getting userMedia, error = NotSupportedError: Not supported
+]]>
+</system-err>
+</testcase>
+<testcase name="E2E-08 | Receta manuscrita: revisión y confirmación desde navegador" classname="ampliacion.spec.cjs" time="24.803">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-E2E-08-Receta-m-755da-onfirmación-desde-navegador\attachments\E2E-08-manuscrita-revision-f080bebdf0a03441479ca6d4e58bf9ea9ddd40aa.png]]
+
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-E2E-08-Receta-m-755da-onfirmación-desde-navegador\attachments\paciente-ba520ca4ab2dca705903b5371862fe1a029c4e0f.png]]
+
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-E2E-08-Receta-m-755da-onfirmación-desde-navegador\trace.zip]]
+]]>
+</system-out>
+</testcase>
+<testcase name="E2E-09 | Lectura de imagen QR generada y aprobación" classname="ampliacion.spec.cjs" time="8.219">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-E2E-09-Lectura-de-imagen-QR-generada-y-aprobación\attachments\QR-ficticio-de-prueba-7d62122bfe530f9506746ff52ba3134e084f2a78.png]]
+
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-E2E-09-Lectura-de-imagen-QR-generada-y-aprobación\attachments\E2E-09-QR-imagen-aprobado-0bf0ce2862cfbc3027a65061d9c4fea578a9ea13.png]]
+
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-E2E-09-Lectura-de-imagen-QR-generada-y-aprobación\attachments\paciente-e8f4df70c1be166977a68bb52a83c38e57946f85.png]]
+
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-E2E-09-Lectura-de-imagen-QR-generada-y-aprobación\attachments\visitante-5aa5070a2e1befc0d3d2bc9d251ea0d5bcae82f6.png]]
+
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-E2E-09-Lectura-de-imagen-QR-generada-y-aprobación\trace.zip]]
+]]>
+</system-out>
+<system-err>
+<![CDATA[[2m6:30:30 p.m.[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mError al iniciar cámara: Error getting userMedia, error = NotSupportedError: Not supported
+]]>
+</system-err>
+</testcase>
+<testcase name="ACC-01 | Accesibilidad automática y diseño móvil del portal paciente" classname="ampliacion.spec.cjs" time="1.945">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-ACC-01-Accesibi-6ee41-o-móvil-del-portal-paciente\attachments\Hallazgos-axe-core-18b145269c1004d2b8d396e2504645f6b5dc3ed0.json]]
+
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-ACC-01-Accesibi-6ee41-o-móvil-del-portal-paciente\attachments\paciente-c1e2a5d68281cdd2c2ef86d598480ddd4dded154.png]]
+
+[[ATTACHMENT|Artefactos_tecnicos\ampliacion-ACC-01-Accesibi-6ee41-o-móvil-del-portal-paciente\trace.zip]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+<testsuite name="base.spec.cjs" timestamp="2026-11-19T21:29:09.093Z" hostname="" tests="4" failures="0" skipped="0" time="13.197" errors="0">
+<testcase name="UNI-01 | Unitarias de identidad, edad y duración" classname="base.spec.cjs" time="0.214">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|Artefactos_tecnicos\base-UNI-01-Unitarias-de-identidad-edad-y-duración\attachments\Registro-unitarias-3a7128c51bcf654650e3c9ba070bff2fda854810.log]]
+]]>
+</system-out>
+</testcase>
+<testcase name="INT-01 | Perfil, autorización y QR de un solo uso" classname="base.spec.cjs" time="9.095">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|Artefactos_tecnicos\base-INT-01-Perfil-autorización-y-QR-de-un-solo-uso\attachments\Registro-integración-87a4d26851161a7f6e6bbace1b128970f14c13e7.log]]
+]]>
+</system-out>
+</testcase>
+<testcase name="CAL-01 | lint frontend" classname="base.spec.cjs" time="0.747">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|Artefactos_tecnicos\base-CAL-01-lint-frontend\attachments\Registro-técnico-0bbf11553ea922e42472884890de4c27dbcb272e.log]]
+]]>
+</system-out>
+</testcase>
+<testcase name="CAL-02 | build frontend" classname="base.spec.cjs" time="3.141">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|Artefactos_tecnicos\base-CAL-02-build-frontend\attachments\Registro-técnico-3dc88491af5f3189f3258267997d4b8db1ee9907.log]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+<testsuite name="cuenta.spec.cjs" timestamp="2026-11-19T21:29:09.093Z" hostname="" tests="1" failures="0" skipped="0" time="2.098" errors="0">
+<testcase name="INT-CUENTA-01 | Exportación, eliminación y rechazo de la sesión anterior" classname="cuenta.spec.cjs" time="2.098">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|Artefactos_tecnicos\cuenta-INT-CUENTA-01-Expor-4e541-chazo-de-la-sesión-anterior\attachments\Exportación-ficticia-b3ce21b0c6db207473de038bef3d6d2466510abd.json]]
+
+[[ATTACHMENT|Artefactos_tecnicos\cuenta-INT-CUENTA-01-Expor-4e541-chazo-de-la-sesión-anterior\attachments\Verificación-de-eliminación-1eaccf873efc9fe0addd6ada2f56738d965ff555.json]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+<testsuite name="documentos.spec.cjs" timestamp="2026-11-19T21:29:09.093Z" hostname="" tests="6" failures="0" skipped="0" time="0.452" errors="0">
+<testcase name="INT-DOC-01 | Rechaza sesión ausente y rol médico" classname="documentos.spec.cjs" time="0.021">
+</testcase>
+<testcase name="INT-DOC-02 | Rechaza ausencia de archivo, MIME y más de 10 MB" classname="documentos.spec.cjs" time="0.097">
+</testcase>
+<testcase name="INT-DOC-03 | Analiza, corrige, confirma, persiste y descarga" classname="documentos.spec.cjs" time="0.083">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|Artefactos_tecnicos\documentos-INT-DOC-03-Anal-77d42-onfirma-persiste-y-descarga\attachments\Resultado-persistido-605c9289865b9c02b2a9294b0814652381a72ea9.json]]
+]]>
+</system-out>
+</testcase>
+<testcase name="INT-DOC-04 | Otra cuenta no puede confirmar ni descargar un documento ajeno" classname="documentos.spec.cjs" time="0.193">
+</testcase>
+<testcase name="INT-DOC-05 | Descartar impide confirmación posterior" classname="documentos.spec.cjs" time="0.04">
+</testcase>
+<testcase name="INT-DOC-06 | Proveedor no disponible conserva revisión manual" classname="documentos.spec.cjs" time="0.018">
+</testcase>
+</testsuite>
+<testsuite name="laboratorio.spec.cjs" timestamp="2026-11-19T21:29:09.093Z" hostname="" tests="1" failures="0" skipped="0" time="10.185" errors="0">
+<testcase name="SIS-LAB-01 | Examen ficticio con glucosa y colesterol" classname="laboratorio.spec.cjs" time="10.185">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|Artefactos_tecnicos\laboratorio-SIS-LAB-01-Exa-bfe04-io-con-glucosa-y-colesterol\attachments\Examen-ficticio-b666ecf944ceb1dc4d03f33ac86e78f70b3ab410.pdf]]
+
+[[ATTACHMENT|Artefactos_tecnicos\laboratorio-SIS-LAB-01-Exa-bfe04-io-con-glucosa-y-colesterol\attachments\Extracción-8e6da3ddf983dcd196b2f143d3ad12af63554239.json]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+<testsuite name="navegador.spec.cjs" timestamp="2026-11-19T21:29:09.093Z" hostname="" tests="3" failures="0" skipped="0" time="5.69" errors="0">
+<testcase name="E2E-01 | Login real y persistencia de sesión PACIENTE" classname="navegador.spec.cjs" time="3.136">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|Artefactos_tecnicos\navegador-E2E-01-Login-rea-594bb-istencia-de-sesión-PACIENTE\attachments\Portal-autenticado-081d800e209865f8feeca9eb819480f4ef1bb40f.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="E2E-02 | Login real y persistencia de sesión MEDICO" classname="navegador.spec.cjs" time="1.741">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|Artefactos_tecnicos\navegador-E2E-02-Login-real-y-persistencia-de-sesión-MEDICO\attachments\Portal-autenticado-39cb83570db6d88dc2b4f3dbaa331dec1fd9e6fd.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="E2E-03 | Sin sesión no puede abrir portal paciente" classname="navegador.spec.cjs" time="0.813">
+</testcase>
+</testsuite>
+<testsuite name="receta-manuscrita.spec.cjs" timestamp="2026-11-19T21:29:09.093Z" hostname="" tests="3" failures="1" skipped="0" time="40.661" errors="0">
+<testcase name="SIS-REAL-png | Receta manuscrita aportada y anonimizada" classname="receta-manuscrita.spec.cjs" time="18.466">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|Artefactos_tecnicos\receta-manuscrita-SIS-REAL-c82cc-rita-aportada-y-anonimizada\attachments\Entrada-anonimizada-d0874387f65eaf9a26ebfa39cfcbbd44216e8de4.png]]
+
+[[ATTACHMENT|Artefactos_tecnicos\receta-manuscrita-SIS-REAL-c82cc-rita-aportada-y-anonimizada\attachments\Extracción-real-aeadf2a2aee25c663b1a37d3f538565ebd8ff06d.json]]
+
+[[ATTACHMENT|Artefactos_tecnicos\receta-manuscrita-SIS-REAL-c82cc-rita-aportada-y-anonimizada\test-failed-1.png]]
+
+[[ATTACHMENT|Artefactos_tecnicos\receta-manuscrita-SIS-REAL-c82cc-rita-aportada-y-anonimizada\video.webm]]
+
+[[ATTACHMENT|Artefactos_tecnicos\receta-manuscrita-SIS-REAL-c82cc-rita-aportada-y-anonimizada\error-context.md]]
+
+[[ATTACHMENT|Artefactos_tecnicos\receta-manuscrita-SIS-REAL-c82cc-rita-aportada-y-anonimizada\error-context.md]]
+
+[[ATTACHMENT|Artefactos_tecnicos\receta-manuscrita-SIS-REAL-c82cc-rita-aportada-y-anonimizada\trace.zip]]
+]]>
+</system-out>
+<failure message="Duración de cuatro días de la fase posterior" type="expect.toMatch">
+<![CDATA[  receta-manuscrita.spec.cjs:8:35 › SIS-REAL-png | Receta manuscrita aportada y anonimizada ────────
+
+    Error: Duración de cuatro días de la fase posterior
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /4\s*d[ií]as|cuatro\s*d[ií]as/
+    Received string:  "{\"name\":\"azitromicina\",\"dosage\":\"200 mg/5ml\",\"frequency\":\"tomar 4 ml vía oral en dosis única el primer día, luego tomar 2 ml vía oral 1 vez al día (07:00 a.m.)\",\"duration\":null,\"duration_days\":null}"
+
+      25 |   expect(structured,'Concentración 200 mg/5 ml').toMatch(/200/);expect(structured).toMatch(/5\s*m[lL]/i);
+      26 |   expect(structured,'Dosis de 4 ml del primer día').toMatch(/4\s*m[lL]/i);expect(structured,'Dosis posterior de 2 ml').toMatch(/2\s*m[lL]/i);
+    > 27 |   expect(structured,'Duración de cuatro días de la fase posterior').toMatch(/4\s*d[ií]as|cuatro\s*d[ií]as/);
+         |                                                                     ^
+      28 | });
+      29 | test('SIS-INVALIDO-01 | Imagen dañada no produce extracción legible',async({request},info)=>{
+      30 |   const patient=server.users.find(u=>u.role==='PACIENTE');
+        at [EQUIPO_LOCAL]\Desktop\MyMedRecord - Archivo previo\Herramientas_reproducibles\Automatizacion\casos\receta-manuscrita.spec.cjs:27:69
+
+    attachment #1: Entrada anonimizada (image/png) ─────────────────────────────────────────────────
+    D:\Evidencias MyMedRecord\Cierre_20261119_FINAL\07_Informe\Artefactos_tecnicos\receta-manuscrita-SIS-REAL-c82cc-rita-aportada-y-anonimizada\attachments\Entrada-anonimizada-d0874387f65eaf9a26ebfa39cfcbbd44216e8de4.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: Extracción real (application/json) ──────────────────────────────────────────────
+    D:\Evidencias MyMedRecord\Cierre_20261119_FINAL\07_Informe\Artefactos_tecnicos\receta-manuscrita-SIS-REAL-c82cc-rita-aportada-y-anonimizada\attachments\Extracción-real-aeadf2a2aee25c663b1a37d3f538565ebd8ff06d.json
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
+    D:\Evidencias MyMedRecord\Cierre_20261119_FINAL\07_Informe\Artefactos_tecnicos\receta-manuscrita-SIS-REAL-c82cc-rita-aportada-y-anonimizada\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #4: video (video/webm) ──────────────────────────────────────────────────────────────
+    D:\Evidencias MyMedRecord\Cierre_20261119_FINAL\07_Informe\Artefactos_tecnicos\receta-manuscrita-SIS-REAL-c82cc-rita-aportada-y-anonimizada\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: D:\Evidencias MyMedRecord\Cierre_20261119_FINAL\07_Informe\Artefactos_tecnicos\receta-manuscrita-SIS-REAL-c82cc-rita-aportada-y-anonimizada\error-context.md
+
+    Error Context: D:\Evidencias MyMedRecord\Cierre_20261119_FINAL\07_Informe\Artefactos_tecnicos\receta-manuscrita-SIS-REAL-c82cc-rita-aportada-y-anonimizada\error-context.md
+
+    attachment #7: trace (application/zip) ─────────────────────────────────────────────────────────
+    D:\Evidencias MyMedRecord\Cierre_20261119_FINAL\07_Informe\Artefactos_tecnicos\receta-manuscrita-SIS-REAL-c82cc-rita-aportada-y-anonimizada\trace.zip
+    Usage:
+
+        npx playwright show-trace "D:\Evidencias MyMedRecord\Cierre_20261119_FINAL\07_Informe\Artefactos_tecnicos\receta-manuscrita-SIS-REAL-c82cc-rita-aportada-y-anonimizada\trace.zip"
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+]]>
+</failure>
+</testcase>
+<testcase name="SIS-REAL-pdf | Receta manuscrita aportada y anonimizada" classname="receta-manuscrita.spec.cjs" time="22.164">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|Artefactos_tecnicos\receta-manuscrita-SIS-REAL-199e9-rita-aportada-y-anonimizada\attachments\Entrada-anonimizada-993733a467e434ad703312beca07606dca5015f1.pdf]]
+
+[[ATTACHMENT|Artefactos_tecnicos\receta-manuscrita-SIS-REAL-199e9-rita-aportada-y-anonimizada\attachments\Extracción-real-0058f627e21edb6a4543ee79c411ed5c01c43cde.json]]
+]]>
+</system-out>
+</testcase>
+<testcase name="SIS-INVALIDO-01 | Imagen dañada no produce extracción legible" classname="receta-manuscrita.spec.cjs" time="0.031">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|Artefactos_tecnicos\receta-manuscrita-SIS-INVA-21e81--produce-extracción-legible\attachments\Manejo-de-imagen-dañada-ebe13bdb5eeafb94cb26ac8d33d577a99280223d.json]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+<testsuite name="rendimiento.spec.cjs" timestamp="2026-11-19T21:29:09.093Z" hostname="" tests="1" failures="0" skipped="0" time="1.698" errors="0">
+<testcase name="REN-01 | 5 clientes, 100 consultas autorizadas, p95 menor a 3000 ms" classname="rendimiento.spec.cjs" time="1.698">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|Artefactos_tecnicos\rendimiento-REN-01-5-clien-a15dc-rizadas-p95-menor-a-3000-ms\attachments\Mediciones-71b4245aed955882e24ed2e0a2e815141f1cee62.json]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+<testsuite name="seguridad-robustez.spec.cjs" timestamp="2026-11-19T21:29:09.093Z" hostname="" tests="6" failures="0" skipped="0" time="60.31" errors="0">
+<testcase name="SEG-01 | JWT manipulado, identificador inválido y rol indebido" classname="seguridad-robustez.spec.cjs" time="0.029">
+</testcase>
+<testcase name="SEG-02 | Cuenta desactivada o rol cambiado no conserva autorización" classname="seguridad-robustez.spec.cjs" time="0.036">
+</testcase>
+<testcase name="SEG-03 | Un médico no puede revocar el permiso del paciente" classname="seguridad-robustez.spec.cjs" time="0.062">
+</testcase>
+<testcase name="SEG-04 | Pase vencido no se puede canjear ni generar consulta" classname="seguridad-robustez.spec.cjs" time="0.032">
+</testcase>
+<testcase name="ROB-01 | Dos confirmaciones concurrentes no duplican ni producen 500" classname="seguridad-robustez.spec.cjs" time="0.094">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|Artefactos_tecnicos\seguridad-robustez-ROB-01--17063-no-duplican-ni-producen-500\attachments\Resultados-concurrentes-21b34769974d334a057aea260cdde0cca217c3f7.json]]
+]]>
+</system-out>
+</testcase>
+<testcase name="ROB-02 | Timeout real de 60 segundos conserva revisión manual" classname="seguridad-robustez.spec.cjs" time="60.057">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|Artefactos_tecnicos\seguridad-robustez-ROB-02--a7061-os-conserva-revisión-manual\attachments\Timeout-observado-418ea1a36ecb1b916cd48829f152318036c4c999.json]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+<testsuite name="sistema.spec.cjs" timestamp="2026-11-19T21:29:09.093Z" hostname="" tests="2" failures="0" skipped="0" time="41.618" errors="0">
+<testcase name="SIS-DOC-pdf | Extracción real de documento ficticio pdf" classname="sistema.spec.cjs" time="22.648">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|Artefactos_tecnicos\sistema-SIS-DOC-pdf-Extrac-303bb-l-de-documento-ficticio-pdf\attachments\Entrada-ficticia-fce44810c4d1cb2a8eef93fd4e91ec437b682a1c.pdf]]
+
+[[ATTACHMENT|Artefactos_tecnicos\sistema-SIS-DOC-pdf-Extrac-303bb-l-de-documento-ficticio-pdf\attachments\Extracción-real-2e99e3e4400c9ea097efe98f16a0cea579593436.json]]
+]]>
+</system-out>
+</testcase>
+<testcase name="SIS-DOC-png | Extracción real de documento ficticio png" classname="sistema.spec.cjs" time="18.97">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|Artefactos_tecnicos\sistema-SIS-DOC-png-Extrac-b1659-l-de-documento-ficticio-png\attachments\Entrada-ficticia-81c876fe55c1e7ce4ea8446508d7fb03c54c78a0.png]]
+
+[[ATTACHMENT|Artefactos_tecnicos\sistema-SIS-DOC-png-Extrac-b1659-l-de-documento-ficticio-png\attachments\Extracción-real-9238aedbce75e770ed44063eb0b49d3f53c660dd.json]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+<testsuite name="zap-autenticado.spec.cjs" timestamp="2026-11-19T21:29:09.093Z" hostname="" tests="1" failures="0" skipped="0" time="15.233" errors="1">
+<testcase name="SEG-ZAP-01 | Análisis pasivo de recorridos autenticados" classname="zap-autenticado.spec.cjs" time="15.233">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|Artefactos_tecnicos\zap-autenticado-SEG-ZAP-01-0ef5c--de-recorridos-autenticados\test-failed-1.png]]
+
+[[ATTACHMENT|Artefactos_tecnicos\zap-autenticado-SEG-ZAP-01-0ef5c--de-recorridos-autenticados\test-failed-2.png]]
+
+[[ATTACHMENT|Artefactos_tecnicos\zap-autenticado-SEG-ZAP-01-0ef5c--de-recorridos-autenticados\error-context.md]]
+
+[[ATTACHMENT|Artefactos_tecnicos\zap-autenticado-SEG-ZAP-01-0ef5c--de-recorridos-autenticados\trace.zip]]
+]]>
+</system-out>
+<error message="r.status is not a function" type="TypeError">
+<![CDATA[  zap-autenticado.spec.cjs:7:1 › SEG-ZAP-01 | Análisis pasivo de recorridos autenticados ───────────
+
+    TypeError: r.status is not a function
+
+      4 | const path=require('node:path');
+      5 | const {start,save,repo}=require('../ayuda.cjs');
+    > 6 | async function zap(route){const r=await fetch('http://127.0.0.1:18080/'+route,{headers:{host:'zap'}});if(!r.ok)throw new Error('ZAP API '+r.status());return r;}
+        |                                                                                                                                             ^
+      7 | test('SEG-ZAP-01 | Análisis pasivo de recorridos autenticados',async({browser},info)=>{
+      8 |   process.env.QA_EXTENSION='1';const server=await start(false);let vite;const contexts=[];
+      9 |   try{
+        at zap ([EQUIPO_LOCAL]\Desktop\MyMedRecord - Archivo previo\Herramientas_reproducibles\Automatizacion\casos\zap-autenticado.spec.cjs:6:141)
+        at expect.poll.timeout ([EQUIPO_LOCAL]\Desktop\MyMedRecord - Archivo previo\Herramientas_reproducibles\Automatizacion\casos\zap-autenticado.spec.cjs:17:41)
+        at [EQUIPO_LOCAL]\Desktop\MyMedRecord - Archivo previo\Herramientas_reproducibles\Automatizacion\casos\zap-autenticado.spec.cjs:17:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    D:\Evidencias MyMedRecord\Cierre_20261119_FINAL\07_Informe\Artefactos_tecnicos\zap-autenticado-SEG-ZAP-01-0ef5c--de-recorridos-autenticados\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    D:\Evidencias MyMedRecord\Cierre_20261119_FINAL\07_Informe\Artefactos_tecnicos\zap-autenticado-SEG-ZAP-01-0ef5c--de-recorridos-autenticados\test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: D:\Evidencias MyMedRecord\Cierre_20261119_FINAL\07_Informe\Artefactos_tecnicos\zap-autenticado-SEG-ZAP-01-0ef5c--de-recorridos-autenticados\error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    D:\Evidencias MyMedRecord\Cierre_20261119_FINAL\07_Informe\Artefactos_tecnicos\zap-autenticado-SEG-ZAP-01-0ef5c--de-recorridos-autenticados\trace.zip
+    Usage:
+
+        npx playwright show-trace "D:\Evidencias MyMedRecord\Cierre_20261119_FINAL\07_Informe\Artefactos_tecnicos\zap-autenticado-SEG-ZAP-01-0ef5c--de-recorridos-autenticados\trace.zip"
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+]]>
+</error>
+</testcase>
+</testsuite>
+</testsuites>

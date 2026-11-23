@@ -1,0 +1,41 @@
+{
+  "success": true,
+  "message": "Documento analizado con éxito.",
+  "data": {
+    "tempId": "5b1f8c09-f47d-406f-a938-92b4f97bd0c8",
+    "document": {
+      "id": "5b1f8c09-f47d-406f-a938-92b4f97bd0c8",
+      "title": "Receta - Shigelosis",
+      "file_name": "1795123878177-f3fb13329a599692.png",
+      "mime_type": "image/png",
+      "document_type": "RECETA",
+      "status": "TEMP"
+    },
+    "analysis": {
+      "suggested_title": "Receta - Shigelosis",
+      "is_medical_document": true,
+      "document_type": "RECETA",
+      "document_date": "2024-10-14",
+      "diagnoses": [
+        "Diarrea aguda",
+        "Síndrome disentérico",
+        "Shigelosis"
+      ],
+      "medications": [
+        {
+          "name": "AZITROMICINA",
+          "dosage": "200 mg/5ml",
+          "frequency": "Tomar 4 ml Vía Oral en dosis única el primer día, luego tomar 2 ml Vía Oral 1 vez al día (07:00 a.m.)",
+          "duration": null,
+          "duration_days": null
+        }
+      ],
+      "lab_metrics": [],
+      "summary": "Receta médica para tratamiento de diarrea aguda, síndrome disentérico y shigelosis. Se indica azitromicina jarabe con pauta inicial de 4 ml el primer día y continuación de 2 ml diarios.",
+      "extraction_status": "structured",
+      "raw_text": "Paciente:\nFecha: 14 de Octubre de 2024\n\nDIAGNOSTICO (CIE10) Diarrea Aguda , Síndrome Disemtérico y Shiguellosis\nRp: //\n\n1) AZITROMICINA Jarabe 200 mg/5ml frasco de 15 ml\n41 (uno)\n\n1) AZITROMICINA Tomar 4 ml vía Oral en dosis Única\n\nel primer día, luego Tomar 2 m! Vía Oral 1 vez al día\n\n(07:00a.m.) durante Y días.",
+      "processed_at": "2026-11-19T21:31:36.400485Z"
+    },
+    "isUnreadable": false
+  }
+}

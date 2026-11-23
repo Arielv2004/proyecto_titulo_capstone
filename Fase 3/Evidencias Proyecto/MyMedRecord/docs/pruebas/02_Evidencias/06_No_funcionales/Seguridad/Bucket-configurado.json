@@ -1,0 +1,6 @@
+{
+  "checked": true,
+  "bucket": "medical-documents",
+  "public": false,
+  "scope": "Consulta de metadatos del bucket configurado; no se consultaron sus archivos ni se cambiaron sus opciones."
+}

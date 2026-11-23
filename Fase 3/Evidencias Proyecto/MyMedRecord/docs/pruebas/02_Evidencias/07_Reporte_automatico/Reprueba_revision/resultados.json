@@ -1,0 +1,178 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "[EQUIPO_LOCAL]\\Desktop\\MyMedRecord - Archivo previo\\Herramientas_reproducibles\\Automatizacion\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "ampliacion.spec.cjs",
+      "--grep",
+      "E2E-08"
+    ],
+    "configFile": "[EQUIPO_LOCAL]\\Desktop\\MyMedRecord - Archivo previo\\Herramientas_reproducibles\\Automatizacion\\playwright.config.cjs",
+    "rootDir": "[EQUIPO_LOCAL]/Desktop/MyMedRecord - Archivo previo/Herramientas_reproducibles/Automatizacion/casos",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "D:/Evidencias MyMedRecord/Cierre_20261119_REVISION/07_Informe/Artefactos_tecnicos",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "[EQUIPO_LOCAL]/Desktop/MyMedRecord - Archivo previo/Herramientas_reproducibles/Automatizacion/casos",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 180000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "D:\\Evidencias MyMedRecord\\Cierre_20261119_REVISION\\07_Informe\\Artefactos_tecnicos",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "",
+        "testDir": "[EQUIPO_LOCAL]\\Desktop\\MyMedRecord - Archivo previo\\Herramientas_reproducibles\\Automatizacion\\casos",
+        "snapshotDir": "[EQUIPO_LOCAL]\\Desktop\\MyMedRecord - Archivo previo\\Herramientas_reproducibles\\Automatizacion\\casos",
+        "testIgnore": [],
+        "testMatch": "**/*.@(spec|test).?(c|m)[jt]s?(x)",
+        "timeout": 180000,
+        "use": {
+          "browserName": "chromium",
+          "trace": "retain-on-failure",
+          "screenshot": "only-on-failure",
+          "video": "retain-on-failure"
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": ""
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "html",
+        {
+          "outputFolder": "D:\\Evidencias MyMedRecord\\Cierre_20261119_REVISION\\07_Informe\\HTML",
+          "open": "never"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "D:\\Evidencias MyMedRecord\\Cierre_20261119_REVISION\\07_Informe\\resultados.json"
+        }
+      ],
+      [
+        "junit",
+        {
+          "outputFile": "D:\\Evidencias MyMedRecord\\Cierre_20261119_REVISION\\07_Informe\\resultados.xml"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.65.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "ampliacion.spec.cjs",
+      "file": "ampliacion.spec.cjs",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "E2E-08 | Receta manuscrita: revisión y confirmación desde navegador",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 26130,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T21:37:00.711Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "E2E-08-manuscrita-revision",
+                      "contentType": "image/png",
+                      "path": "D:\\Evidencias MyMedRecord\\Cierre_20261119_REVISION\\07_Informe\\Artefactos_tecnicos\\ampliacion-E2E-08-Receta-m-755da-onfirmación-desde-navegador\\attachments\\E2E-08-manuscrita-revision-72c9383ba1a6ae58cf81a9ebe409a92c6369835d.png"
+                    },
+                    {
+                      "name": "paciente",
+                      "contentType": "image/png",
+                      "path": "D:\\Evidencias MyMedRecord\\Cierre_20261119_REVISION\\07_Informe\\Artefactos_tecnicos\\ampliacion-E2E-08-Receta-m-755da-onfirmación-desde-navegador\\attachments\\paciente-830c21d8f7441cab1015521216469177fffedb93.png"
+                    },
+                    {
+                      "name": "Traza excluida de copia documental",
+                      "contentType": "text/plain",
+                      "body": "Traza completa conservada solamente en los originales locales."
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "23ae9557b1362cc92889-cd1255a77100743a814b",
+          "file": "ampliacion.spec.cjs",
+          "line": 98,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-19T21:37:00.104Z",
+    "duration": 30920.601,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

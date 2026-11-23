@@ -1,0 +1,171 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "[EQUIPO_LOCAL]\\Desktop\\MyMedRecord - Archivo previo\\Herramientas_reproducibles\\Automatizacion\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "zap-autenticado.spec.cjs"
+    ],
+    "configFile": "[EQUIPO_LOCAL]\\Desktop\\MyMedRecord - Archivo previo\\Herramientas_reproducibles\\Automatizacion\\playwright.config.cjs",
+    "rootDir": "[EQUIPO_LOCAL]/Desktop/MyMedRecord - Archivo previo/Herramientas_reproducibles/Automatizacion/casos",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "D:/Evidencias MyMedRecord/Cierre_20261119_ZAP_FINAL/07_Informe/Artefactos_tecnicos",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "[EQUIPO_LOCAL]/Desktop/MyMedRecord - Archivo previo/Herramientas_reproducibles/Automatizacion/casos",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 180000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "D:\\Evidencias MyMedRecord\\Cierre_20261119_ZAP_FINAL\\07_Informe\\Artefactos_tecnicos",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "",
+        "testDir": "[EQUIPO_LOCAL]\\Desktop\\MyMedRecord - Archivo previo\\Herramientas_reproducibles\\Automatizacion\\casos",
+        "snapshotDir": "[EQUIPO_LOCAL]\\Desktop\\MyMedRecord - Archivo previo\\Herramientas_reproducibles\\Automatizacion\\casos",
+        "testIgnore": [],
+        "testMatch": "**/*.@(spec|test).?(c|m)[jt]s?(x)",
+        "timeout": 180000,
+        "use": {
+          "browserName": "chromium",
+          "trace": "retain-on-failure",
+          "screenshot": "only-on-failure",
+          "video": "retain-on-failure"
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": ""
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "html",
+        {
+          "outputFolder": "D:\\Evidencias MyMedRecord\\Cierre_20261119_ZAP_FINAL\\07_Informe\\HTML",
+          "open": "never"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "D:\\Evidencias MyMedRecord\\Cierre_20261119_ZAP_FINAL\\07_Informe\\resultados.json"
+        }
+      ],
+      [
+        "junit",
+        {
+          "outputFile": "D:\\Evidencias MyMedRecord\\Cierre_20261119_ZAP_FINAL\\07_Informe\\resultados.xml"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.65.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "zap-autenticado.spec.cjs",
+      "file": "zap-autenticado.spec.cjs",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "SEG-ZAP-01 | Análisis pasivo de recorridos autenticados",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 12640,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-19T21:37:55.536Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "Revisión autenticada",
+                      "contentType": "application/json",
+                      "path": "D:\\Evidencias MyMedRecord\\Cierre_20261119_ZAP_FINAL\\07_Informe\\Artefactos_tecnicos\\zap-autenticado-SEG-ZAP-01-0ef5c--de-recorridos-autenticados\\attachments\\Revisión-autenticada-165e3cde536104a59eebdeb774fa40b4a9f8f195.json"
+                    },
+                    {
+                      "name": "Reporte ZAP",
+                      "contentType": "text/html",
+                      "path": "D:\\Evidencias MyMedRecord\\Cierre_20261119_ZAP_FINAL\\07_Informe\\Artefactos_tecnicos\\zap-autenticado-SEG-ZAP-01-0ef5c--de-recorridos-autenticados\\attachments\\Reporte-ZAP-0d795c6192cfe32032f0bcbaf1c30fc24ff81831.html"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "db660846db26a82681e0-2c461bfa582cd0e51845",
+          "file": "zap-autenticado.spec.cjs",
+          "line": 9,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-19T21:37:55.017Z",
+    "duration": 15026.442,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

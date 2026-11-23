@@ -1,0 +1,97 @@
+{
+  "provider": "SIMULADO; no valida OCR/Gemini",
+  "confirmed": {
+    "document": {
+      "id": "5047881f-cc5b-4d57-9e5e-f3e8a9214000",
+      "patient_id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+      "uploaded_by": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+      "document_type": "RECETA",
+      "title": "Receta corregida QA",
+      "file_name": "1795123856893-2e0ec0730f140651.png",
+      "mime_type": "image/png",
+      "file_size_bytes": 68,
+      "document_date": null,
+      "issuing_doctor": null,
+      "issuing_institution": null,
+      "ocr_confidence": null,
+      "status": "CONFIRMADO",
+      "created_at": "2026-11-19T21:30:56.895Z",
+      "updated_at": "2026-11-19T21:30:56.932Z",
+      "file_url": "/api/v1/documents/5047881f-cc5b-4d57-9e5e-f3e8a9214000/file"
+    },
+    "structured": {
+      "id": "3b91d96d-9b5e-4e01-a1ef-6c1f6933ecbd",
+      "document_id": "5047881f-cc5b-4d57-9e5e-f3e8a9214000",
+      "patient_id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+      "doctor_name": null,
+      "diagnosis_code": null,
+      "diagnosis_text": null,
+      "issue_date": null,
+      "valid_until": null,
+      "is_chronic": false,
+      "status": "ACTIVA",
+      "created_at": "2026-11-19T21:30:56.935Z",
+      "items": [
+        {
+          "id": "fe96fe3d-ad62-4e39-b41a-62ebde82c44c",
+          "prescription_id": "3b91d96d-9b5e-4e01-a1ef-6c1f6933ecbd",
+          "medication_name": "Paracetamol",
+          "dosage": "750 mg",
+          "frequency": "cada 8 horas",
+          "duration": "3 días",
+          "instructions": null,
+          "created_at": "2026-11-19T21:30:56.937Z"
+        }
+      ]
+    }
+  },
+  "reloaded": {
+    "success": true,
+    "data": {
+      "id": "5047881f-cc5b-4d57-9e5e-f3e8a9214000",
+      "patient_id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+      "uploaded_by": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+      "document_type": "RECETA",
+      "title": "Receta corregida QA",
+      "file_name": "1795123856893-2e0ec0730f140651.png",
+      "mime_type": "image/png",
+      "file_size_bytes": 68,
+      "document_date": null,
+      "issuing_doctor": null,
+      "issuing_institution": null,
+      "ocr_confidence": null,
+      "status": "CONFIRMADO",
+      "created_at": "2026-11-19T21:30:56.895Z",
+      "updated_at": "2026-11-19T21:30:56.932Z",
+      "patient_rut": "12.345.678-5",
+      "patient_first_name": "Juan",
+      "patient_last_name": "Pérez",
+      "file_url": "/api/v1/documents/5047881f-cc5b-4d57-9e5e-f3e8a9214000/file",
+      "structured": {
+        "id": "3b91d96d-9b5e-4e01-a1ef-6c1f6933ecbd",
+        "document_id": "5047881f-cc5b-4d57-9e5e-f3e8a9214000",
+        "patient_id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+        "doctor_name": null,
+        "diagnosis_code": null,
+        "diagnosis_text": null,
+        "issue_date": null,
+        "valid_until": null,
+        "is_chronic": false,
+        "status": "ACTIVA",
+        "created_at": "2026-11-19T21:30:56.935Z",
+        "items": [
+          {
+            "id": "fe96fe3d-ad62-4e39-b41a-62ebde82c44c",
+            "prescription_id": "3b91d96d-9b5e-4e01-a1ef-6c1f6933ecbd",
+            "medication_name": "Paracetamol",
+            "dosage": "750 mg",
+            "frequency": "cada 8 horas",
+            "duration": "3 días",
+            "instructions": null,
+            "created_at": "2026-11-19T21:30:56.937Z"
+          }
+        ]
+      }
+    }
+  }
+}
