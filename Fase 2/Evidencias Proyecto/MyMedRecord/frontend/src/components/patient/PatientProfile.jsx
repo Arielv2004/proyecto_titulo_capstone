@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Edit3, Download, Trash2, ShieldAlert, CheckCircle2, AlertCircle, FileText, Sparkles } from 'lucide-react';
+import { Edit3, Download, Trash2, ShieldAlert, CheckCircle2, AlertCircle, FileText, Sparkles, Share2, X } from 'lucide-react';
 import { Button, Card, InfoPopover, LoadingState, Notice, PageHeader } from '../ui/ClinicalUI';
 import { DeleteAccountDialog } from './DeleteAccountDialog';
 import { userApi } from '../../services/userApi';
@@ -19,6 +19,9 @@ export function PatientProfile({ user, profile, loading, error, onEdit, saved })
   const [downloadingReport, setDownloadingReport] = useState(false);
   const [reportSuccess, setReportSuccess] = useState(false);
   const [reportError, setReportError] = useState(null);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [reportFileUri, setReportFileUri] = useState(null);
+  const [sharingReport, setSharingReport] = useState(false);
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -45,14 +48,35 @@ export function PatientProfile({ user, profile, loading, error, onEdit, saved })
       setDownloadingReport(true);
       setReportError(null);
       setReportSuccess(false);
-      await userApi.downloadClinicalReport();
-      setReportSuccess(true);
-      setTimeout(() => setReportSuccess(false), 6000);
+      setReportModalOpen(false);
+      setReportFileUri(null);
+      const result = await userApi.downloadClinicalReport();
+      if (result?.android && result?.uri) {
+        setReportFileUri(result.uri);
+        setReportModalOpen(true);
+      } else {
+        setReportSuccess(true);
+        setTimeout(() => setReportSuccess(false), 6000);
+      }
     } catch (err) {
       console.error('Error al generar informe PDF:', err);
       setReportError(err.response?.data?.message || 'No fue posible generar el informe clínico en PDF.');
     } finally {
       setDownloadingReport(false);
+    }
+  };
+
+  const handleShareReport = async () => {
+    if (!reportFileUri || sharingReport) return;
+    try {
+      setSharingReport(true);
+      setReportError(null);
+      await userApi.shareClinicalReport(reportFileUri);
+    } catch (err) {
+      console.error('Error al compartir informe PDF:', err);
+      setReportError(err.message || 'No fue posible compartir el informe PDF.');
+    } finally {
+      setSharingReport(false);
     }
   };
 
@@ -270,6 +294,31 @@ export function PatientProfile({ user, profile, loading, error, onEdit, saved })
             </div>
           </Card>
         </>
+      )}
+
+      {/* Confirmación de guardado de PDF en Android */}
+      {reportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="presentation">
+          <div role="dialog" aria-modal="true" aria-labelledby="report-saved-title" className="w-full max-w-sm rounded-2xl border border-line bg-surface p-5 shadow-xl">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2 text-ink">
+                <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+                <h3 id="report-saved-title" className="text-base font-bold">Informe PDF guardado</h3>
+              </div>
+              <button type="button" aria-label="Cerrar" onClick={() => setReportModalOpen(false)} className="rounded-lg p-1 text-muted hover:bg-surface-muted">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="mt-3 text-sm text-muted">El informe clínico se guardó correctamente en Documentos.</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setReportModalOpen(false)} className="rounded-xl border border-line px-4 py-2 text-sm font-semibold text-ink">Cerrar</button>
+              <button type="button" onClick={handleShareReport} disabled={sharingReport} className="flex items-center gap-2 rounded-xl bg-action px-4 py-2 text-sm font-semibold text-on-action disabled:opacity-60">
+                <Share2 className="h-4 w-4" />
+                {sharingReport ? 'Compartiendo...' : 'Compartir'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modal de confirmación para eliminar cuenta */}

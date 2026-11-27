@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useMetaTags } from '../hooks/useMetaTags';
 import { Users, FileText, Database, CheckCircle2 } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
 
 import { Navbar } from '../components/common/Navbar';
 import { Notice } from '../components/ui/ClinicalUI';

@@ -1,4 +1,3 @@
-import { formatPermissionDuration } from '../utils/permissionDuration';
 import { PatientRecords } from '../components/patient/PatientRecords';
 import { GrantTokenButton } from '../components/patient/GrantTokenButton';
 import { PatientHelp } from '../components/patient/PatientHelp';
@@ -11,16 +10,12 @@ import { documentsApi, mapDocumentFromApi, openDocumentBlob, prepareDocumentWind
 import { useAuthStore } from '../store/useAuthStore';
 import { Home, Pill, Stethoscope, ClipboardPenLine, Microscope, HeartPulse, ScanSearch, Camera, QrCode, FileText, Sparkles, ShieldCheck, Building2, User, Clock, CheckCircle2, AlertCircle, Download, Share2, X, HelpCircle, Activity, AlertTriangle, UserCheck, Droplet, Save, Plus, Trash2, Copy, Check, RefreshCw, ExternalLink, Timer, Images, ChevronRight } from 'lucide-react';
 
-import { QrApprovalRequests } from '../components/patient/QrApprovalRequests';
 import { QRCodeSVG } from 'qrcode.react';
 import api from '../services/api';
 
 import { Navbar } from '../components/common/Navbar';
 import { BottomNav } from '../components/common/BottomNav';
 import { PatientProfile } from '../components/patient/PatientProfile';
-import { PatientIdentityFields } from '../components/patient/PatientIdentityFields';
-import { mapPatientProfile, isPatientProfileComplete, BIOLOGICAL_SEX_OPTIONS } from '../utils/patientIdentity';
-import { claimProfilePrompt } from '../utils/profileOnboarding';
 import { PatientHome } from '../components/patient/PatientHome';
 import { UploadCamera } from '../components/patient/UploadCamera';
 import { SectionNav, Notice, PageHeader, Button, InfoPopover, LoadingState } from '../components/ui/ClinicalUI';
@@ -44,14 +39,13 @@ const doctorCanReceiveRecords = (doctor) =>
   doctor?.is_available_for_sharing === true;
 
 const emptyPatientProfile = () => ({
-  birthDate: null,
-  biologicalSex: '', gender: '', genderOther: '',
   bloodType: '',
   healthInsurance: '',
   isOrganDonor: null,
   allergies: [],
   chronicConditions: [],
-  phone: '',
+  emergencyContactName: '',
+  emergencyContactPhone: '',
   isCompleted: false,
 });
 
@@ -79,9 +73,6 @@ export const PatientDashboard = () => {
 
   const [showProfileEditModal, setShowProfileEditModal] = useState(false);
   const [profileSaveError, setProfileSaveError] = useState('');
-  const [confirmProfileSave, setConfirmProfileSave] = useState(false);
-  const [profileIsOnboarding, setProfileIsOnboarding] = useState(false);
-  const profileSaveLock = useRef(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
 
@@ -152,13 +143,13 @@ export const PatientDashboard = () => {
   ];
 
   const [editFormData, setEditFormData] = useState({
-    biologicalSex: '', gender: '', genderOther: '',
     bloodType: '',
     healthInsurance: '',
     isOrganDonor: true,
     allergies: [],
     chronicConditions: [],
-    phone: ''
+    emergencyContactName: '',
+    emergencyContactPhone: ''
   });
 
   // Filtros y búsqueda en pestaña de Documentos
@@ -253,14 +244,17 @@ export const PatientDashboard = () => {
         }
         if (mounted) {
           const d = res.data.data;
-          const p = mapPatientProfile(d);
+          const p = {
+            bloodType: d.blood_type || '',
+            healthInsurance: d.health_insurance || '',
+            isOrganDonor: d.is_organ_donor ?? null,
+            allergies: Array.isArray(d.allergies) ? d.allergies : [],
+            chronicConditions: Array.isArray(d.chronic_conditions) ? d.chronic_conditions : [],
+            emergencyContactName: d.emergency_contact_name || '',
+            emergencyContactPhone: d.emergency_contact_phone || '',
+            isCompleted: !!(d.blood_type && d.health_insurance)
+          };
           setPatientProfile(p);
-          if (!p.isCompleted && claimProfilePrompt(user?.id)) {
-            setEditFormData({ ...p, allergies: [...p.allergies], chronicConditions: [...p.chronicConditions] });
-            setProfileIsOnboarding(true);
-            setConfirmProfileSave(false);
-            setShowProfileEditModal(true);
-          }
           clearLegacyPatientProfileCache();
         }
       } catch (err) {
@@ -449,10 +443,8 @@ export const PatientDashboard = () => {
           '')
         : '';
 
-      const hasExtractedFields = initialMeds.length > 0 || Boolean(initialDiag.trim()) || Boolean(analysis?.lab_metrics?.length);
-      const unreadableFlag = isMedicalDoc && (
-        Boolean(isUnreadable) || (!hasExtractedFields && analysis?.extraction_status !== 'text_only')
-      );
+      const unreadableFlag =
+        isMedicalDoc && (Boolean(isUnreadable) || (initialMeds.length === 0 && !initialDiag.trim() && !(analysis?.lab_metrics?.length)));
 
       setTempDocument({
         tempId,
@@ -839,71 +831,40 @@ export const PatientDashboard = () => {
 
   const handleOpenEditProfile = () => {
     setProfileSaveError('');
-    setProfileIsOnboarding(false);
-    setConfirmProfileSave(false);
     setEditFormData({
-      biologicalSex: patientProfile.biologicalSex || '',
-      gender: patientProfile.gender || '',
-      genderOther: patientProfile.genderOther || '',
       bloodType: patientProfile.bloodType || '',
       healthInsurance: patientProfile.healthInsurance || '',
       isOrganDonor: patientProfile.isOrganDonor,
       allergies: [...(patientProfile.allergies || [])],
       chronicConditions: [...(patientProfile.chronicConditions || [])],
-      phone: patientProfile.phone || ''
+      emergencyContactName: patientProfile.emergencyContactName || '',
+      emergencyContactPhone: patientProfile.emergencyContactPhone || ''
     });
     setShowProfileEditModal(true);
   };
 
-  const handleSaveProfile = (e) => {
+  const handleSaveProfile = async (e) => {
     e.preventDefault();
-    if (profileSaveLock.current) return;
-    setProfileSaveError('');
-    if (!BIOLOGICAL_SEX_OPTIONS.some(([code]) => code === editFormData.biologicalSex)) {
-      setProfileSaveError('Selecciona tu sexo biológico antes de guardar.');
-      return;
-    }
-    if (editFormData.gender === 'OTRA_IDENTIDAD' && (!editFormData.genderOther.trim() || editFormData.genderOther.trim().length > 80)) {
-      setProfileSaveError('Especifica tu identidad de género con entre 1 y 80 caracteres.');
-      return;
-    }
-    setConfirmProfileSave(true);
-  };
-
-  const confirmAndSaveProfile = async () => {
-    if (profileSaveLock.current) return;
-    profileSaveLock.current = true;
+    if (savingProfile) return;
     setSavingProfile(true);
     setProfileSaveError('');
-    const isCompleted = isPatientProfileComplete(editFormData);
+    const isCompleted = Boolean(editFormData.bloodType && editFormData.healthInsurance);
     const updated = {
       ...editFormData,
       isCompleted
     };
     try {
-      const payload = { ...updated, gender: updated.gender || null, genderOther: updated.gender === 'OTRA_IDENTIDAD' ? updated.genderOther.trim() : null };
-      // Preserve unrecognized legacy gender values until the patient explicitly changes them.
-      if (updated.gender === patientProfile.gender && updated.genderOther === patientProfile.genderOther) {
-        delete payload.gender;
-        delete payload.genderOther;
-      }
-      if (payload.phone === patientProfile.phone) delete payload.phone;
-      const { data } = await api.put('/patient-profile/me', payload);
-      setPatientProfile(mapPatientProfile(data.data));
+      await api.put('/patient-profile/me', updated);
+      setPatientProfile(updated);
       clearLegacyPatientProfileCache();
       fetchAuditLogs();
     } catch (err) {
-      setConfirmProfileSave(false);
       console.error('Error guardando perfil en backend:', err);
-      setProfileSaveError(err.response?.status === 400 && err.response.data?.message
-        ? err.response.data.message
-        : 'No pudimos guardar los cambios. Conservamos lo que ingresaste para que puedas intentarlo otra vez.');
+      setProfileSaveError('No pudimos guardar los cambios. Conservamos lo que ingresaste para que puedas intentarlo otra vez.');
       return;
     } finally {
-      profileSaveLock.current = false;
       setSavingProfile(false);
     }
-    setConfirmProfileSave(false);
     setShowProfileEditModal(false);
     setShowSuccessAlert(true);
     setTimeout(() => {
@@ -1183,12 +1144,15 @@ export const PatientDashboard = () => {
 
     const updateTimer = () => {
       const diff = new Date(activeGrant.expires_at) - new Date();
-      if (!Number.isFinite(diff) || diff <= 0) {
+      if (diff <= 0) {
         setRemainingTimeText('Expirado');
         setActiveGrant(null);
         return;
       }
-      setRemainingTimeText(formatPermissionDuration(Math.ceil(diff / 60000)));
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const secs = Math.floor((diff % (1000 * 60)) / 1000);
+      setRemainingTimeText(`${hours}h ${mins}m ${secs}s`);
     };
 
     updateTimer();
@@ -1386,19 +1350,54 @@ export const PatientDashboard = () => {
         // Información al médico y paciente
         ctx.fillStyle = '#536b70';
         ctx.font = '13px "DM Sans", system-ui, sans-serif';
-        ctx.fillText('Pase de un solo uso. Sin cuenta se requiere aprobación del paciente.', canvas.width / 2, 805);
+        ctx.fillText('El médico canjea este pase una vez desde su cuenta.', canvas.width / 2, 805);
 
         ctx.fillStyle = '#536b70';
         ctx.font = 'italic 12px "DM Sans", system-ui, sans-serif';
         ctx.fillText('Acceso temporal compartido por el paciente. Puedes revocarlo desde Accesos.', canvas.width / 2, 830);
 
         const pngUrl = canvas.toDataURL('image/png');
-        const downloadLink = document.createElement('a');
-        downloadLink.download = `Pase_Medico_MyMedRecord_${activeGrant?.token || 'acceso'}.png`;
-        downloadLink.href = pngUrl;
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        document.body.removeChild(downloadLink);
+        const fileName = `Pase_Medico_MyMedRecord_${activeGrant?.token || 'acceso'}.png`;
+
+        const shareQr = async () => {
+          try {
+            const { Capacitor } = await import('@capacitor/core');
+            if (Capacitor.isNativePlatform()) {
+              const { Filesystem, Directory } = await import('@capacitor/filesystem');
+              const { Share } = await import('@capacitor/share');
+              const saved = await Filesystem.writeFile({
+                path: fileName,
+                data: pngUrl.split(',')[1],
+                directory: Directory.Cache,
+              });
+              await Share.share({
+                title: 'Pase médico MyMedRecord',
+                text: 'Pase de acceso médico temporal',
+                url: saved.uri,
+                dialogTitle: 'Compartir QR',
+              });
+              return;
+            }
+
+            const blob = await (await fetch(pngUrl)).blob();
+            const file = new File([blob], fileName, { type: 'image/png' });
+            if (navigator.canShare?.({ files: [file] })) {
+              await navigator.share({ files: [file], title: 'Pase médico MyMedRecord' });
+            } else {
+              const link = document.createElement('a');
+              link.download = fileName;
+              link.href = pngUrl;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }
+          } catch (error) {
+            if (error?.name === 'AbortError' || /cancel/i.test(error?.message || '')) return;
+            console.error('Error compartiendo QR:', error);
+            alert('No se pudo compartir el QR. Verifica que los plugins de Capacitor estén instalados y sincronizados.');
+          }
+        };
+        void shareQr();
       };
 
       img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
@@ -1421,15 +1420,9 @@ export const PatientDashboard = () => {
       ]} /></div>
 
       <main id="main-content" tabIndex={-1} className={`mm-shell mm-patient-shell space-y-6${currentTab === 'home' ? ' mm-patient-shell--home' : ''}`}>
-        {!profileLoading && !profileError && !patientProfile.isCompleted && (
-          <Notice title="Perfil pendiente" tone="warning" action={<Button variant="secondary" onClick={handleOpenEditProfile}>Completar perfil</Button>}>
-            Completa tu sexo biológico, grupo sanguíneo y previsión. Puedes seguir usando el portal mientras tanto.
-          </Notice>
-        )}
         {/* ========================================================================= */}
         {/* PESTAÑA 1: INICIO (HOME PRINCIPAL) */}
         {/* ========================================================================= */}
-        {!showQrModal && <QrApprovalRequests />}
         {currentTab === 'home' && <PatientHome
           loading={loadingDocs} error={docsError}
           documents={documents}
@@ -1530,7 +1523,7 @@ export const PatientDashboard = () => {
                           {grant.status === 'ACTIVO' ? (
                             <span className="text-xs font-mono font-bold text-emerald-900 dark:text-emerald-300 bg-surface dark:bg-surface px-1.5 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800 flex items-center gap-1 shrink-0">
                               <Timer className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                              {formatPermissionDuration(grant.minutesRemaining)}
+                              {grant.minutesRemaining} min
                             </span>
                           ) : (
                             <span className="text-xs text-muted font-mono">
@@ -1543,16 +1536,16 @@ export const PatientDashboard = () => {
                         <div className="text-xs sm:text-xs text-muted dark:text-body flex items-center justify-between">
                           <span className="font-medium truncate">
                             {grant.doctorName ? (
-                              <span className="text-ink dark:text-body font-bold">{grant.doctorName} {grant.grantType === 'QR_TEMPORAL' && !grant.doctorId && '· Identidad declarada'} {grant.doctorInstitution ? `· ${grant.doctorInstitution}` : ''}</span>
+                              <span className="text-ink dark:text-body font-bold">{grant.doctorName} {grant.doctorInstitution ? `· ${grant.doctorInstitution}` : ''}</span>
                             ) : (
-                              <span className="text-muted italic text-xs">{grant.accessCount ? 'Pase canjeado' : 'Pendiente de escaneo'}</span>
+                              <span className="text-muted italic text-xs">Pendiente de escaneo por médico</span>
                             )}
                           </span>
                         </div>
 
                         {grant.status === 'ACTIVO' && (
                           <div className="pt-0.5 flex items-center gap-1.5">
-                            {grant.grantType === 'QR_TEMPORAL' && !grant.accessCount && (
+                            {grant.grantType === 'QR_TEMPORAL' && (
                               <button
                                 onClick={() => openQrModal(grant)}
                                 className="flex-1 py-1 bg-action hover:bg-action-hover text-on-action font-bold rounded-lg text-xs flex items-center justify-center gap-1 transition-all cursor-pointer shadow-2xs"
@@ -1606,7 +1599,7 @@ export const PatientDashboard = () => {
                               {grant.status === 'ACTIVO' ? (
                                 <span className="font-bold text-emerald-700 flex items-center gap-1">
                                   <Timer className="w-3.5 h-3.5" />
-                                  {formatPermissionDuration(grant.minutesRemaining)}
+                                  {grant.minutesRemaining} min
                                 </span>
                               ) : (
                                 <span className="text-muted">Vencido</span>
@@ -1616,10 +1609,10 @@ export const PatientDashboard = () => {
                               {grant.doctorName ? (
                                 <div>
                                   <span className="font-bold text-ink block">{grant.doctorName}</span>
-                                  <span className="text-xs text-muted">{grant.grantType === 'QR_TEMPORAL' && !grant.doctorId ? ['Identidad declarada', grant.doctorInstitution].filter(Boolean).join(' · ') : grant.doctorInstitution || 'Centro de Salud'}</span>
+                                  <span className="text-xs text-muted">{grant.doctorInstitution || 'Centro de Salud'}</span>
                                 </div>
                               ) : (
-                                <span className="text-muted italic">{grant.accessCount ? 'Pase canjeado' : 'Pendiente de escaneo'}</span>
+                                <span className="text-muted italic">Pendiente de escaneo</span>
                               )}
                             </td>
                             <td className="py-2.5 px-3">
@@ -1637,7 +1630,7 @@ export const PatientDashboard = () => {
                             <td className="py-2.5 px-3 text-right">
                               {grant.status === 'ACTIVO' ? (
                                 <div className="flex justify-end gap-1.5">
-                                  {grant.grantType === 'QR_TEMPORAL' && !grant.accessCount && (
+                                  {grant.grantType === 'QR_TEMPORAL' && (
                                     <button
                                       onClick={() => openQrModal(grant)}
                                       className="px-2.5 py-1 bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/40 dark:hover:bg-teal-900/60 border border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-200 font-bold rounded-lg transition-colors cursor-pointer text-xs inline-flex items-center gap-1"
@@ -1956,7 +1949,7 @@ export const PatientDashboard = () => {
                       tempDocument?.analysis?.is_medical_document === false
                         ? 'El archivo no parece contener información médica'
                         : tempDocument?.isUnreadable
-                          ? 'La extracción automática quedó pendiente'
+                          ? 'No pudimos leer con certeza el documento'
                           : 'Tú tienes el control: revisa o corrige los datos'
                     )}
                     {uploadModalState === 'confirmed' && (
@@ -2114,12 +2107,10 @@ export const PatientDashboard = () => {
                         <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                         <div className="space-y-1">
                           <h4 className="font-extrabold text-amber-950 dark:text-amber-200 text-xs">
-                            {tempDocument.analysis?.extraction_status === 'unavailable' ? 'El servicio de análisis no está disponible' : 'No pudimos leer el texto del documento'}
+                            No pudimos leer bien esta imagen
                           </h4>
                           <p className="text-xs text-amber-800 dark:text-amber-300/90 leading-relaxed">
-                            {tempDocument.analysis?.extraction_status === 'unavailable'
-                              ? 'Puedes volver a intentarlo o guardar el archivo para revisarlo después.'
-                              : 'Comprueba que el texto sea legible e intenta subir el documento de nuevo.'}
+                            La foto puede estar borrosa, con poca luz o la letra es difícil de reconocer automáticamente.
                           </p>
                         </div>
                       </div>
@@ -2168,15 +2159,6 @@ export const PatientDashboard = () => {
                   ) : (
                     /* CASO B: LECTURA EXITOSA CON CAMPOS EDITABLES */
                     <div className="space-y-4">
-                      {tempDocument.analysis?.extraction_status === 'text_only' && (
-                        <div className="rounded-xl border border-line bg-canvas p-3 text-sm text-body" role="status">
-                          <p>Se leyó el texto, pero Gemini no pudo organizarlo. Revisa el tipo y completa los campos antes de guardar.</p>
-                          <details className="mt-2">
-                            <summary className="cursor-pointer font-bold">Ver texto extraído</summary>
-                            <p className="mt-2 whitespace-pre-wrap break-words">{tempDocument.analysis.raw_text}</p>
-                          </details>
-                        </div>
-                      )}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <label className="text-xs font-bold text-body">Tipo de documento
                           <select value={editedData.document_type} onChange={(e) => setEditedData({ ...editedData, document_type: e.target.value })} className="mt-1 w-full rounded-xl border border-line bg-surface px-3 py-2 text-body">
@@ -2580,7 +2562,7 @@ export const PatientDashboard = () => {
                     Pase de acceso temporal
                   </h3>
                   <p className="text-xs text-muted dark:text-muted">
-                    Pase de un solo uso para consultar tu ficha
+                    Pase de un solo uso para una cuenta médica habilitada
                   </p>
                 </div>
               </div>
@@ -2592,7 +2574,6 @@ export const PatientDashboard = () => {
               </button>
             </div>
 
-            <QrApprovalRequests />
             {/* Error banner si ocurre */}
             {grantError && (
               <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 rounded-2xl text-xs flex items-center gap-2">
@@ -2704,8 +2685,8 @@ export const PatientDashboard = () => {
                       type="button"
                       className="w-full py-2.5 px-3 rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-950/40 hover:bg-teal-100/80 dark:hover:bg-teal-900/60 text-teal-900 dark:text-teal-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs"
                     >
-                      <Download className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
-                      <span>Descargar QR</span>
+                      <Share2 className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                      <span>Compartir QR</span>
                     </button>
                 </div>
 
@@ -2716,7 +2697,7 @@ export const PatientDashboard = () => {
                     <span>Actividad de este acceso</span>
                   </div>
                   <p className="text-xs text-muted dark:text-muted leading-relaxed">
-                    Un médico habilitado puede canjear el pase desde su cuenta. Si alguien lo usa sin cuenta, verás el nombre, RUT y centro de salud que declaró y podrás aprobar o rechazar la consulta.
+                    El médico debe iniciar sesión con su cuenta habilitada. El canje queda registrado y puedes revocar el permiso desde Accesos.
                   </p>
                 </div>
 
@@ -2775,10 +2756,10 @@ export const PatientDashboard = () => {
                     ¿Cómo funciona este acceso?
                   </span>
                   <ul className="text-xs text-muted dark:text-muted space-y-1 list-disc list-inside">
-                    <li>Comparte el QR con la persona que consultará tu ficha.</li>
-                    <li>El visitante sin cuenta declara su nombre, RUT y centro de salud. Tú apruebas su solicitud desde el portal.</li>
+                    <li>El médico escanea tu QR desde su celular o sube una foto.</li>
+                    <li>Ingresa su RUT y Centro de Salud / Consulta para identificarse legalmente.</li>
                     <li>Tiene acceso de solo lectura únicamente durante las {qrDuration} horas elegidas.</li>
-                    <li>Cada pase admite un único canje, incluso si rechazas la solicitud.</li>
+                    <li>Válido para cualquier médico: consultas privadas, CESFAM, clínicas u hospitales.</li>
                     <li>Puedes anular el permiso en cualquier momento con el botón de revocar.</li>
                   </ul>
                 </div>
@@ -2817,7 +2798,7 @@ export const PatientDashboard = () => {
       {/* ========================================================================= */}
       {/* MODAL: EDITAR / COMPLETAR ANTECEDENTES DE SALUD (ONBOARDING) */}
       {/* ========================================================================= */}
-      {showProfileEditModal && !confirmProfileSave && (
+      {showProfileEditModal && (
         <DialogFrame label="Editar perfil de salud" onClose={savingProfile ? undefined : () => setShowProfileEditModal(false)} className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="w-full max-w-xl bg-surface dark:bg-surface border border-line dark:border-line rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-start justify-between pb-3 border-b border-stone-100 dark:border-line">
@@ -2827,15 +2808,15 @@ export const PatientDashboard = () => {
                 </div>
                 <div>
                   <h3 className="text-base sm:text-lg font-extrabold text-ink dark:text-ink">
-                    {profileIsOnboarding ? 'Completa tu perfil de salud' : 'Modificar Mi Perfil de Salud'}
+                    Modificar Mi Perfil de Salud
                   </h3>
                   <p className="text-xs text-muted dark:text-muted">
-                    Actualiza los datos de tu cuenta y tus antecedentes de salud.
+                    Toca las opciones para seleccionarlas. Sin necesidad de escribir.
                   </p>
                 </div>
               </div>
               <button
-                disabled={savingProfile} aria-label="Cerrar diálogo" onClick={() => { if (!profileSaveLock.current) setShowProfileEditModal(false); }}
+                aria-label="Cerrar diálogo" onClick={() => setShowProfileEditModal(false)}
                 className="p-1.5 text-muted hover:text-muted rounded-xl hover:bg-surface-muted dark:hover:bg-slate-800 cursor-pointer"
               >
                 <X className="w-5 h-5" />
@@ -2844,7 +2825,6 @@ export const PatientDashboard = () => {
 
             <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
               {profileSaveError && <Notice title="Cambios sin guardar" tone="danger">{profileSaveError}</Notice>}
-              <PatientIdentityFields value={editFormData} onChange={setEditFormData} />
               {/* 1. Previsión de Salud */}
               <div className="space-y-2 p-3 bg-canvas/70 dark:bg-surface-muted/50 rounded-2xl border border-line/80 dark:border-line/60">
                 <div className="flex items-center justify-between">
@@ -3048,11 +3028,11 @@ export const PatientDashboard = () => {
               </div>
 
               {/* Notificación de Validación de Completitud en Vivo */}
-              {!isPatientProfileComplete(editFormData) ? (
+              {(!editFormData.healthInsurance || !editFormData.bloodType) ? (
                 <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex items-center gap-2.5 text-xs text-amber-900 dark:text-amber-200">
                   <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                   <span className="leading-snug">
-                    Para retirar la advertencia de <strong>"Perfil Pendiente"</strong>, debes seleccionar tu <strong>Sexo biológico</strong>, tu <strong>Previsión de Salud</strong> y tu <strong>Grupo Sanguíneo</strong>.
+                    Para retirar la advertencia de <strong>"Perfil Pendiente"</strong>, debes seleccionar al menos tu <strong>Previsión de Salud</strong> y tu <strong>Grupo Sanguíneo</strong>.
                   </span>
                 </div>
               ) : (
@@ -3068,10 +3048,10 @@ export const PatientDashboard = () => {
               <div className="pt-3 border-t border-stone-100 dark:border-line flex items-center justify-end gap-2.5">
                 <button
                   type="button"
-                  disabled={savingProfile} onClick={() => { if (!profileSaveLock.current) setShowProfileEditModal(false); }}
+                  aria-label="Cerrar diálogo" onClick={() => setShowProfileEditModal(false)}
                   className="px-4 py-2.5 rounded-xl border border-line dark:border-line hover:bg-surface-muted dark:hover:bg-slate-800 text-muted dark:text-body font-bold text-xs cursor-pointer"
                 >
-                  {profileIsOnboarding ? 'Completar después' : 'Cancelar'}
+                  Cancelar
                 </button>
 
                 <button
@@ -3084,24 +3064,6 @@ export const PatientDashboard = () => {
                 </button>
               </div>
             </form>
-          </div>
-        </DialogFrame>
-      )}
-
-      {showProfileEditModal && confirmProfileSave && (
-        <DialogFrame label="Confirmar cambios del perfil" onClose={savingProfile ? undefined : () => setConfirmProfileSave(false)} className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-3xl border border-line bg-surface p-5 sm:p-6 shadow-2xl space-y-5">
-            <div className="flex items-start gap-3">
-              <span className="rounded-xl bg-deep-brand p-2.5 text-teal-300"><Save size={22} aria-hidden="true" /></span>
-              <div className="space-y-2">
-                <h2 className="text-lg font-extrabold text-ink">¿Quieres guardar los cambios de tu perfil?</h2>
-                <p className="text-sm text-muted">Puedes volver a editar antes de confirmar.</p>
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row justify-end gap-2">
-              <Button variant="secondary" disabled={savingProfile} onClick={() => setConfirmProfileSave(false)}>Volver a editar</Button>
-              <Button disabled={savingProfile} onClick={confirmAndSaveProfile}>{savingProfile ? 'Guardando…' : 'Confirmar y guardar'}</Button>
-            </div>
           </div>
         </DialogFrame>
       )}

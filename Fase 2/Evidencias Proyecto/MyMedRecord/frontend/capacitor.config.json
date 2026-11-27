@@ -1,0 +1,9 @@
+{
+  "appId": "cl.mymedrecord.app",
+  "appName": "MyMedRecord",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  }
+}

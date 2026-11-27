@@ -1,10 +1,14 @@
+
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: '/api/v1',
-  withCredentials: true, // Crucial para envío y recepción automática de Cookies HttpOnly
+  baseURL: import.meta.env.VITE_API_URL || '/api/v1',
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
+    ...(import.meta.env.VITE_API_URL
+      ? { 'ngrok-skip-browser-warning': 'true' }
+      : {}),
   },
 });
 
@@ -13,11 +17,12 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      // Si la sesión expiró y no estamos ya en login, redirigir
+      // Si la sesión expiró y no estamos ya en login
       if (!window.location.pathname.includes('/login')) {
         // Manejar expiración si es necesario
       }
     }
+
     return Promise.reject(error);
   }
 );
