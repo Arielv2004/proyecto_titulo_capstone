@@ -1,0 +1,15 @@
+# Robots.txt for MyMedRecord
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /register
+Allow: /privacy
+Allow: /terms
+
+# Disallow indexing of private medical session endpoints
+Disallow: /api/
+Disallow: /patient
+Disallow: /doctor
+Disallow: /admin
+
+Sitemap: http://localhost:5173/sitemap.xml

@@ -1,0 +1,30 @@
+{
+  "elapsedMs": 60044,
+  "response": {
+    "success": true,
+    "message": "Documento recibido pero no se pudo leer con claridad.",
+    "data": {
+      "tempId": "5fa7501f-666f-4f1e-b3b2-2b820c0c62a7",
+      "document": {
+        "id": "5fa7501f-666f-4f1e-b3b2-2b820c0c62a7",
+        "title": "Documento Médico",
+        "file_name": "1795123926210-18ec5f68bbcc7076.png",
+        "mime_type": "image/png",
+        "document_type": "OTRO",
+        "status": "TEMP"
+      },
+      "analysis": {
+        "document_type": "OTRO",
+        "diagnoses": [],
+        "medications": [],
+        "lab_metrics": [],
+        "summary": null,
+        "raw_text": "",
+        "extraction_status": "unavailable",
+        "is_medical_document": null,
+        "suggested_title": "Documento Médico"
+      },
+      "isUnreadable": true
+    }
+  }
+}

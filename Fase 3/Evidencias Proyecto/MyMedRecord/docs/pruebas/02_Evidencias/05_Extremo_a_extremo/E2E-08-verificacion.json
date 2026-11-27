@@ -1,0 +1,76 @@
+{
+  "analysis": {
+    "suggested_title": "Receta - Shigelosis",
+    "is_medical_document": true,
+    "document_type": "RECETA",
+    "document_date": "2024-10-14",
+    "diagnoses": [
+      "Diarrea Aguda",
+      "Síndrome Disentérico",
+      "Shigelosis"
+    ],
+    "medications": [
+      {
+        "name": "AZITROMICINA",
+        "dosage": "200 mg/5 ml",
+        "frequency": "4 ml vía oral dosis única el primer día, luego 2 ml vía oral 1 vez al día (07:00 a.m.)",
+        "duration": "4 días",
+        "duration_days": 4
+      }
+    ],
+    "lab_metrics": [],
+    "summary": "Paciente con diagnóstico de diarrea aguda, síndrome disentérico y shigelosis. Se prescribe tratamiento con azitromicina en pauta de dosis única inicial seguida de dosis diaria por 4 días.",
+    "extraction_status": "structured",
+    "raw_text": "Paciente:\nFecha: 14 de Octubre de 2024\n\nDIAGNOSTICO (CIE10) Diarrea Aguda , Síndrome Disemtérico y Shiguellosis\nRp: //\n\n1) AZITROMICINA Jarabe 200 mg/5ml frasco de 15 ml\n41 (uno)\n\n1) AZITROMICINA Tomar 4 ml vía Oral en dosis Única\n\nel primer día, luego Tomar 2 m! Vía Oral 1 vez al día\n\n(07:00a.m.) durante Y días.",
+    "processed_at": "2026-11-19T21:37:28.468113Z"
+  },
+  "persisted": {
+    "success": true,
+    "data": {
+      "id": "5855918e-2756-41e5-88d4-1f11462b0e03",
+      "patient_id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+      "uploaded_by": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+      "document_type": "RECETA",
+      "title": "Receta - Shigelosis",
+      "file_name": "1795124226313-f84440b7620c4d2f.png",
+      "mime_type": "image/png",
+      "file_size_bytes": 124918,
+      "document_date": "2024-10-14T03:00:00.000Z",
+      "issuing_doctor": null,
+      "issuing_institution": null,
+      "ocr_confidence": null,
+      "status": "CONFIRMADO",
+      "created_at": "2026-11-19T21:37:06.316Z",
+      "updated_at": "2026-11-19T21:37:29.040Z",
+      "patient_rut": "12.345.678-5",
+      "patient_first_name": "Juan",
+      "patient_last_name": "Pérez",
+      "file_url": "/api/v1/documents/5855918e-2756-41e5-88d4-1f11462b0e03/file",
+      "structured": {
+        "id": "5276eb3f-7e75-4dcf-9682-5d54679c412a",
+        "document_id": "5855918e-2756-41e5-88d4-1f11462b0e03",
+        "patient_id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+        "doctor_name": null,
+        "diagnosis_code": null,
+        "diagnosis_text": "Diarrea Aguda, Síndrome Disentérico, Shigelosis",
+        "issue_date": "2024-10-14T03:00:00.000Z",
+        "valid_until": "2024-10-18T03:00:00.000Z",
+        "is_chronic": false,
+        "status": "ACTIVA",
+        "created_at": "2026-11-19T21:37:29.048Z",
+        "items": [
+          {
+            "id": "16bab2a2-e138-4efc-b390-3ae04d449991",
+            "prescription_id": "5276eb3f-7e75-4dcf-9682-5d54679c412a",
+            "medication_name": "AZITROMICINA",
+            "dosage": "200 mg/5 ml",
+            "frequency": "4 ml vía oral dosis única el primer día, luego 2 ml vía oral 1 vez al día (07:00 a.m.)",
+            "duration": "4 días (fase posterior)",
+            "instructions": null,
+            "created_at": "2026-11-19T21:37:29.052Z"
+          }
+        ]
+      }
+    }
+  }
+}

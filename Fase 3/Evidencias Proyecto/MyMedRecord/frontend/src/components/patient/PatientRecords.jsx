@@ -1,0 +1,227 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { FileText, Search, Upload, ArrowUpRight, Trash2, Pencil, Sparkles, Download, CheckCircle2, AlertCircle } from 'lucide-react';
+import {
+  Button,
+  Card,
+  DocumentStatus,
+  EmptyState,
+  InfoPopover,
+  LoadingState,
+  Notice,
+} from '../ui/ClinicalUI';
+import { userApi } from '../../services/userApi';
+
+export function PatientRecords({
+  documents,
+  filtered,
+  categories,
+  category,
+  onCategory,
+  query,
+  onQuery,
+  loading,
+  error,
+  onUpload,
+  onDocument,
+  onEdit,
+  onDelete,
+}) {
+  const filterListRef = useRef(null);
+  const [downloadingReport, setDownloadingReport] = useState(false);
+  const [reportSuccess, setReportSuccess] = useState(false);
+  const [reportError, setReportError] = useState(null);
+
+  const handleDownloadReport = async () => {
+    try {
+      setDownloadingReport(true);
+      setReportError(null);
+      setReportSuccess(false);
+      await userApi.downloadClinicalReport();
+      setReportSuccess(true);
+      setTimeout(() => setReportSuccess(false), 5000);
+    } catch (err) {
+      console.error('Error al generar informe PDF:', err);
+      setReportError(err.response?.data?.message || 'No fue posible generar el informe clínico en PDF.');
+    } finally {
+      setDownloadingReport(false);
+    }
+  };
+
+  useEffect(() => {
+    const list = filterListRef.current;
+    const selected = list?.querySelector('[aria-pressed="true"]');
+    if (!list || !selected) return;
+
+    // Keep the category opened from Inicio visible in the mobile filter strip.
+    const listLeft = list.getBoundingClientRect().left;
+    const selectedLeft = selected.getBoundingClientRect().left;
+    list.scrollLeft += selectedLeft - listLeft - (list.clientWidth - selected.clientWidth) / 2;
+  }, [category]);
+
+  return (
+    <div className="mm-records mm-stack">
+      <header className="mm-records-header">
+        <div className="mm-records-heading">
+          <p className="mm-eyebrow">TU HISTORIAL</p>
+          <h1 className="sr-only">Mi ficha</h1>
+        </div>
+        <div className="mm-records-controls">
+          <Button
+            variant="secondary"
+            onClick={handleDownloadReport}
+            disabled={downloadingReport}
+            title="Genera un informe unificado con resumen narrativo por IA (Gemini)"
+          >
+            <Sparkles size={17} className="text-teal-600 dark:text-teal-400" />
+            <span>{downloadingReport ? 'Generando PDF...' : 'Informe Clínico (PDF)'}</span>
+          </Button>
+          <Button onClick={onUpload}>
+            <Upload size={18} />
+            Subir documento
+          </Button>
+          <InfoPopover label="Cómo usar Mi ficha">
+            <p>Usa la búsqueda o elige un tipo para encontrar un documento. Abre cada registro para consultar su archivo y los datos disponibles.</p>
+            <p>«Documento guardado» indica que se almacenó en tu ficha; no significa que un médico haya revisado su contenido. Contrasta los datos extraídos con el original.</p>
+          </InfoPopover>
+        </div>
+      </header>
+
+      {reportSuccess && (
+        <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 rounded-2xl text-emerald-800 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+          <span>Informe clínico generado y descargado exitosamente.</span>
+        </div>
+      )}
+
+      {reportError && (
+        <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 rounded-2xl text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400" />
+          <span>{reportError}</span>
+        </div>
+      )}
+
+      <Card className="mm-records-panel">
+        <label className="mm-search">
+          <Search size={20} aria-hidden="true" />
+          <span className="sr-only">Buscar documentos por título, médico o institución</span>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => onQuery(e.target.value)}
+            placeholder="Buscar en mi ficha"
+          />
+        </label>
+        <div ref={filterListRef} className="mm-filter-list" role="group" aria-label="Filtrar documentos por categoría">
+          {[{ id: 'ALL', title: 'Todos', count: documents.length }, ...categories].map((item) => (
+            <button
+              type="button"
+              key={item.id}
+              aria-pressed={category === item.id}
+              onClick={() => onCategory(item.id)}
+            >
+              {item.title}
+              <span>{loading || error ? '—' : item.count}</span>
+            </button>
+          ))}
+        </div>
+        {loading ? (
+          <LoadingState label="Cargando documentos" />
+        ) : error ? (
+          <Notice
+            title="No pudimos cargar los documentos"
+            tone="danger"
+            action={
+              <Button variant="secondary" onClick={() => window.location.reload()}>
+                Reintentar
+              </Button>
+            }
+          >
+            {error}
+          </Notice>
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            title={
+              documents.length ? 'No encontramos coincidencias' : 'Aún no has subido documentos'
+            }
+            description={
+              documents.length
+                ? 'Prueba con otra búsqueda o categoría.'
+                : 'Agrega tu primera receta, examen o informe para comenzar tu historial.'
+            }
+            action={
+              documents.length ? (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    onQuery('');
+                    onCategory('ALL');
+                  }}
+                >
+                  Limpiar filtros
+                </Button>
+              ) : (
+                <Button onClick={onUpload}>Subir mi primer documento</Button>
+              )
+            }
+          />
+        ) : (
+          <div className="mm-record-list">
+            {filtered.map((doc) => (
+              <article key={doc.id} className="mm-record">
+                <div className="mm-record-heading">
+                  <span className="mm-icon">
+                    <FileText size={22} aria-hidden="true" />
+                  </span>
+                  <div>
+                    <p className="mm-eyebrow">
+                      {categories.find((c) => c.id === doc.category)?.title || 'Documento'}
+                    </p>
+                    <h2>{doc.title}</h2>
+                    <p className="mm-caption">Subido {doc.date}</p>
+                  </div>
+                </div>
+                <dl className="mm-source-grid">
+                  <div>
+                    <dt>Institución</dt>
+                    <dd>{doc.institution || 'No informada'}</dd>
+                  </div>
+                  <div>
+                    <dt>Profesional</dt>
+                    <dd>{doc.doctor || 'No informado'}</dd>
+                  </div>
+                  <div>
+                    <dt>Fecha de emisión</dt>
+                    <dd>{doc.extractedData?.fechaEmision || 'No informada'}</dd>
+                  </div>
+                </dl>
+                <div className="mm-record-footer">
+                  <DocumentStatus status={doc.status} />
+                  {doc.extractedData?.vigenciaHasta && (
+                    <span className="mm-caption">
+                      Vigencia registrada: {doc.extractedData.vigenciaHasta}
+                    </span>
+                  )}
+                  <div className="mm-record-actions">
+                    {doc.status !== 'ERROR' && (
+                      <>
+                        <Button className="mm-record-view-button" variant="secondary" onClick={() => onDocument(doc)}>
+                          Ver documento <ArrowUpRight size={16} />
+                        </Button>
+                        <Button variant="secondary" onClick={() => onEdit(doc)}>
+                          <Pencil size={16} /> Actualizar
+                        </Button>
+                      </>
+                    )}
+                    <Button variant="secondary" onClick={() => onDelete(doc)}>
+                      <Trash2 size={16} /> Eliminar
+                    </Button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}

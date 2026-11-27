@@ -1,0 +1,55 @@
+from pydantic import BaseModel, Field
+from typing import List, Literal, Optional
+from datetime import datetime, timezone
+
+class MedicationEntity(BaseModel):
+    name: str = Field(..., description="Nombre del fármaco")
+    dosage: Optional[str] = Field(None, description="Dosis prescrita")
+    frequency: Optional[str] = Field(None, description="Frecuencia de administración")
+    duration: Optional[str] = Field(None, description="Duración del tratamiento")
+    duration_days: Optional[int] = Field(None, description="Duración en días (numérico, ej: 4 para '4 días', 7 para '1 semana')")
+
+class LabMetricEntity(BaseModel):
+    test_name: str = Field(..., description="Nombre del examen (ej. Glucosa, Colesterol)")
+    value: float = Field(..., description="Valor numérico obtenido")
+    unit: str = Field(..., description="Unidad de medida (ej. mg/dL)")
+    reference_range: Optional[str] = Field(None, description="Rango de referencia normal")
+    is_abnormal: bool = Field(False, description="Indica si está fuera de rango")
+
+class ClinicalExtractionData(BaseModel):
+    """Schema estructurado para la respuesta del LLM (sin campos de transporte como raw_text)."""
+    suggested_title: str = Field(
+        ...,
+        max_length=20,
+        description="Título corto para el documento, ej: 'Receta - Faringitis'"
+    )
+    is_medical_document: bool = Field(
+        True,
+        description="Indica si el texto corresponde a un documento médico clínico (receta, examen, informe). False para errores de sistema, código, texto genérico o contenido no clínico."
+    )
+    document_type: str = Field(..., description="RECETA, EXAMEN_LAB, INFORME_MEDICO, OTRO")
+    document_date: Optional[str] = Field(None, description="Fecha de emisión del documento en formato YYYY-MM-DD")
+    diagnoses: List[str] = Field(default_factory=list, description="Lista de diagnósticos identificados")
+    medications: List[MedicationEntity] = Field(default_factory=list, description="Lista de medicamentos prescritos")
+    lab_metrics: List[LabMetricEntity] = Field(default_factory=list, description="Métricas o resultados de laboratorio")
+    summary: Optional[str] = Field(None, description="Resumen clínico breve en español")
+
+class DocumentExtractionResponse(ClinicalExtractionData):
+    extraction_status: Literal["structured", "text_only"] = "structured"
+    is_medical_document: Optional[bool] = None
+    raw_text: str = Field("", description="Texto crudo extraído por OCR")
+    processed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class ClinicalReportSummaryRequest(BaseModel):
+    patient_name: str = Field(..., description="Nombre completo del paciente")
+    patient_rut: Optional[str] = Field(None, description="RUT del paciente")
+    allergies: List[str] = Field(default_factory=list, description="Alergias declaradas")
+    chronic_conditions: List[str] = Field(default_factory=list, description="Enfermedades crónicas declaradas")
+    prescriptions: List[dict] = Field(default_factory=list, description="Recetas y medicamentos prescritos")
+    lab_reports: List[dict] = Field(default_factory=list, description="Exámenes de laboratorio y resultados")
+    documents_count: int = Field(0, description="Total de documentos en la ficha")
+
+class ClinicalReportSummaryResponse(BaseModel):
+    summary_text: str = Field(..., description="Síntesis narrativa redactada por IA en tono clínico")
+    model_used: str = Field(..., description="Identificador del modelo LLM utilizado")
+    generated_at: str = Field(..., description="Marca de tiempo ISO de la generación")

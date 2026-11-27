@@ -1,0 +1,13 @@
+{
+  "source": "Receta aportada por el usuario, probada como copia anonimizada sin identidad, contacto ni firma",
+  "reference": {
+    "date": "2024-10-14",
+    "medication": "AZITROMICINA",
+    "concentration": "200 mg/5 ml",
+    "presentation": "frasco de 15 ml",
+    "firstPhase": "4 ml vía oral el primer día",
+    "followingPhase": "2 ml vía oral una vez al día",
+    "writtenDuration": "4 días"
+  },
+  "scope": "Los casos estrictos comprueban fecha, nombre, concentración, fases y conservación de duración en estructura. La presentación se conserva como referencia visual, sin un campo estructurado dedicado en el esquema actual."
+}

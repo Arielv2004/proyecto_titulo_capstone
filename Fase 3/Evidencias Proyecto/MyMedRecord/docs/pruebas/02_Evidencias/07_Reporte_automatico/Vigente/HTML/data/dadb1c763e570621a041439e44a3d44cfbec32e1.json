@@ -1,0 +1,265 @@
+{
+  "export_metadata": {
+    "platform": "MyMedRecord",
+    "format_version": "1.0",
+    "legal_basis": "Ley N° 21.719 - Derecho de Portabilidad y Ley N° 20.584",
+    "generated_at": "2026-11-19T21:30:54.867Z",
+    "subject_id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+    "terms_version_accepted": null,
+    "terms_accepted_at": null
+  },
+  "account": {
+    "id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+    "rut": "12.345.678-5",
+    "first_name": "Juan",
+    "last_name": "Pérez",
+    "email": "paciente@mymedrecord.cl",
+    "phone": "+56 9 1111 1111",
+    "role": "PACIENTE",
+    "is_active": true,
+    "created_at": "2026-11-19T21:30:53.464Z",
+    "updated_at": "2026-11-19T21:30:53.464Z"
+  },
+  "health_profile": {
+    "id": "a5c3dfd6-27f6-4dbc-9c02-ea6f04f0926e",
+    "birth_date": "1995-06-15T04:00:00.000Z",
+    "gender": "MASCULINO",
+    "biological_sex": null,
+    "gender_other": null,
+    "blood_type": "O+",
+    "health_insurance": "FONASA Tramo B",
+    "is_organ_donor": true,
+    "allergies": [
+      "Penicilina",
+      "Ibuprofeno"
+    ],
+    "chronic_conditions": [
+      "Hipertensión Arterial Primaria"
+    ],
+    "emergency_contact_name": "María Gómez (Cónyuge)",
+    "emergency_contact_phone": "+56 9 8765 4321",
+    "updated_at": "2026-11-19T21:30:53.464Z"
+  },
+  "documents": [
+    {
+      "id": "d2e3f4a5-b6c7-8d9e-0f1a-2b3c4d5e6f71",
+      "document_type": "EXAMEN_LAB",
+      "title": "Perfil Bioquímico y Glicemia",
+      "file_name": "perfil_bioquimico.pdf",
+      "mime_type": "application/pdf",
+      "file_size_bytes": 512300,
+      "document_date": "2026-08-25T04:00:00.000Z",
+      "issuing_doctor": "Dra. Marcela Fuenzalida",
+      "issuing_institution": "Laboratorio Bionet Las Condes",
+      "ocr_raw_text": "GLUCOSA EN AYUNAS: 95 mg/dL (Ref: 70-100). COLESTEROL TOTAL: 215 mg/dL (Ref: < 200). TRIGLICÉRIDOS: 140 mg/dL (Ref: < 150).",
+      "ocr_confidence": "98.20",
+      "status": "CONFIRMADO",
+      "storage": "LOCAL",
+      "file_url": null,
+      "download_endpoint": "/api/v1/documents/d2e3f4a5-b6c7-8d9e-0f1a-2b3c4d5e6f71/file",
+      "created_at": "2026-11-19T21:30:53.464Z",
+      "updated_at": "2026-11-19T21:30:53.464Z"
+    },
+    {
+      "id": "d1e2f3a4-b5c6-7d8e-9f0a-1b2c3d4e5f60",
+      "document_type": "RECETA",
+      "title": "Receta Médica - Infección Respiratoria Aguda",
+      "file_name": "receta_amoxicilina.jpg",
+      "mime_type": "image/jpeg",
+      "file_size_bytes": 245600,
+      "document_date": "2026-08-20T04:00:00.000Z",
+      "issuing_doctor": "Dr. Carlos Morales",
+      "issuing_institution": "CESFAM Los Castaños",
+      "ocr_raw_text": "RP: Amoxicilina + Ácido Clavulánico 875/125mg cada 12 hrs por 7 días. Paracetamol 500mg cada 8 hrs SOS.",
+      "ocr_confidence": "97.50",
+      "status": "CONFIRMADO",
+      "storage": "LOCAL",
+      "file_url": null,
+      "download_endpoint": "/api/v1/documents/d1e2f3a4-b5c6-7d8e-9f0a-1b2c3d4e5f60/file",
+      "created_at": "2026-11-19T21:30:53.464Z",
+      "updated_at": "2026-11-19T21:30:53.464Z"
+    },
+    {
+      "id": "5ccb4fa8-07dc-4d37-a054-d69853b6062e",
+      "document_type": "RECETA",
+      "title": "Receta ficticia QA",
+      "file_name": "1795123854786-7fba686d1abceaa5.png",
+      "mime_type": "image/png",
+      "file_size_bytes": 68,
+      "document_date": null,
+      "issuing_doctor": null,
+      "issuing_institution": null,
+      "ocr_raw_text": "DOCUMENTO FICTICIO QA. Paracetamol 500 mg cada 8 horas por 3 dias.",
+      "ocr_confidence": null,
+      "status": "CONFIRMADO",
+      "storage": "LOCAL",
+      "file_url": null,
+      "download_endpoint": "/api/v1/documents/5ccb4fa8-07dc-4d37-a054-d69853b6062e/file",
+      "created_at": "2026-11-19T21:30:54.789Z",
+      "updated_at": "2026-11-19T21:30:54.821Z"
+    }
+  ],
+  "prescriptions": [
+    {
+      "id": "e1f2a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a01",
+      "document_id": "d1e2f3a4-b5c6-7d8e-9f0a-1b2c3d4e5f60",
+      "doctor_name": "Dr. Carlos Morales",
+      "diagnosis_code": "J06.9",
+      "diagnosis_text": "Infección respiratoria aguda, no especificada",
+      "issue_date": "2026-08-20T04:00:00.000Z",
+      "valid_until": "2026-09-20T03:00:00.000Z",
+      "is_chronic": false,
+      "status": "ACTIVA",
+      "created_at": "2026-11-19T21:30:53.464Z",
+      "items": [
+        {
+          "id": "4c39dd55-ad35-42d6-b11a-02f80736ca85",
+          "medication_name": "Amoxicilina + Ácido Clavulánico",
+          "dosage": "875/125 mg",
+          "frequency": "Cada 12 horas",
+          "duration": "Por 7 días",
+          "instructions": "Tomar al inicio de las comidas con abundante agua.",
+          "created_at": "2026-11-19T21:30:53.464Z"
+        },
+        {
+          "id": "2a9ca986-8930-4e6f-9e81-8c0ab2aee34a",
+          "medication_name": "Paracetamol",
+          "dosage": "500 mg",
+          "frequency": "Cada 8 horas",
+          "duration": "Por 3 días (SOS)",
+          "instructions": "Tomar solo en caso de fiebre superior a 38°C o dolor corporal intenso.",
+          "created_at": "2026-11-19T21:30:53.464Z"
+        }
+      ]
+    },
+    {
+      "id": "f75b6bca-6004-4f46-acbf-625a82888bf0",
+      "document_id": "5ccb4fa8-07dc-4d37-a054-d69853b6062e",
+      "doctor_name": null,
+      "diagnosis_code": null,
+      "diagnosis_text": null,
+      "issue_date": null,
+      "valid_until": null,
+      "is_chronic": false,
+      "status": "ACTIVA",
+      "created_at": "2026-11-19T21:30:54.824Z",
+      "items": [
+        {
+          "id": "b69f01fe-f67b-4ade-b1b6-dd2dadbdf48c",
+          "medication_name": "Paracetamol",
+          "dosage": "500 mg",
+          "frequency": "cada 8 horas",
+          "duration": "3 dias",
+          "instructions": null,
+          "created_at": "2026-11-19T21:30:54.827Z"
+        }
+      ]
+    }
+  ],
+  "lab_reports": [
+    {
+      "id": "f1a2b3c4-d5e6-7f8a-9b0c-1d2e3f4a5b02",
+      "document_id": "d2e3f4a5-b6c7-8d9e-0f1a-2b3c4d5e6f71",
+      "laboratory_name": "Laboratorio Clínico Bionet",
+      "sample_date": "2026-08-25T04:00:00.000Z",
+      "observations": "Muestra tomada en ayunas de 10 horas. Suero límpido no hemolizado.",
+      "created_at": "2026-11-19T21:30:53.464Z",
+      "items": [
+        {
+          "id": "766119b6-a32d-44a5-bbe8-6fd5bc1552ae",
+          "test_name": "Glucosa en Ayunas",
+          "result_value": "95",
+          "unit": "mg/dL",
+          "reference_range": "70 - 100 mg/dL",
+          "is_abnormal": false,
+          "created_at": "2026-11-19T21:30:53.464Z"
+        },
+        {
+          "id": "9f5c80c5-047d-448a-acfc-996cb049bab8",
+          "test_name": "Colesterol Total",
+          "result_value": "215",
+          "unit": "mg/dL",
+          "reference_range": "< 200 mg/dL",
+          "is_abnormal": true,
+          "created_at": "2026-11-19T21:30:53.464Z"
+        },
+        {
+          "id": "8e669606-a660-4467-abc9-a37a94e6aaa8",
+          "test_name": "Triglicéridos",
+          "result_value": "140",
+          "unit": "mg/dL",
+          "reference_range": "< 150 mg/dL",
+          "is_abnormal": false,
+          "created_at": "2026-11-19T21:30:53.464Z"
+        }
+      ]
+    }
+  ],
+  "access_grants": [
+    {
+      "id": "a3b4c5d6-e7f8-9a0b-1c2d-3e4f5a6b7c8d",
+      "doctor_id": "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
+      "grant_type": "DIRECTO",
+      "starts_at": "2026-11-19T21:30:53.464Z",
+      "expires_at": "2026-11-20T02:30:53.464Z",
+      "is_revoked": false,
+      "access_count": 0,
+      "created_at": "2026-11-19T21:30:53.464Z",
+      "doctor_first_name": "Carlos",
+      "doctor_last_name": "Morales"
+    },
+    {
+      "id": "b4c5d6e7-f8a9-4b0c-8d1e-2f3a4b5c6d7e",
+      "doctor_id": null,
+      "grant_type": "QR_TEMPORAL",
+      "starts_at": "2026-11-19T21:30:53.464Z",
+      "expires_at": "2026-11-20T02:30:53.464Z",
+      "is_revoked": false,
+      "access_count": 0,
+      "created_at": "2026-11-19T21:30:53.464Z",
+      "doctor_first_name": null,
+      "doctor_last_name": null
+    }
+  ],
+  "appointments": [
+    {
+      "id": "c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f",
+      "doctor_id": "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
+      "scheduled_at": "2026-11-19T21:30:53.464Z",
+      "access_expires_at": "2026-11-20T02:30:53.464Z",
+      "status": "PROGRAMADA",
+      "reason": "Consulta médica general",
+      "created_at": "2026-11-19T21:30:53.464Z",
+      "doctor_first_name": "Carlos",
+      "doctor_last_name": "Morales"
+    }
+  ],
+  "audit_logs": [
+    {
+      "id": "3c144c84-981a-4816-9748-79aeb0013153",
+      "action": "CONFIRM_DOCUMENT",
+      "details": {
+        "edited": true,
+        "status": "CONFIRMADO",
+        "documentId": "5ccb4fa8-07dc-4d37-a054-d69853b6062e",
+        "wasReviewed": true,
+        "document_type": "RECETA",
+        "medicationsCount": 1,
+        "is_medical_document": true
+      },
+      "ip_address": "0.0.0.0",
+      "user_agent": null,
+      "created_at": "2026-11-19T21:30:54.829Z"
+    },
+    {
+      "id": "b4b7bada-739a-4f60-8fda-37c0541c2d9e",
+      "action": "INITIALIZE_RECORD",
+      "details": {
+        "message": "Creación inicial de ficha clínica digital bajo Ley N° 21.668"
+      },
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) MyMedRecord/1.0",
+      "created_at": "2026-11-19T21:30:53.464Z"
+    }
+  ]
+}

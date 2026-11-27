@@ -1,0 +1,13 @@
+<testsuites id="" name="" tests="1" failures="0" skipped="0" errors="0" time="15.026442">
+<testsuite name="zap-autenticado.spec.cjs" timestamp="2026-11-19T21:37:55.123Z" hostname="" tests="1" failures="0" skipped="0" time="12.64" errors="0">
+<testcase name="SEG-ZAP-01 | Análisis pasivo de recorridos autenticados" classname="zap-autenticado.spec.cjs" time="12.64">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|Artefactos_tecnicos\zap-autenticado-SEG-ZAP-01-0ef5c--de-recorridos-autenticados\attachments\Revisión-autenticada-165e3cde536104a59eebdeb774fa40b4a9f8f195.json]]
+
+[[ATTACHMENT|Artefactos_tecnicos\zap-autenticado-SEG-ZAP-01-0ef5c--de-recorridos-autenticados\attachments\Reporte-ZAP-0d795c6192cfe32032f0bcbaf1c30fc24ff81831.html]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>

@@ -1,0 +1,37 @@
+{
+  "success": true,
+  "message": "Documento analizado con éxito.",
+  "data": {
+    "tempId": "fe73b696-847f-45d4-ac7b-e3477c176c4b",
+    "document": {
+      "id": "fe73b696-847f-45d4-ac7b-e3477c176c4b",
+      "title": "Receta - Paracetamol",
+      "file_name": "1795124010507-467b5bb4e0c20275.png",
+      "mime_type": "image/png",
+      "document_type": "RECETA",
+      "status": "TEMP"
+    },
+    "analysis": {
+      "suggested_title": "Receta - Paracetamol",
+      "is_medical_document": true,
+      "document_type": "RECETA",
+      "document_date": "2026-11-19",
+      "diagnoses": [],
+      "medications": [
+        {
+          "name": "PARACETAMOL",
+          "dosage": "500 mg",
+          "frequency": "cada 8 horas",
+          "duration": "3 días",
+          "duration_days": 3
+        }
+      ],
+      "lab_metrics": [],
+      "summary": "Receta médica prescrita con Paracetamol 500 mg cada 8 horas durante 3 días.",
+      "extraction_status": "structured",
+      "raw_text": "RECETA - DATOS FICTICIOS QA\n\nPaciente: Persona Ficticia\n\nFecha: 19 noviembre 2026\nMedicamento: Paracetamol 500 mg\nFrecuencia: cada 8 horas\nDuracion: 3 dias\n\nDocumento sintetico para pruebas de software.",
+      "processed_at": "2026-11-19T21:33:48.735158Z"
+    },
+    "isUnreadable": false
+  }
+}

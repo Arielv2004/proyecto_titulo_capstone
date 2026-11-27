@@ -1,0 +1,298 @@
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+[PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).
+▶ perfil: migración compatible, identidad, permisos y exportación
+  [32m✔ migración repetible desde columnas antiguas sin inferir sexo [90m(48.0665ms)[39m[39m
+  [32m✔ registra e inicia sesión con una cuenta nueva sin valores inferidos [90m(252.058ms)[39m[39m
+[Error Handler] Error capturado: Error: Selecciona Femenino o Masculino en sexo biológico.
+    at invalid [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\utils\patient-identity.js:3:42[90m)[39m
+    at validatePatientIdentity [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\utils\patient-identity.js:8:47[90m)[39m
+    at updateProfile [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\controllers\patient-profile.controller.js:57:24[90m)[39m
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)[39m {
+  statusCode: [33m400[39m
+}
+[Error Handler] Error capturado: Error: Selecciona Femenino o Masculino en sexo biológico.
+    at invalid [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\utils\patient-identity.js:3:42[90m)[39m
+    at validatePatientIdentity [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\utils\patient-identity.js:8:47[90m)[39m
+    at updateProfile [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\controllers\patient-profile.controller.js:57:24[90m)[39m
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)[39m {
+  statusCode: [33m400[39m
+}
+[Error Handler] Error capturado: Error: Selecciona Femenino o Masculino en sexo biológico.
+    at invalid [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\utils\patient-identity.js:3:42[90m)[39m
+    at validatePatientIdentity [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\utils\patient-identity.js:8:47[90m)[39m
+    at updateProfile [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\controllers\patient-profile.controller.js:57:24[90m)[39m
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)[39m {
+  statusCode: [33m400[39m
+}
+[Error Handler] Error capturado: Error: Selecciona Femenino o Masculino en sexo biológico.
+    at invalid [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\utils\patient-identity.js:3:42[90m)[39m
+    at validatePatientIdentity [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\utils\patient-identity.js:8:47[90m)[39m
+    at updateProfile [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\controllers\patient-profile.controller.js:57:24[90m)[39m
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)[39m {
+  statusCode: [33m400[39m
+}
+[Error Handler] Error capturado: Error: Selecciona una opción válida de género.
+    at invalid [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\utils\patient-identity.js:3:42[90m)[39m
+    at validatePatientIdentity [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\utils\patient-identity.js:13:13[90m)[39m
+    at updateProfile [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\controllers\patient-profile.controller.js:57:24[90m)[39m
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)[39m {
+  statusCode: [33m400[39m
+}
+[Error Handler] Error capturado: Error: Selecciona una opción válida de género.
+    at invalid [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\utils\patient-identity.js:3:42[90m)[39m
+    at validatePatientIdentity [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\utils\patient-identity.js:13:13[90m)[39m
+    at updateProfile [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\controllers\patient-profile.controller.js:57:24[90m)[39m
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)[39m {
+  statusCode: [33m400[39m
+}
+[Error Handler] Error capturado: Error: Especifica tu identidad de género con entre 1 y 80 caracteres.
+    at invalid [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\utils\patient-identity.js:3:42[90m)[39m
+    at validatePatientIdentity [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\utils\patient-identity.js:24:44[90m)[39m
+    at updateProfile [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\controllers\patient-profile.controller.js:57:24[90m)[39m
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)[39m {
+  statusCode: [33m400[39m
+}
+[Error Handler] Error capturado: Error: Especifica tu identidad de género con entre 1 y 80 caracteres.
+    at invalid [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\utils\patient-identity.js:3:42[90m)[39m
+    at validatePatientIdentity [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\utils\patient-identity.js:24:44[90m)[39m
+    at updateProfile [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\controllers\patient-profile.controller.js:57:24[90m)[39m
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)[39m {
+  statusCode: [33m400[39m
+}
+[Error Handler] Error capturado: Error: La identidad de género debe ser un texto.
+    at invalid [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\utils\patient-identity.js:3:42[90m)[39m
+    at validatePatientIdentity [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\utils\patient-identity.js:18:11[90m)[39m
+    at updateProfile [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\controllers\patient-profile.controller.js:57:24[90m)[39m
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)[39m {
+  statusCode: [33m400[39m
+}
+[Error Handler] Error capturado: Error: El texto de identidad solo corresponde a la opción Otra identidad.
+    at invalid [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\utils\patient-identity.js:3:42[90m)[39m
+    at validatePatientIdentity [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\utils\patient-identity.js:28:15[90m)[39m
+    at updateProfile [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\controllers\patient-profile.controller.js:57:24[90m)[39m
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)[39m {
+  statusCode: [33m400[39m
+}
+  [32m✔ omite datos antiguos sin borrarlos y rechaza valores inválidos [90m(99.4992ms)[39m[39m
+[PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).
+[PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).
+[PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).
+[PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).
+[PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).
+[PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).
+  [32m✔ guarda, recarga, exporta y limpia género explícitamente [90m(105.1936ms)[39m[39m
+  [32m✔ rechaza médicos, sesiones ausentes e inactivos; ignora otro propietario [90m(30.6642ms)[39m[39m
+[PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).
+[PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).
+[PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).
+Browser QA screenshots: D:\Evidencias MyMedRecord\Cierre_20261119_FINAL\03_Integracion\INT-01_Capturas
+  [32m✔ formulario real: confirmación, errores, sesión, móvil y temas [90m(6875.6828ms)[39m[39m
+[32m✔ perfil: migración compatible, identidad, permisos y exportación [90m(8704.5341ms)[39m[39m
+◇ injected env (9) from .env // tip: ⌘ enable debugging { debug: true }
+[PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).
+[PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).
+[Error Handler] Error capturado: Error: Este pase QR ya se utilizó.
+    at serviceError [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\services\access-grant.service.js:11:17[90m)[39m
+    at AccessGrantService.validateAndAccess [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\services\access-grant.service.js:444:39[90m)[39m
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+    at async validate [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\controllers\access-grant.controller.js:535:22[90m)[39m {
+  statusCode: [33m410[39m
+}
+[Error Handler] Error capturado: Error: La sesión de consulta QR no está autorizada.
+    at controllerError [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\controllers\access-grant.controller.js:11:17[90m)[39m
+    at authorizedDoctorGrant [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\controllers\access-grant.controller.js:172:13[90m)[39m
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+    at async qrCheck [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\controllers\access-grant.controller.js:369:25[90m)[39m {
+  statusCode: [33m403[39m
+}
+[Error Handler] Error capturado: Error: La sesión de consulta QR no está autorizada.
+    at controllerError [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\controllers\access-grant.controller.js:11:17[90m)[39m
+    at authorizedDoctorGrant [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\controllers\access-grant.controller.js:172:13[90m)[39m
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+    at async qrCheck [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\controllers\access-grant.controller.js:369:25[90m)[39m {
+  statusCode: [33m403[39m
+}
+[Error Handler] Error capturado: Error: Ingresa tu nombre y un RUT válido.
+    at fail [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:16:53[90m)[39m
+    at visitorIdentity [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:50:11[90m)[39m
+    at [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:63:38
+    at [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:17:44
+    at Layer.handleRequest [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\layer.js:152:17[90m)[39m
+    at next [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\route.js:157:13[90m)[39m
+    at Route.dispatch [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\route.js:117:3[90m)[39m
+    at handle [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\index.js:435:11[90m)[39m
+    at Layer.handleRequest [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\layer.js:152:17[90m)[39m
+    at [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\index.js:295:15 {
+  statusCode: [33m400[39m
+}
+[Error Handler] Error capturado: Error: Ingresa el nombre de tu centro de salud (máximo 200 caracteres).
+    at fail [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:16:53[90m)[39m
+    at visitorIdentity [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:53:11[90m)[39m
+    at [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:63:38
+    at [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:17:44
+    at Layer.handleRequest [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\layer.js:152:17[90m)[39m
+    at next [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\route.js:157:13[90m)[39m
+    at Route.dispatch [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\route.js:117:3[90m)[39m
+    at handle [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\index.js:435:11[90m)[39m
+    at Layer.handleRequest [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\layer.js:152:17[90m)[39m
+    at [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\index.js:295:15 {
+  statusCode: [33m400[39m
+}
+[Error Handler] Error capturado: Error: Ingresa el nombre de tu centro de salud (máximo 200 caracteres).
+    at fail [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:16:53[90m)[39m
+    at visitorIdentity [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:53:11[90m)[39m
+    at [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:63:38
+    at [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:17:44
+    at Layer.handleRequest [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\layer.js:152:17[90m)[39m
+    at next [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\route.js:157:13[90m)[39m
+    at Route.dispatch [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\route.js:117:3[90m)[39m
+    at handle [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\index.js:435:11[90m)[39m
+    at Layer.handleRequest [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\layer.js:152:17[90m)[39m
+    at [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\index.js:295:15 {
+  statusCode: [33m400[39m
+}
+[Error Handler] Error capturado: Error: Ingresa el nombre de tu centro de salud (máximo 200 caracteres).
+    at fail [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:16:53[90m)[39m
+    at visitorIdentity [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:53:11[90m)[39m
+    at [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:63:38
+    at [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:17:44
+    at Layer.handleRequest [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\layer.js:152:17[90m)[39m
+    at next [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\route.js:157:13[90m)[39m
+    at Route.dispatch [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\route.js:117:3[90m)[39m
+    at handle [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\index.js:435:11[90m)[39m
+    at Layer.handleRequest [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\layer.js:152:17[90m)[39m
+    at [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\index.js:295:15 {
+  statusCode: [33m400[39m
+}
+[Error Handler] Error capturado: Error: Ingresa tu nombre y un RUT válido.
+    at fail [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:16:53[90m)[39m
+    at visitorIdentity [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:50:11[90m)[39m
+    at [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:63:38
+    at [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:17:44
+    at Layer.handleRequest [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\layer.js:152:17[90m)[39m
+    at next [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\route.js:157:13[90m)[39m
+    at Route.dispatch [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\route.js:117:3[90m)[39m
+    at handle [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\index.js:435:11[90m)[39m
+    at Layer.handleRequest [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\layer.js:152:17[90m)[39m
+    at [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\index.js:295:15 {
+  statusCode: [33m400[39m
+}
+[Error Handler] Error capturado: Error: Ingresa tu nombre y un RUT válido.
+    at fail [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:16:53[90m)[39m
+    at visitorIdentity [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:50:11[90m)[39m
+    at [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:63:38
+    at [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:17:44
+    at Layer.handleRequest [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\layer.js:152:17[90m)[39m
+    at next [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\route.js:157:13[90m)[39m
+    at Route.dispatch [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\route.js:117:3[90m)[39m
+    at handle [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\index.js:435:11[90m)[39m
+    at Layer.handleRequest [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\layer.js:152:17[90m)[39m
+    at [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\index.js:295:15 {
+  statusCode: [33m400[39m
+}
+[Error Handler] Error capturado: Error: El pase ya se utilizó o no está disponible. Pide otro al paciente.
+    at fail [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:16:53[90m)[39m
+    at [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:70:25
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+    at async transaction [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:27:20[90m)[39m
+    at async [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:65:17 {
+  statusCode: [33m410[39m
+}
+[Error Handler] Error capturado: Error: El pase ya se utilizó o no está disponible. Pide otro al paciente.
+    at fail [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:16:53[90m)[39m
+    at [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:70:25
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+    at async transaction [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:27:20[90m)[39m
+    at async [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:65:17 {
+  statusCode: [33m410[39m
+}
+[Error Handler] Error capturado: Error: La solicitud ya fue enviada o expiró.
+    at fail [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:16:53[90m)[39m
+    at [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:131:33
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+    at async transaction [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:27:20[90m)[39m
+    at async [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:126:3 {
+  statusCode: [33m409[39m
+}
+[Error Handler] Error capturado: Error: Este pase QR ya se utilizó.
+    at serviceError [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\services\access-grant.service.js:11:17[90m)[39m
+    at AccessGrantService.validateAndAccess [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\services\access-grant.service.js:444:39[90m)[39m
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+    at async validate [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\controllers\access-grant.controller.js:535:22[90m)[39m {
+  statusCode: [33m410[39m
+}
+[Error Handler] Error capturado: Error: Esta consulta requiere la aprobación del paciente.
+    at fail [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:16:53[90m)[39m
+    at visitorSession [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:119:56[90m)[39m
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+    at async [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:145:19 {
+  statusCode: [33m403[39m
+}
+[Error Handler] Error capturado: Error: Esta consulta requiere la aprobación del paciente.
+    at fail [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:16:53[90m)[39m
+    at visitorSession [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:119:56[90m)[39m
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+    at async [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:154:19 {
+  statusCode: [33m403[39m
+}
+[Error Handler] Error capturado: Error: Esta consulta pertenece al navegador que canjeó el pase.
+    at fail [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:16:53[90m)[39m
+    at visitorSession [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:111:11[90m)[39m
+    at [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:145:25
+    at [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:17:44
+    at Layer.handleRequest [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\layer.js:152:17[90m)[39m
+    at next [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\route.js:157:13[90m)[39m
+    at Route.dispatch [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\route.js:117:3[90m)[39m
+    at handle [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\index.js:435:11[90m)[39m
+    at Layer.handleRequest [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\lib\layer.js:152:17[90m)[39m
+    at [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39mnode_modules\[4mrouter[24m\index.js:295:15 {
+  statusCode: [33m403[39m
+}
+[Error Handler] Error capturado: Error: La consulta caducó, se cerró o el permiso fue revocado.
+    at fail [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:16:53[90m)[39m
+    at visitorSession [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:118:57[90m)[39m
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+    at async [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:145:19 {
+  statusCode: [33m410[39m
+}
+[Error Handler] Error capturado: Error: La consulta caducó, se cerró o el permiso fue revocado.
+    at fail [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:16:53[90m)[39m
+    at visitorSession [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:118:57[90m)[39m
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+    at async [90mD:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\routes\qr-visitor.routes.js:154:19 {
+  statusCode: [33m410[39m
+}
+[Error Handler] Error capturado: Error: El pase ya se utilizó o dejó de estar vigente. Solicita otro al paciente.
+    at serviceError [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\services\access-grant.service.js:11:17[90m)[39m
+    at AccessGrantService.validateAndAccess [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\services\access-grant.service.js:488:27[90m)[39m
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+    at async validate [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\controllers\access-grant.controller.js:535:22[90m)[39m {
+  statusCode: [33m410[39m
+}
+▶ canje QR concurrente, consulta temporal y acceso directo independiente
+  [32m✔ un visitante consume el mismo pase y necesita aprobación en su navegador [90m(165.0409ms)[39m[39m
+[Error Handler] Error capturado: Error: El permiso no está vigente.
+    at controllerError [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\controllers\access-grant.controller.js:11:17[90m)[39m
+    at assertCurrentGrant [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\controllers\access-grant.controller.js:118:11[90m)[39m
+    at authorizedDoctorGrant [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\controllers\access-grant.controller.js:158:3[90m)[39m
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+    at async qrCheck [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\controllers\access-grant.controller.js:369:25[90m)[39m {
+  statusCode: [33m403[39m
+}
+[Error Handler] Error capturado: Error: El permiso no está vigente.
+    at controllerError [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\controllers\access-grant.controller.js:11:17[90m)[39m
+    at assertCurrentGrant [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\controllers\access-grant.controller.js:118:11[90m)[39m
+    at authorizedDoctorGrant [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\controllers\access-grant.controller.js:158:3[90m)[39m
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+    at async qrFile [90m(D:\repo_capstone_main\Fase 2\Evidencias Proyecto\MyMedRecord\backend-core\[39msrc\controllers\access-grant.controller.js:410:33[90m)[39m {
+  statusCode: [33m403[39m
+}
+[32m✔ canje QR concurrente, consulta temporal y acceso directo independiente [90m(1693.9515ms)[39m[39m
+[34mℹ tests 9[39m
+[34mℹ suites 0[39m
+[34mℹ pass 9[39m
+[34mℹ fail 0[39m
+[34mℹ cancelled 0[39m
+[34mℹ skipped 0[39m
+[34mℹ todo 0[39m
+[34mℹ duration_ms 9001.5733[39m

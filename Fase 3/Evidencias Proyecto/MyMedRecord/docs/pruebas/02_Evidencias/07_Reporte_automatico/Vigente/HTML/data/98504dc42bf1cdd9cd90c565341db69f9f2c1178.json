@@ -1,0 +1,44 @@
+{
+  "success": true,
+  "message": "Documento analizado con éxito.",
+  "data": {
+    "tempId": "e294c9dc-c007-4584-ba6f-a859f8a550fe",
+    "document": {
+      "id": "e294c9dc-c007-4584-ba6f-a859f8a550fe",
+      "title": "Examen - Glucosa",
+      "file_name": "1795123860422-88d16104119ac485.pdf",
+      "mime_type": "application/pdf",
+      "document_type": "EXAMEN_LAB",
+      "status": "TEMP"
+    },
+    "analysis": {
+      "suggested_title": "Examen - Glucosa",
+      "is_medical_document": true,
+      "document_type": "EXAMEN_LAB",
+      "document_date": "2026-11-19",
+      "diagnoses": [],
+      "medications": [],
+      "lab_metrics": [
+        {
+          "test_name": "Glucosa",
+          "value": 94,
+          "unit": "mg/dL",
+          "reference_range": "70 - 100 mg/dL",
+          "is_abnormal": false
+        },
+        {
+          "test_name": "Colesterol total",
+          "value": 180,
+          "unit": "mg/dL",
+          "reference_range": "Menor de 200 mg/dL",
+          "is_abnormal": false
+        }
+      ],
+      "summary": "Informe de laboratorio que presenta valores dentro de los rangos normales para Glucosa (94 mg/dL) y Colesterol total (180 mg/dL).",
+      "extraction_status": "structured",
+      "raw_text": "INFORME DE LABORATORIO\nFICTICIO QA\n\nPaciente: Persona Ficticia. Fecha: 19 noviembre 2026.\n\nExamen\n\nResultado\n\nReferencia\n\nGlucosa\n\n94 mg/dL 70 - 100 mg/dL\n\nColesterol total 180 mg/dL Menor de 200 mg/dL\n\nDocumento sintetico para pruebas, no utilizar con fines clinicos.",
+      "processed_at": "2026-11-19T21:31:08.623285Z"
+    },
+    "isUnreadable": false
+  }
+}

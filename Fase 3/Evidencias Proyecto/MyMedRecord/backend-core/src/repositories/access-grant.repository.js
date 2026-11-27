@@ -1,0 +1,394 @@
+const db = require('../config/db');
+
+class AccessGrantRepository {
+  /**
+   * Crear un nuevo acceso temporal por código QR
+   */
+  static async createGrant({ patientId, token, expiresAt }) {
+    const query = `
+      INSERT INTO access_grants (
+        patient_id,
+        token,
+        grant_type,
+        expires_at,
+        is_revoked
+      )
+      VALUES ($1, $2, 'QR_TEMPORAL', $3, FALSE)
+      RETURNING *;
+    `;
+
+    const result = await db.query(query, [
+      patientId,
+      token,
+      expiresAt,
+    ]);
+
+    return result.rows[0];
+  }
+
+  /**
+   * Crear acceso directo para un médico registrado
+   */
+  static async createDirectGrant({
+    patientId,
+    doctorId,
+    token,
+    expiresAt,
+  }) {
+    const query = `
+      INSERT INTO access_grants (
+        patient_id,
+        doctor_id,
+        token,
+        grant_type,
+        expires_at,
+        is_revoked
+      )
+      VALUES ($1, $2, $3, 'DIRECTO', $4, FALSE)
+      RETURNING *;
+    `;
+
+    const result = await db.query(query, [
+      patientId,
+      doctorId,
+      token,
+      expiresAt,
+    ]);
+
+    return result.rows[0];
+  }
+
+  /**
+   * Buscar un grant por su token
+   */
+  static async findByToken(token) {
+    const query = `
+      SELECT
+        ag.*,
+        u.first_name,
+        u.last_name,
+        u.rut AS patient_rut
+      FROM access_grants ag
+      JOIN users u
+        ON ag.patient_id = u.id
+      WHERE ag.token = $1;
+    `;
+
+    const result = await db.query(query, [token]);
+
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Actualizar datos del médico que consultó el QR
+   * e incrementar contador de accesos
+   */
+  static async claimQr(client, {
+    doctorId,
+    token,
+    doctorRut,
+    doctorName,
+    doctorInstitution,
+  }) {
+    const query = `
+      UPDATE access_grants
+      SET
+        doctor_rut = $1,
+        doctor_name = $2,
+        doctor_institution = $3,
+        doctor_id = $5,
+        access_count = 1
+      WHERE token = $4 AND grant_type = 'QR_TEMPORAL'
+        AND access_count = 0 AND NOT is_revoked
+        AND starts_at <= NOW() AND expires_at > NOW()
+        AND (doctor_id IS NULL OR doctor_id = $5)
+      RETURNING *;
+    `;
+
+    const result = await client.query(query, [
+      doctorRut,
+      doctorName,
+      doctorInstitution,
+      token,
+      doctorId,
+    ]);
+
+    return result.rows[0];
+  }
+
+  /**
+   * Revocar un grant por parte del paciente
+   */
+  static async revokeGrant(grantId, patientId) {
+    const query = `
+      UPDATE access_grants
+      SET is_revoked = TRUE
+      WHERE id = $1
+        AND patient_id = $2
+      RETURNING *;
+    `;
+
+    const result = await db.query(query, [
+      grantId,
+      patientId,
+    ]);
+
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Obtener solamente el QR activo y vigente del paciente.
+   *
+   * Los accesos DIRECTO no deben ser considerados
+   * como el QR principal del paciente.
+   */
+  static async getActiveByPatient(patientId) {
+    const query = `
+      SELECT *
+      FROM access_grants
+      WHERE patient_id = $1
+        AND grant_type = 'QR_TEMPORAL'
+        AND access_count = 0
+        AND is_revoked = FALSE
+        AND expires_at > NOW()
+      ORDER BY created_at DESC
+      LIMIT 1;
+    `;
+
+    const result = await db.query(query, [patientId]);
+
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Obtener todos los pases y accesos del paciente:
+   * - QR activos
+   * - QR expirados
+   * - QR revocados
+   * - Accesos DIRECTO a médicos
+   */
+  static async getAllByPatient(patientId) {
+    const query = `
+      SELECT
+        ag.*,
+        GREATEST(
+          0,
+          ROUND(
+            EXTRACT(EPOCH FROM (ag.expires_at - NOW())) / 60
+          )
+        ) AS minutes_remaining,
+        CASE
+          WHEN ag.is_revoked THEN 'REVOCADO'
+          WHEN ag.expires_at <= NOW() THEN 'EXPIRADO'
+          ELSE 'ACTIVO'
+        END AS status_label
+      FROM access_grants ag
+      WHERE ag.patient_id = $1
+      ORDER BY ag.created_at DESC;
+    `;
+
+    const result = await db.query(query, [patientId]);
+
+    return result.rows;
+  }
+
+  /**
+   * Obtener accesos DIRECTO compartidos con
+   * el médico autenticado.
+   *
+   * Incluye los datos básicos del paciente.
+   */
+  static async getSharedWithDoctor(doctorId) {
+    const query = `
+      SELECT
+        ag.*,
+
+        p.rut AS patient_rut,
+        p.first_name AS patient_first_name,
+        p.last_name AS patient_last_name,
+        p.email AS patient_email,
+
+        GREATEST(
+          0,
+          ROUND(
+            EXTRACT(EPOCH FROM (ag.expires_at - NOW())) / 60
+          )
+        ) AS minutes_remaining,
+
+        CASE
+          WHEN ag.is_revoked THEN 'REVOCADO'
+          WHEN ag.expires_at <= NOW() THEN 'EXPIRADO'
+          ELSE 'ACTIVO'
+        END AS status_label
+
+      FROM access_grants ag
+
+      INNER JOIN users p
+        ON p.id = ag.patient_id
+
+      WHERE ag.doctor_id = $1
+        AND ag.grant_type = 'DIRECTO'
+
+      ORDER BY
+        CASE
+          WHEN ag.is_revoked = FALSE
+            AND ag.expires_at > NOW()
+          THEN 0
+          ELSE 1
+        END,
+        ag.created_at DESC;
+    `;
+
+    const result = await db.query(query, [doctorId]);
+
+    return result.rows;
+  }
+
+  /**
+   * Obtener la ficha clínica completa y recetas
+   * del paciente para el Visor Médico
+   */
+  static async getPatientClinicalData(patientId) {
+    // =====================================================
+    // 1. DATOS DEL USUARIO
+    // =====================================================
+
+    const userQuery = `
+      SELECT
+        id,
+        rut,
+        first_name,
+        last_name,
+        email,
+        phone,
+        created_at
+      FROM users
+      WHERE id = $1;
+    `;
+
+    const userRes = await db.query(userQuery, [patientId]);
+
+    const user = userRes.rows[0];
+
+    if (!user) {
+      return null;
+    }
+
+    // =====================================================
+    // 2. PERFIL CLÍNICO
+    // =====================================================
+
+    const profileQuery = `
+      SELECT to_char(birth_date, 'YYYY-MM-DD') AS birth_date,
+             gender, biological_sex, gender_other, blood_type, health_insurance, is_organ_donor, allergies,
+             chronic_conditions, updated_at
+      FROM patient_profiles
+      WHERE user_id = $1;
+    `;
+
+    const profileRes = await db.query(
+      profileQuery,
+      [patientId]
+    );
+
+    const profile = profileRes.rows[0] || {};
+
+    // =====================================================
+    // 3. RECETAS CON SUS MEDICAMENTOS
+    // =====================================================
+
+    const prescriptionsQuery = `
+      SELECT
+        p.*,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', pi.id,
+              'medication_name', pi.medication_name,
+              'dosage', pi.dosage,
+              'frequency', pi.frequency,
+              'duration', pi.duration,
+              'instructions', pi.instructions
+            )
+          ) FILTER (
+            WHERE pi.id IS NOT NULL
+          ),
+          '[]'
+        ) AS items
+      FROM prescriptions p
+      INNER JOIN documents d ON d.id = p.document_id
+        AND d.status IN ('CONFIRMADO', 'PENDIENTE_REVISION')
+      LEFT JOIN prescription_items pi
+        ON p.id = pi.prescription_id
+      WHERE p.patient_id = $1
+      GROUP BY p.id
+      ORDER BY p.issue_date DESC;
+    `;
+
+    const prescriptionsRes = await db.query(
+      prescriptionsQuery,
+      [patientId]
+    );
+
+    const labReportsRes = await db.query(
+      `SELECT lr.id, lr.document_id, lr.laboratory_name, lr.sample_date,
+              lr.observations, lr.created_at,
+              COALESCE(json_agg(json_build_object(
+                'id', li.id, 'test_name', li.test_name,
+                'result_value', li.result_value, 'unit', li.unit,
+                'reference_range', li.reference_range, 'is_abnormal', li.is_abnormal
+              )) FILTER (WHERE li.id IS NOT NULL), '[]') AS items
+       FROM lab_reports lr
+       INNER JOIN documents d ON d.id = lr.document_id
+         AND d.status IN ('CONFIRMADO', 'PENDIENTE_REVISION')
+       LEFT JOIN lab_test_items li ON li.lab_report_id = lr.id
+       WHERE lr.patient_id = $1
+       GROUP BY lr.id
+       ORDER BY lr.sample_date DESC NULLS LAST, lr.created_at DESC`,
+      [patientId]
+    );
+
+    const documentsRes = await db.query(
+      `SELECT id, document_type, title, file_name, mime_type,
+              document_date, issuing_doctor, issuing_institution,
+              status, created_at, updated_at
+       FROM documents
+       WHERE patient_id = $1 AND status IN ('CONFIRMADO', 'PENDIENTE_REVISION')
+       ORDER BY document_date DESC NULLS LAST, created_at DESC`,
+      [patientId]
+    );
+
+    // =====================================================
+    // RESPUESTA CLÍNICA
+    // =====================================================
+
+    return {
+      patient: {
+        id: user.id,
+        rut: user.rut,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        phone: user.phone,
+      },
+
+      profile: {
+        birthDate: profile.birth_date,
+        gender: profile.gender,
+        biologicalSex: profile.biological_sex,
+        genderOther: profile.gender_other,
+        bloodType: profile.blood_type,
+        healthInsurance: profile.health_insurance,
+        isOrganDonor: profile.is_organ_donor,
+        allergies: profile.allergies || [],
+        chronicConditions:
+          profile.chronic_conditions || [],
+        updatedAt: profile.updated_at || null,
+      },
+      prescriptions: prescriptionsRes.rows,
+      labReports: labReportsRes.rows,
+      documents: documentsRes.rows,
+    };
+  }
+}
+
+module.exports = AccessGrantRepository;

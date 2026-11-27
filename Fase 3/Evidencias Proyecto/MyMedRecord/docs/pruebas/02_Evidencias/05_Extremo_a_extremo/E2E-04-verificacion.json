@@ -1,0 +1,74 @@
+{
+  "input": "Receta sintética salvo QA_RECIPE_PATH explícito",
+  "analysis": {
+    "suggested_title": "Receta - Paracetamol",
+    "is_medical_document": true,
+    "document_type": "RECETA",
+    "document_date": "2026-11-19",
+    "diagnoses": [],
+    "medications": [
+      {
+        "name": "PARACETAMOL",
+        "dosage": "500 mg",
+        "frequency": "cada 8 horas",
+        "duration": "3 dias",
+        "duration_days": 3
+      }
+    ],
+    "lab_metrics": [],
+    "summary": "Receta médica para el uso de Paracetamol 500 mg cada 8 horas durante un periodo de 3 días.",
+    "extraction_status": "structured",
+    "raw_text": "RECETA - DATOS\nFICTICIOS QA\n\nPaciente: Persona Ficticia\n\nFecha: 19 noviembre 2026\n\nMedicamento: Paracetamol 500 mg\n\nFrecuencia: cada 8 horas\n\nDuracion: 3 dias\n\nDocumento sintetico para pruebas de software.",
+    "processed_at": "2026-11-19T21:29:34.428186Z"
+  },
+  "persisted": {
+    "success": true,
+    "data": {
+      "id": "f44e1d36-27a3-40e7-b90a-2fac9273b6ff",
+      "patient_id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+      "uploaded_by": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+      "document_type": "RECETA",
+      "title": "Receta - Paracetamol",
+      "file_name": "1795123753616-f8501b4a7d0bcd08.pdf",
+      "mime_type": "application/pdf",
+      "file_size_bytes": 36732,
+      "document_date": "2026-11-19T03:00:00.000Z",
+      "issuing_doctor": null,
+      "issuing_institution": null,
+      "ocr_confidence": null,
+      "status": "CONFIRMADO",
+      "created_at": "2026-11-19T21:29:13.617Z",
+      "updated_at": "2026-11-19T21:29:34.957Z",
+      "patient_rut": "12.345.678-5",
+      "patient_first_name": "Juan",
+      "patient_last_name": "Pérez",
+      "file_url": "/api/v1/documents/f44e1d36-27a3-40e7-b90a-2fac9273b6ff/file",
+      "structured": {
+        "id": "51c2be0e-d0c6-4210-8f0e-937b89959a58",
+        "document_id": "f44e1d36-27a3-40e7-b90a-2fac9273b6ff",
+        "patient_id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+        "doctor_name": null,
+        "diagnosis_code": null,
+        "diagnosis_text": "Receta médica para el uso de Paracetamol 500 mg cada 8 horas durante un periodo de 3 días.",
+        "issue_date": "2026-11-19T03:00:00.000Z",
+        "valid_until": "2026-11-22T03:00:00.000Z",
+        "is_chronic": false,
+        "status": "ACTIVA",
+        "created_at": "2026-11-19T21:29:34.965Z",
+        "items": [
+          {
+            "id": "e62f8fda-4aaf-4ea5-bbe2-ba755552cf74",
+            "prescription_id": "51c2be0e-d0c6-4210-8f0e-937b89959a58",
+            "medication_name": "PARACETAMOL",
+            "dosage": "750 mg QA",
+            "frequency": "cada 8 horas",
+            "duration": "3 dias",
+            "instructions": null,
+            "created_at": "2026-11-19T21:29:34.969Z"
+          }
+        ]
+      }
+    }
+  },
+  "downloadMatchesInput": true
+}
