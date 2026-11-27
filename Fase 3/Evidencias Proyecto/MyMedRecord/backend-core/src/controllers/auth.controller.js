@@ -2,6 +2,7 @@
 const AuthService = require('../services/auth.service');
 const config = require('../config/env');
 const { COOKIE_OPTIONS } = require('../config/cookie');
+const Sessions = require('../repositories/session.repository');
 
 class AuthController {
   // =====================================================
@@ -173,7 +174,10 @@ class AuthController {
   // CERRAR SESIÓN
   // =====================================================
 
-  static async logout(req, res) {
+  static async logout(req, res, next) {
+    try {
+      await Sessions.revoke(req.cookies?.[config.JWT.COOKIE_NAME] || req.headers.authorization?.split(' ')[1]);
+    } catch (error) { return next(error); }
     res.clearCookie(
       config.JWT.COOKIE_NAME,
       COOKIE_OPTIONS

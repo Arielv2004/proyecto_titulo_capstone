@@ -1,0 +1,232 @@
+erDiagram
+  access_grants {
+    uuid id PK
+    uuid patient_id FK
+    uuid doctor_id FK
+    character_varying doctor_rut
+    character_varying doctor_name
+    character_varying doctor_institution
+    character_varying token
+    character_varying grant_type
+    timestamp_with_time_zone starts_at
+    timestamp_with_time_zone expires_at
+    boolean is_revoked
+    integer access_count
+    timestamp_with_time_zone created_at
+  }
+  appointments {
+    uuid id PK
+    uuid doctor_id FK
+    uuid patient_id FK
+    timestamp_with_time_zone scheduled_at
+    timestamp_with_time_zone access_expires_at
+    character_varying status
+    character_varying reason
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+    jsonb encrypted_payload
+  }
+  audit_logs {
+    uuid id PK
+    uuid user_id FK
+    uuid patient_id FK
+    character_varying action
+    jsonb details
+    character_varying ip_address
+    text user_agent
+    timestamp_with_time_zone created_at
+  }
+  auth_sessions {
+    character token_hash PK
+    uuid user_id FK
+    timestamp_with_time_zone expires_at
+    timestamp_with_time_zone revoked_at
+    timestamp_with_time_zone created_at
+  }
+  doctor_profiles {
+    uuid id PK
+    uuid user_id FK
+    uuid institution_id FK
+    character_varying institution_name_other
+    character_varying professional_registry
+    character_varying specialty
+    character_varying professional_title
+    character_varying verification_status
+    timestamp_with_time_zone verified_at
+    boolean is_available_for_sharing
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+    character_varying region_code
+    character_varying city
+    character_varying address
+  }
+  document_deletions {
+    uuid id PK
+    uuid document_id FK
+    uuid patient_id FK
+    text storage_path_cipher
+    integer attempts
+    timestamp_with_time_zone next_attempt_at
+    timestamp_with_time_zone completed_at
+    character_varying last_error_code
+    timestamp_with_time_zone created_at
+  }
+  documents {
+    uuid id PK
+    uuid patient_id FK
+    uuid uploaded_by FK
+    character_varying document_type
+    character_varying title
+    character_varying file_name
+    character_varying file_path
+    character_varying mime_type
+    integer file_size_bytes
+    date document_date
+    character_varying issuing_doctor
+    character_varying issuing_institution
+    text ocr_raw_text
+    numeric ocr_confidence
+    text encrypted_notes
+    character_varying status
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+    jsonb encrypted_payload
+  }
+  health_institutions {
+    uuid id PK
+    character_varying name
+    character_varying institution_type
+    character_varying rut
+    character_varying address
+    character_varying commune
+    character_varying city
+    character_varying phone
+    character_varying email
+    boolean is_active
+    timestamp_with_time_zone created_at
+  }
+  lab_reports {
+    uuid id PK
+    uuid document_id FK
+    uuid patient_id FK
+    character_varying laboratory_name
+    date sample_date
+    text observations
+    timestamp_with_time_zone created_at
+    jsonb encrypted_payload
+  }
+  lab_test_items {
+    uuid id PK
+    uuid lab_report_id FK
+    character_varying test_name
+    character_varying result_value
+    character_varying unit
+    character_varying reference_range
+    boolean is_abnormal
+    timestamp_with_time_zone created_at
+    jsonb encrypted_payload
+  }
+  password_reset_tokens {
+    uuid id PK
+    uuid user_id FK
+    character token_hash
+    timestamp_with_time_zone expires_at
+    timestamp_with_time_zone created_at
+  }
+  patient_profiles {
+    uuid id PK
+    uuid user_id FK
+    date birth_date
+    character_varying gender
+    character_varying blood_type
+    character_varying health_insurance
+    boolean is_organ_donor
+    ARRAY allergies
+    ARRAY chronic_conditions
+    character_varying emergency_contact_name
+    character_varying emergency_contact_phone
+    timestamp_with_time_zone updated_at
+    character_varying biological_sex
+    character_varying gender_other
+    jsonb encrypted_payload
+  }
+  prescription_items {
+    uuid id PK
+    uuid prescription_id FK
+    character_varying medication_name
+    character_varying dosage
+    character_varying frequency
+    character_varying duration
+    text instructions
+    timestamp_with_time_zone created_at
+    jsonb encrypted_payload
+  }
+  prescriptions {
+    uuid id PK
+    uuid document_id FK
+    uuid patient_id FK
+    character_varying doctor_name
+    character_varying diagnosis_code
+    character_varying diagnosis_text
+    date issue_date
+    date valid_until
+    boolean is_chronic
+    character_varying status
+    timestamp_with_time_zone created_at
+    jsonb encrypted_payload
+  }
+  privacy_acceptances {
+    uuid id PK
+    uuid user_id FK
+    character_varying version
+    timestamp_with_time_zone accepted_at
+  }
+  qr_visitor_requests {
+    uuid grant_id PK,FK
+    character credential_hash
+    character_varying status
+    timestamp_with_time_zone request_expires_at
+  }
+  security_rate_limits {
+    character key PK
+    integer hits
+    timestamp_with_time_zone expires_at
+  }
+  users {
+    uuid id PK
+    character_varying rut
+    character_varying first_name
+    character_varying last_name
+    character_varying email
+    character_varying password_hash
+    character_varying role
+    character_varying phone
+    boolean is_active
+    timestamp_with_time_zone terms_accepted_at
+    character_varying terms_version
+    timestamp_with_time_zone created_at
+    timestamp_with_time_zone updated_at
+  }
+  users |o--o{ access_grants : "doctor_id"
+  users ||--o{ access_grants : "patient_id"
+  users ||--o{ appointments : "doctor_id"
+  users ||--o{ appointments : "patient_id"
+  users |o--o{ audit_logs : "patient_id"
+  users |o--o{ audit_logs : "user_id"
+  users ||--o{ auth_sessions : "user_id"
+  health_institutions |o--o{ doctor_profiles : "institution_id"
+  users ||--o{ doctor_profiles : "user_id"
+  documents |o--o{ document_deletions : "document_id"
+  users |o--o{ document_deletions : "patient_id"
+  users ||--o{ documents : "patient_id"
+  users ||--o{ documents : "uploaded_by"
+  documents ||--o{ lab_reports : "document_id"
+  users ||--o{ lab_reports : "patient_id"
+  lab_reports ||--o{ lab_test_items : "lab_report_id"
+  users ||--o{ password_reset_tokens : "user_id"
+  users ||--o{ patient_profiles : "user_id"
+  prescriptions ||--o{ prescription_items : "prescription_id"
+  documents ||--o{ prescriptions : "document_id"
+  users ||--o{ prescriptions : "patient_id"
+  users ||--o{ privacy_acceptances : "user_id"
+  access_grants ||--o{ qr_visitor_requests : "grant_id"

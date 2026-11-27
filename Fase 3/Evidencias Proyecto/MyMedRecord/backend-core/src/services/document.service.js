@@ -7,6 +7,8 @@ const DocumentRepository = require('../repositories/document.repository');
 const SupabaseService = require('./supabase.service');
 const config = require('../config/env');
 const db = require('../config/db');
+const Deletions = require('./document-deletion.service');
+const clinical = require('./clinical-store.service');
 
 const AI_SERVICE_URL = config.AI_SERVICE_URL;
 const UPLOAD_DIR = path.join(__dirname, '..', '..', 'uploads');
@@ -281,142 +283,152 @@ class DocumentService {
             throw error;
         }
 
-        const doc = await DocumentRepository.findTempById(tempId);
-        if (!doc) {
-            const error = new Error('Documento temporal no encontrado o ya confirmado/descartado.');
-            error.statusCode = 404;
-            throw error;
-        }
-
-        if (user.role !== 'PACIENTE' || doc.patient_id !== user.id) {
-            const error = new Error('No tienes permiso para confirmar este documento.');
-            error.statusCode = 403;
-            throw error;
-        }
-
-        const isMedicalDoc = editedData.is_medical_document !== false;
-        const documentType = isMedicalDoc
-            ? this._normalizeDocumentType(editedData.document_type || doc.document_type)
-            : 'OTRO';
-        const title = editedData.title || editedData.suggested_title || doc.title || (isMedicalDoc ? 'Documento Clínico' : 'Documento no médico');
-        const issuingDoctor = isMedicalDoc ? (editedData.issuing_doctor || doc.issuing_doctor || null) : null;
-        const issuingInstitution = isMedicalDoc ? (editedData.issuing_institution || doc.issuing_institution || null) : null;
-
-        // No inventar una fecha clínica cuando el documento no la informa.
-        let issueDateStr = editedData.document_date || doc.document_date || null;
-        if (issueDateStr && !isNaN(new Date(issueDateStr).getTime())) {
-            issueDateStr = new Date(issueDateStr).toISOString().split('T')[0];
-        } else {
-            issueDateStr = null;
-        }
-
-        const documentDate = issueDateStr;
-        const targetStatus = (wasReviewed && isMedicalDoc) ? 'CONFIRMADO' : 'PENDIENTE_REVISION';
-
-        // 1. Cambiar estado a targetStatus ('CONFIRMADO' o 'PENDIENTE_REVISION')
-        const updatedDoc = await DocumentRepository.updateDocumentOnConfirm(doc.id, {
-            status: targetStatus,
-            title,
-            document_type: documentType,
-            issuing_doctor: issuingDoctor,
-            issuing_institution: issuingInstitution,
-            document_date: documentDate,
-        });
-
-        let structured = null;
-
-        // 2. Crear cabeceras e ítems según corresponda (solo si fue revisado y es médico)
-        if (wasReviewed && isMedicalDoc) {
-            const medications = Array.isArray(editedData.medications) ? editedData.medications : [];
-            const diagnosisText = editedData.diagnostico ||
-                (Array.isArray(editedData.diagnoses) ? editedData.diagnoses.join(', ') : (editedData.diagnosis_text || null));
-
-            if (documentType === 'RECETA') {
-                // Calcular duración máxima y vigencia (valid_until)
-                const maxDurationDays = this._extractMaxDurationDays(medications);
-                let validUntilStr = null;
-
-                if (editedData.valid_until && !isNaN(new Date(editedData.valid_until).getTime())) {
-                    validUntilStr = new Date(editedData.valid_until).toISOString().split('T')[0];
-                } else if (maxDurationDays && maxDurationDays > 0 && issueDateStr) {
-                    const baseDate = new Date(issueDateStr + 'T00:00:00');
-                    const expDate = new Date(baseDate.getTime() + maxDurationDays * 24 * 60 * 60 * 1000);
-                    validUntilStr = expDate.toISOString().split('T')[0];
-                }
-
-                const prescription = await DocumentRepository.createPrescription({
-                    document_id: doc.id,
-                    patient_id: doc.patient_id,
-                    doctor_name: issuingDoctor,
-                    diagnosis_text: diagnosisText,
-                    issue_date: issueDateStr,
-                    valid_until: validUntilStr,
-                    is_chronic: !!editedData.is_chronic,
-                });
-
-                const items = [];
-                for (const med of medications) {
-                    const medName = med.name || med.medication_name;
-                    if (!medName) continue;
-                    const item = await DocumentRepository.createPrescriptionItem({
-                        prescription_id: prescription.id,
-                        medication_name: medName,
-                        dosage: med.dosage || null,
-                        frequency: med.frequency || null,
-                        duration: med.duration || (med.duration_days ? `${med.duration_days} días` : null),
-                        instructions: med.instructions || null,
-                    });
-                    items.push(item);
-                }
-                structured = { ...prescription, items };
-            } else if (documentType === 'EXAMEN_LAB') {
-                const report = await DocumentRepository.createLabReport({
-                    document_id: doc.id,
-                    patient_id: doc.patient_id,
-                    laboratory_name: issuingInstitution,
-                    sample_date: issueDateStr,
-                    observations: editedData.summary || editedData.observations || null,
-                });
-
-                const items = [];
-                for (const metric of (Array.isArray(editedData.lab_metrics) ? editedData.lab_metrics : [])) {
-                    if (!metric.test_name) continue;
-                    const item = await DocumentRepository.createLabTestItem({
-                        lab_report_id: report.id,
-                        test_name: metric.test_name,
-                        result_value: String(metric.result_value ?? metric.value ?? ''),
-                        unit: metric.unit || null,
-                        reference_range: metric.reference_range || null,
-                        is_abnormal: !!metric.is_abnormal,
-                    });
-                    items.push(item);
-                }
-                structured = { ...report, items };
+        const client = await db.pool.connect();
+        let committed = false;
+        try {
+            await client.query('BEGIN');
+            const doc = await clinical.decode('documents', (await client.query("SELECT * FROM documents WHERE id=$1 AND status='TEMP' FOR UPDATE", [tempId])).rows[0], client);
+            if (!doc) {
+                const error = new Error('Documento temporal no encontrado o ya confirmado/descartado.');
+                error.statusCode = 404;
+                throw error;
             }
-        }
 
-        // 3. Auditoría de confirmación
-        await DocumentRepository.logAudit({
-            userId: user.id,
-            patientId: doc.patient_id,
-            action: 'CONFIRM_DOCUMENT',
-            details: {
-                documentId: doc.id,
-                document_type: documentType,
+            if (user.role !== 'PACIENTE' || doc.patient_id !== user.id) {
+                const error = new Error('No tienes permiso para confirmar este documento.');
+                error.statusCode = 403;
+                throw error;
+            }
+
+            const isMedicalDoc = editedData.is_medical_document !== false;
+            const documentType = isMedicalDoc
+                ? this._normalizeDocumentType(editedData.document_type || doc.document_type)
+                : 'OTRO';
+            const title = editedData.title || editedData.suggested_title || doc.title || (isMedicalDoc ? 'Documento Clínico' : 'Documento no médico');
+            const issuingDoctor = isMedicalDoc ? (editedData.issuing_doctor || doc.issuing_doctor || null) : null;
+            const issuingInstitution = isMedicalDoc ? (editedData.issuing_institution || doc.issuing_institution || null) : null;
+
+            // No inventar una fecha clínica cuando el documento no la informa.
+            let issueDateStr = editedData.document_date || doc.document_date || null;
+            if (issueDateStr && !isNaN(new Date(issueDateStr).getTime())) {
+                issueDateStr = new Date(issueDateStr).toISOString().split('T')[0];
+            } else {
+                issueDateStr = null;
+            }
+
+            const documentDate = issueDateStr;
+            const targetStatus = (wasReviewed && isMedicalDoc) ? 'CONFIRMADO' : 'PENDIENTE_REVISION';
+
+            // 1. Cambiar estado a targetStatus ('CONFIRMADO' o 'PENDIENTE_REVISION')
+            const updatedDoc = await DocumentRepository.updateDocumentOnConfirm(doc.id, {
                 status: targetStatus,
-                wasReviewed: Boolean(wasReviewed),
-                is_medical_document: isMedicalDoc,
-                medicationsCount: (wasReviewed && isMedicalDoc && Array.isArray(editedData.medications)) ? editedData.medications.length : 0,
-                edited: true,
-            },
-            ipAddress: '0.0.0.0',
-        });
+                title,
+                document_type: documentType,
+                issuing_doctor: issuingDoctor,
+                issuing_institution: issuingInstitution,
+                document_date: documentDate,
+            }, client);
 
-        const safeDocument = await this.attachFileUrl(updatedDoc);
-        return {
-            document: safeDocument,
-            structured,
-        };
+            let structured = null;
+
+            // 2. Crear cabeceras e ítems según corresponda (solo si fue revisado y es médico)
+            if (wasReviewed && isMedicalDoc) {
+                const medications = Array.isArray(editedData.medications) ? editedData.medications : [];
+                const diagnosisText = editedData.diagnostico ||
+                    (Array.isArray(editedData.diagnoses) ? editedData.diagnoses.join(', ') : (editedData.diagnosis_text || null));
+
+                if (documentType === 'RECETA') {
+                    // Calcular duración máxima y vigencia (valid_until)
+                    const maxDurationDays = this._extractMaxDurationDays(medications);
+                    let validUntilStr = null;
+
+                    if (editedData.valid_until && !isNaN(new Date(editedData.valid_until).getTime())) {
+                        validUntilStr = new Date(editedData.valid_until).toISOString().split('T')[0];
+                    } else if (maxDurationDays && maxDurationDays > 0 && issueDateStr) {
+                        const baseDate = new Date(issueDateStr + 'T00:00:00');
+                        const expDate = new Date(baseDate.getTime() + maxDurationDays * 24 * 60 * 60 * 1000);
+                        validUntilStr = expDate.toISOString().split('T')[0];
+                    }
+
+                    const prescription = await DocumentRepository.createPrescription({
+                        document_id: doc.id,
+                        patient_id: doc.patient_id,
+                        doctor_name: issuingDoctor,
+                        diagnosis_text: diagnosisText,
+                        issue_date: issueDateStr,
+                        valid_until: validUntilStr,
+                        is_chronic: !!editedData.is_chronic,
+                    }, client);
+
+                    const items = [];
+                    for (const med of medications) {
+                        const medName = med.name || med.medication_name;
+                        if (!medName) continue;
+                        const item = await DocumentRepository.createPrescriptionItem({
+                            prescription_id: prescription.id,
+                            medication_name: medName,
+                            dosage: med.dosage || null,
+                            frequency: med.frequency || null,
+                            duration: med.duration || (med.duration_days ? `${med.duration_days} días` : null),
+                            instructions: med.instructions || null,
+                        }, client);
+                        items.push(item);
+                    }
+                    structured = { ...prescription, items };
+                } else if (documentType === 'EXAMEN_LAB') {
+                    const report = await DocumentRepository.createLabReport({
+                        document_id: doc.id,
+                        patient_id: doc.patient_id,
+                        laboratory_name: issuingInstitution,
+                        sample_date: issueDateStr,
+                        observations: editedData.summary || editedData.observations || null,
+                    }, client);
+
+                    const items = [];
+                    for (const metric of (Array.isArray(editedData.lab_metrics) ? editedData.lab_metrics : [])) {
+                        if (!metric.test_name) continue;
+                        const item = await DocumentRepository.createLabTestItem({
+                            lab_report_id: report.id,
+                            test_name: metric.test_name,
+                            result_value: String(metric.result_value ?? metric.value ?? ''),
+                            unit: metric.unit || null,
+                            reference_range: metric.reference_range || null,
+                            is_abnormal: !!metric.is_abnormal,
+                        }, client);
+                        items.push(item);
+                    }
+                    structured = { ...report, items };
+                }
+            }
+
+            // 3. Auditoría de confirmación
+            await DocumentRepository.logAudit({
+                userId: user.id,
+                patientId: doc.patient_id,
+                action: 'CONFIRM_DOCUMENT',
+                details: {
+                    documentId: doc.id,
+                    document_type: documentType,
+                    status: targetStatus,
+                    wasReviewed: Boolean(wasReviewed),
+                    is_medical_document: isMedicalDoc,
+                    medicationsCount: (wasReviewed && isMedicalDoc && Array.isArray(editedData.medications)) ? editedData.medications.length : 0,
+                    edited: true,
+                },
+                ipAddress: '0.0.0.0',
+            }, client);
+
+            await client.query('COMMIT');
+            committed = true;
+            const safeDocument = await this.attachFileUrl(updatedDoc);
+            return {
+                document: safeDocument,
+                structured,
+            };
+        } catch (error) {
+            if (!committed) await client.query('ROLLBACK');
+            throw error;
+        } finally { client.release(); }
     }
 
     /**
@@ -444,10 +456,7 @@ class DocumentService {
         }
 
         // 1. Soft delete en base de datos
-        await DocumentRepository.softDelete(tempId);
-
-        // 2. ELIMINAR el archivo físico (Supabase Storage o local)
-        const fileDeleted = await this._removeStoredFile(doc.file_path);
+        const fileDeleted = await Deletions.schedule(doc);
 
         // 3. Auditoría
         await DocumentRepository.logAudit({
@@ -457,7 +466,6 @@ class DocumentService {
             details: {
                 documentId: tempId,
                 file_deleted: fileDeleted,
-                file_name: doc.file_name,
             },
             ipAddress: '0.0.0.0',
         });
@@ -476,10 +484,8 @@ class DocumentService {
 
         for (const doc of expiredDocs) {
             deletedIds.push(doc.id);
-            if (doc.file_path) {
-                const removed = await this._removeStoredFile(doc.file_path);
-                if (removed) filesRemovedCount++;
-            }
+            const removed = await Deletions.schedule(doc);
+            if (removed) filesRemovedCount++;
         }
 
         if (deletedIds.length > 0) {
@@ -570,7 +576,7 @@ class DocumentService {
         const client = await db.pool.connect();
         try {
             await client.query('BEGIN');
-            const current = (await client.query('SELECT * FROM documents WHERE id = $1 FOR UPDATE', [documentId])).rows[0];
+            const current = await clinical.decode('documents', (await client.query('SELECT * FROM documents WHERE id = $1 FOR UPDATE', [documentId])).rows[0], client);
             if (!current || current.patient_id !== user.id || !editableStatuses.has(current.status)) {
                 const error = new Error('Documento no disponible para actualizar.');
                 error.statusCode = 404;
@@ -588,12 +594,8 @@ class DocumentService {
             if (structuredProvided && type === 'RECETA' && !Array.isArray(data.medications)) throw inputError('Envía la lista completa de medicamentos.');
             if (structuredProvided && type === 'EXAMEN_LAB' && !Array.isArray(data.labMetrics)) throw inputError('Envía la lista completa de resultados.');
 
-            const updated = (await client.query(
-                `UPDATE documents SET title=$1, document_type=$2, document_date=$3,
-                 issuing_doctor=$4, issuing_institution=$5, status='CONFIRMADO',
-                 updated_at=NOW() WHERE id=$6 RETURNING *`,
-                [title, type, documentDate, doctor, institution, documentId],
-            )).rows[0];
+            const updated = await clinical.update('documents',documentId,{title,document_type:type,document_date:documentDate,
+                issuing_doctor:doctor,issuing_institution:institution,status:'CONFIRMADO',updated_at:new Date()},client);
 
             if (structuredProvided) {
                 await client.query('DELETE FROM prescriptions WHERE document_id=$1', [documentId]);
@@ -604,39 +606,31 @@ class DocumentService {
                     if (!Array.isArray(medications) || medications.length > 50) throw inputError('La lista de medicamentos no es válida.');
                     const diagnosis = limitedText(data.diagnosisText, 255, 'El diagnóstico');
                     const validUntil = optionalDate(data.validUntil, 'La vigencia');
-                    const rx = (await client.query(
-                        `INSERT INTO prescriptions (document_id, patient_id, doctor_name, diagnosis_text, issue_date, valid_until)
-                         VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
-                        [documentId, user.id, doctor, diagnosis, documentDate, validUntil],
-                    )).rows[0];
+                    const rx = await DocumentRepository.createPrescription({document_id:documentId,patient_id:user.id,
+                        doctor_name:doctor,diagnosis_text:diagnosis,issue_date:documentDate,valid_until:validUntil},client);
                     for (const medication of medications) {
                         const name = limitedText(medication.name, 150, 'El medicamento', true);
-                        await client.query(
-                            `INSERT INTO prescription_items (prescription_id, medication_name, dosage, frequency, duration, instructions)
-                             VALUES ($1,$2,$3,$4,$5,$6)`,
-                            [rx.id, name, limitedText(medication.dosage, 50, 'La dosis'), limitedText(medication.frequency, 100, 'La frecuencia'), limitedText(medication.duration, 100, 'La duración'), limitedText(medication.instructions, 2000, 'Las indicaciones')],
-                        );
+                        await DocumentRepository.createPrescriptionItem({prescription_id:rx.id,medication_name:name,
+                            dosage:limitedText(medication.dosage,50,'La dosis'),frequency:limitedText(medication.frequency,100,'La frecuencia'),
+                            duration:limitedText(medication.duration,100,'La duracion'),instructions:limitedText(medication.instructions,2000,'Las indicaciones')},client);
                     }
                 } else if (type === 'EXAMEN_LAB') {
                     const metrics = data.labMetrics ?? [];
                     if (!Array.isArray(metrics) || metrics.length > 100) throw inputError('La lista de resultados no es válida.');
                     const observations = limitedText(data.observations, 3000, 'Las observaciones');
-                    const report = (await client.query(
-                        `INSERT INTO lab_reports (document_id, patient_id, laboratory_name, sample_date, observations)
-                         VALUES ($1,$2,$3,$4,$5) RETURNING id`,
-                        [documentId, user.id, institution, documentDate, observations],
-                    )).rows[0];
+                    const report = await DocumentRepository.createLabReport({document_id:documentId,patient_id:user.id,
+                        laboratory_name:institution,sample_date:documentDate,observations},client);
                     for (const metric of metrics) {
-                        await client.query(
-                            `INSERT INTO lab_test_items (lab_report_id, test_name, result_value, unit, reference_range, is_abnormal)
-                             VALUES ($1,$2,$3,$4,$5,$6)`,
-                            [report.id, limitedText(metric.name, 150, 'El parámetro', true), limitedText(metric.value, 50, 'El resultado', true), limitedText(metric.unit, 30, 'La unidad'), limitedText(metric.referenceRange, 100, 'El rango'), Boolean(metric.isAbnormal)],
-                        );
+                        await DocumentRepository.createLabTestItem({lab_report_id:report.id,
+                            test_name:limitedText(metric.name,150,'El parametro',true),result_value:limitedText(metric.value,50,'El resultado',true),
+                            unit:limitedText(metric.unit,30,'La unidad'),reference_range:limitedText(metric.referenceRange,100,'El rango'),is_abnormal:Boolean(metric.isAbnormal)},client);
                     }
                 }
             } else {
-                await client.query('UPDATE prescriptions SET doctor_name=$1, issue_date=$2 WHERE document_id=$3', [doctor, documentDate, documentId]);
-                await client.query('UPDATE lab_reports SET laboratory_name=$1, sample_date=$2 WHERE document_id=$3', [institution, documentDate, documentId]);
+                for (const row of (await client.query('SELECT id FROM prescriptions WHERE document_id=$1',[documentId])).rows)
+                    await clinical.update('prescriptions',row.id,{doctor_name:doctor,issue_date:documentDate},client);
+                for (const row of (await client.query('SELECT id FROM lab_reports WHERE document_id=$1',[documentId])).rows)
+                    await clinical.update('lab_reports',row.id,{laboratory_name:institution,sample_date:documentDate},client);
             }
 
             await client.query(
@@ -705,8 +699,7 @@ class DocumentService {
             throw error;
         }
 
-        await DocumentRepository.softDelete(documentId);
-        const fileDeleted = await this._removeStoredFile(doc.file_path);
+        const fileDeleted = await Deletions.schedule(doc);
 
         await DocumentRepository.logAudit({
             userId: user.id,
@@ -927,25 +920,10 @@ class DocumentService {
     }
 
     static async _updateDocumentAfterAi(documentId, { document_type, ocr_raw_text, document_date, title }) {
-        const db = require('../config/db');
-        const query = `
-      UPDATE documents
-      SET document_type = $1,
-          ocr_raw_text = $2,
-          document_date = COALESCE($3, document_date),
-          title = COALESCE($4, title),
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = $5
-      RETURNING *;
-    `;
-        const result = await db.query(query, [
-            document_type,
-            ocr_raw_text,
-            document_date || null,
-            title || null,
-            documentId,
-        ]);
-        return result.rows[0];
+        const changes = {document_type,ocr_raw_text,updated_at:new Date()};
+        if (document_date) changes.document_date=document_date;
+        if (title) changes.title=title;
+        return clinical.update('documents',documentId,changes);
     }
 
     static async _savePrescription({ documentId, patientId, aiResult }) {

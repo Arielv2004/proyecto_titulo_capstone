@@ -1,35 +1,10 @@
 const db = require('../config/db');
+const clinical = require('../services/clinical-store.service');
 
 class DocumentRepository {
   // ─── DOCUMENTO PRINCIPAL ────────────────────────────────────────────────
-  static async createDocument({
-    patient_id,
-    uploaded_by,
-    document_type,
-    title,
-    file_name,
-    file_path,
-    mime_type,
-    file_size_bytes,
-    ocr_raw_text,
-    status = 'PROCESANDO',
-  }) {
-    const query = `
-      INSERT INTO documents (
-        patient_id, uploaded_by, document_type, title,
-        file_name, file_path, mime_type, file_size_bytes,
-        ocr_raw_text, status
-      )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-      RETURNING *;
-    `;
-    const values = [
-      patient_id, uploaded_by, document_type, title,
-      file_name, file_path, mime_type, file_size_bytes,
-      ocr_raw_text, status,
-    ];
-    const result = await db.query(query, values);
-    return result.rows[0];
+  static async createDocument(data, client) {
+    return clinical.create('documents', {status:'PROCESANDO',...data}, client);
   }
 
   static async updateDocumentStatus(documentId, status, ocrConfidence = null) {
@@ -157,54 +132,12 @@ class DocumentRepository {
   }
 
   // ─── RECETAS ────────────────────────────────────────────────────────────
-  static async createPrescription({
-    document_id,
-    patient_id,
-    doctor_name = null,
-    diagnosis_code = null,
-    diagnosis_text = null,
-    issue_date = null,
-    valid_until = null,
-    is_chronic = false,
-  }) {
-    const query = `
-      INSERT INTO prescriptions (
-        document_id, patient_id, doctor_name, diagnosis_code,
-        diagnosis_text, issue_date, valid_until, is_chronic, status
-      )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'ACTIVA')
-      RETURNING *;
-    `;
-    const values = [
-      document_id, patient_id, doctor_name, diagnosis_code,
-      diagnosis_text, issue_date, valid_until, is_chronic,
-    ];
-    const result = await db.query(query, values);
-    return result.rows[0];
+  static async createPrescription(data, client) {
+    return clinical.create('prescriptions', {status:'ACTIVA',is_chronic:false,...data}, client);
   }
 
-  static async createPrescriptionItem({
-    prescription_id,
-    medication_name,
-    dosage = null,
-    frequency = null,
-    duration = null,
-    instructions = null,
-  }) {
-    const query = `
-      INSERT INTO prescription_items (
-        prescription_id, medication_name, dosage,
-        frequency, duration, instructions
-      )
-      VALUES ($1,$2,$3,$4,$5,$6)
-      RETURNING *;
-    `;
-    const values = [
-      prescription_id, medication_name, dosage,
-      frequency, duration, instructions,
-    ];
-    const result = await db.query(query, values);
-    return result.rows[0];
+  static async createPrescriptionItem(data, client) {
+    return clinical.create('prescription_items', {...data}, client);
   }
 
   static async findPrescriptionByDocumentId(documentId) {
@@ -227,48 +160,12 @@ class DocumentRepository {
   }
 
   // ─── EXÁMENES DE LABORATORIO ────────────────────────────────────────────
-  static async createLabReport({
-    document_id,
-    patient_id,
-    laboratory_name = null,
-    sample_date = null,
-    observations = null,
-  }) {
-    const query = `
-      INSERT INTO lab_reports (
-        document_id, patient_id, laboratory_name,
-        sample_date, observations
-      )
-      VALUES ($1,$2,$3,$4,$5)
-      RETURNING *;
-    `;
-    const values = [document_id, patient_id, laboratory_name, sample_date, observations];
-    const result = await db.query(query, values);
-    return result.rows[0];
+  static async createLabReport(data, client) {
+    return clinical.create('lab_reports', {...data}, client);
   }
 
-  static async createLabTestItem({
-    lab_report_id,
-    test_name,
-    result_value,
-    unit = null,
-    reference_range = null,
-    is_abnormal = false,
-  }) {
-    const query = `
-      INSERT INTO lab_test_items (
-        lab_report_id, test_name, result_value,
-        unit, reference_range, is_abnormal
-      )
-      VALUES ($1,$2,$3,$4,$5,$6)
-      RETURNING *;
-    `;
-    const values = [
-      lab_report_id, test_name, result_value,
-      unit, reference_range, is_abnormal,
-    ];
-    const result = await db.query(query, values);
-    return result.rows[0];
+  static async createLabTestItem(data, client) {
+    return clinical.create('lab_test_items', {is_abnormal:false,...data}, client);
   }
 
   static async findLabReportByDocumentId(documentId) {
@@ -296,7 +193,7 @@ class DocumentRepository {
     details = null,
     ipAddress = '0.0.0.0',
     userAgent = null,
-  }) {
+  }, runner = db) {
     const query = `
       INSERT INTO audit_logs (
         user_id, patient_id, action, details, ip_address, user_agent
@@ -312,7 +209,7 @@ class DocumentRepository {
       ipAddress,
       userAgent,
     ];
-    const result = await db.query(query, values);
+    const result = await runner.query(query, values);
     return result.rows[0];
   }
 
@@ -329,37 +226,12 @@ class DocumentRepository {
     return result.rows[0] || null;
   }
 
-  static async updateDocumentOnConfirm(documentId, {
-    status = 'PENDIENTE_REVISION',
-    title = null,
-    document_type = null,
-    issuing_doctor = null,
-    issuing_institution = null,
-    document_date = null,
-  } = {}) {
-    const query = `
-      UPDATE documents
-      SET status = $1,
-          title = COALESCE($2, title),
-          document_type = COALESCE($3, document_type),
-          issuing_doctor = COALESCE($4, issuing_doctor),
-          issuing_institution = COALESCE($5, issuing_institution),
-          document_date = COALESCE($6, document_date),
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = $7
-      RETURNING *;
-    `;
-    const values = [
-      status,
-      title,
-      document_type,
-      issuing_doctor,
-      issuing_institution,
-      document_date,
-      documentId,
-    ];
-    const result = await db.query(query, values);
-    return result.rows[0] || null;
+  static async updateDocumentOnConfirm(id, changes = {}, client) {
+    return clinical.update('documents', id, {
+      status:'PENDIENTE_REVISION',
+      ...Object.fromEntries(Object.entries(changes).filter(([,value])=>value!=null)),
+      updated_at:new Date(),
+    }, client);
   }
 
   static async findExpiredTemps(hours = 24) {
@@ -431,4 +303,10 @@ class DocumentRepository {
     return result.rows[0] || null;
   }
 }
+clinical.reads(DocumentRepository, {
+  findById:'documents', findTempById:'documents', findByPatient:'documents',
+  updateDocumentStatus:'documents', softDelete:'documents', markManyAsEliminado:'documents',
+  findPrescriptionByDocumentId:'prescriptions', findLabReportByDocumentId:'lab_reports',
+  findPrescriptionById:'prescriptions', updatePrescriptionStatus:'prescriptions',
+});
 module.exports = DocumentRepository;

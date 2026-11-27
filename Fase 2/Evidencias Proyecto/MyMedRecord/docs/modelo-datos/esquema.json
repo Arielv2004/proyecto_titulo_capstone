@@ -1,0 +1,1527 @@
+{
+  "database": "mymedrecord_main",
+  "tables": 18,
+  "groups": {
+    "Usuarios y perfiles": [
+      "users",
+      "patient_profiles",
+      "doctor_profiles",
+      "health_institutions"
+    ],
+    "Documentos clinicos": [
+      "documents",
+      "prescriptions",
+      "prescription_items",
+      "lab_reports",
+      "lab_test_items"
+    ],
+    "Accesos y actividad": [
+      "access_grants",
+      "qr_visitor_requests",
+      "appointments",
+      "audit_logs"
+    ],
+    "Seguridad y operacion": [
+      "auth_sessions",
+      "password_reset_tokens",
+      "privacy_acceptances",
+      "document_deletions",
+      "security_rate_limits"
+    ]
+  },
+  "columns": [
+    {
+      "table_name": "access_grants",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": true
+    },
+    {
+      "table_name": "access_grants",
+      "column_name": "patient_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "access_grants",
+      "column_name": "doctor_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "access_grants",
+      "column_name": "doctor_rut",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "access_grants",
+      "column_name": "doctor_name",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "access_grants",
+      "column_name": "doctor_institution",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "access_grants",
+      "column_name": "token",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "access_grants",
+      "column_name": "grant_type",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "access_grants",
+      "column_name": "starts_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "access_grants",
+      "column_name": "expires_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "access_grants",
+      "column_name": "is_revoked",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "access_grants",
+      "column_name": "access_count",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "access_grants",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "appointments",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": true
+    },
+    {
+      "table_name": "appointments",
+      "column_name": "doctor_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "appointments",
+      "column_name": "patient_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "appointments",
+      "column_name": "scheduled_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "appointments",
+      "column_name": "access_expires_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "appointments",
+      "column_name": "status",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "appointments",
+      "column_name": "reason",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "appointments",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "appointments",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "appointments",
+      "column_name": "encrypted_payload",
+      "data_type": "jsonb",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "audit_logs",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": true
+    },
+    {
+      "table_name": "audit_logs",
+      "column_name": "user_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "audit_logs",
+      "column_name": "patient_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "audit_logs",
+      "column_name": "action",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "audit_logs",
+      "column_name": "details",
+      "data_type": "jsonb",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "audit_logs",
+      "column_name": "ip_address",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "audit_logs",
+      "column_name": "user_agent",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "audit_logs",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "auth_sessions",
+      "column_name": "token_hash",
+      "data_type": "character",
+      "is_nullable": "NO",
+      "primary_key": true
+    },
+    {
+      "table_name": "auth_sessions",
+      "column_name": "user_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "auth_sessions",
+      "column_name": "expires_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "auth_sessions",
+      "column_name": "revoked_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "auth_sessions",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "doctor_profiles",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": true
+    },
+    {
+      "table_name": "doctor_profiles",
+      "column_name": "user_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "doctor_profiles",
+      "column_name": "institution_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "doctor_profiles",
+      "column_name": "institution_name_other",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "doctor_profiles",
+      "column_name": "professional_registry",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "doctor_profiles",
+      "column_name": "specialty",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "doctor_profiles",
+      "column_name": "professional_title",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "doctor_profiles",
+      "column_name": "verification_status",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "doctor_profiles",
+      "column_name": "verified_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "doctor_profiles",
+      "column_name": "is_available_for_sharing",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "doctor_profiles",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "doctor_profiles",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "doctor_profiles",
+      "column_name": "region_code",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "doctor_profiles",
+      "column_name": "city",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "doctor_profiles",
+      "column_name": "address",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "document_deletions",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": true
+    },
+    {
+      "table_name": "document_deletions",
+      "column_name": "document_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "document_deletions",
+      "column_name": "patient_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "document_deletions",
+      "column_name": "storage_path_cipher",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "document_deletions",
+      "column_name": "attempts",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "document_deletions",
+      "column_name": "next_attempt_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "document_deletions",
+      "column_name": "completed_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "document_deletions",
+      "column_name": "last_error_code",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "document_deletions",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "documents",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": true
+    },
+    {
+      "table_name": "documents",
+      "column_name": "patient_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "documents",
+      "column_name": "uploaded_by",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "documents",
+      "column_name": "document_type",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "documents",
+      "column_name": "title",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "documents",
+      "column_name": "file_name",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "documents",
+      "column_name": "file_path",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "documents",
+      "column_name": "mime_type",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "documents",
+      "column_name": "file_size_bytes",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "documents",
+      "column_name": "document_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "documents",
+      "column_name": "issuing_doctor",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "documents",
+      "column_name": "issuing_institution",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "documents",
+      "column_name": "ocr_raw_text",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "documents",
+      "column_name": "ocr_confidence",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "documents",
+      "column_name": "encrypted_notes",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "documents",
+      "column_name": "status",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "documents",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "documents",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "documents",
+      "column_name": "encrypted_payload",
+      "data_type": "jsonb",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "health_institutions",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": true
+    },
+    {
+      "table_name": "health_institutions",
+      "column_name": "name",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "health_institutions",
+      "column_name": "institution_type",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "health_institutions",
+      "column_name": "rut",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "health_institutions",
+      "column_name": "address",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "health_institutions",
+      "column_name": "commune",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "health_institutions",
+      "column_name": "city",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "health_institutions",
+      "column_name": "phone",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "health_institutions",
+      "column_name": "email",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "health_institutions",
+      "column_name": "is_active",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "health_institutions",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "lab_reports",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": true
+    },
+    {
+      "table_name": "lab_reports",
+      "column_name": "document_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "lab_reports",
+      "column_name": "patient_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "lab_reports",
+      "column_name": "laboratory_name",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "lab_reports",
+      "column_name": "sample_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "lab_reports",
+      "column_name": "observations",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "lab_reports",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "lab_reports",
+      "column_name": "encrypted_payload",
+      "data_type": "jsonb",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "lab_test_items",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": true
+    },
+    {
+      "table_name": "lab_test_items",
+      "column_name": "lab_report_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "lab_test_items",
+      "column_name": "test_name",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "lab_test_items",
+      "column_name": "result_value",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "lab_test_items",
+      "column_name": "unit",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "lab_test_items",
+      "column_name": "reference_range",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "lab_test_items",
+      "column_name": "is_abnormal",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "lab_test_items",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "lab_test_items",
+      "column_name": "encrypted_payload",
+      "data_type": "jsonb",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "password_reset_tokens",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": true
+    },
+    {
+      "table_name": "password_reset_tokens",
+      "column_name": "user_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "password_reset_tokens",
+      "column_name": "token_hash",
+      "data_type": "character",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "password_reset_tokens",
+      "column_name": "expires_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "password_reset_tokens",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "patient_profiles",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": true
+    },
+    {
+      "table_name": "patient_profiles",
+      "column_name": "user_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "patient_profiles",
+      "column_name": "birth_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "patient_profiles",
+      "column_name": "gender",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "patient_profiles",
+      "column_name": "blood_type",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "patient_profiles",
+      "column_name": "health_insurance",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "patient_profiles",
+      "column_name": "is_organ_donor",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "patient_profiles",
+      "column_name": "allergies",
+      "data_type": "ARRAY",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "patient_profiles",
+      "column_name": "chronic_conditions",
+      "data_type": "ARRAY",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "patient_profiles",
+      "column_name": "emergency_contact_name",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "patient_profiles",
+      "column_name": "emergency_contact_phone",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "patient_profiles",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "patient_profiles",
+      "column_name": "biological_sex",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "patient_profiles",
+      "column_name": "gender_other",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "patient_profiles",
+      "column_name": "encrypted_payload",
+      "data_type": "jsonb",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "prescription_items",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": true
+    },
+    {
+      "table_name": "prescription_items",
+      "column_name": "prescription_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "prescription_items",
+      "column_name": "medication_name",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "prescription_items",
+      "column_name": "dosage",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "prescription_items",
+      "column_name": "frequency",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "prescription_items",
+      "column_name": "duration",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "prescription_items",
+      "column_name": "instructions",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "prescription_items",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "prescription_items",
+      "column_name": "encrypted_payload",
+      "data_type": "jsonb",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "prescriptions",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": true
+    },
+    {
+      "table_name": "prescriptions",
+      "column_name": "document_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "prescriptions",
+      "column_name": "patient_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "prescriptions",
+      "column_name": "doctor_name",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "prescriptions",
+      "column_name": "diagnosis_code",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "prescriptions",
+      "column_name": "diagnosis_text",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "prescriptions",
+      "column_name": "issue_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "prescriptions",
+      "column_name": "valid_until",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "prescriptions",
+      "column_name": "is_chronic",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "prescriptions",
+      "column_name": "status",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "prescriptions",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "prescriptions",
+      "column_name": "encrypted_payload",
+      "data_type": "jsonb",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "privacy_acceptances",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": true
+    },
+    {
+      "table_name": "privacy_acceptances",
+      "column_name": "user_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "privacy_acceptances",
+      "column_name": "version",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "privacy_acceptances",
+      "column_name": "accepted_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "qr_visitor_requests",
+      "column_name": "grant_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": true
+    },
+    {
+      "table_name": "qr_visitor_requests",
+      "column_name": "credential_hash",
+      "data_type": "character",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "qr_visitor_requests",
+      "column_name": "status",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "qr_visitor_requests",
+      "column_name": "request_expires_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "security_rate_limits",
+      "column_name": "key",
+      "data_type": "character",
+      "is_nullable": "NO",
+      "primary_key": true
+    },
+    {
+      "table_name": "security_rate_limits",
+      "column_name": "hits",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "security_rate_limits",
+      "column_name": "expires_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "users",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "primary_key": true
+    },
+    {
+      "table_name": "users",
+      "column_name": "rut",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "users",
+      "column_name": "first_name",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "users",
+      "column_name": "last_name",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "users",
+      "column_name": "email",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "users",
+      "column_name": "password_hash",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "users",
+      "column_name": "role",
+      "data_type": "character varying",
+      "is_nullable": "NO",
+      "primary_key": false
+    },
+    {
+      "table_name": "users",
+      "column_name": "phone",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "users",
+      "column_name": "is_active",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "users",
+      "column_name": "terms_accepted_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "users",
+      "column_name": "terms_version",
+      "data_type": "character varying",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "users",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "primary_key": false
+    },
+    {
+      "table_name": "users",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "primary_key": false
+    }
+  ],
+  "relations": [
+    {
+      "table_name": "access_grants",
+      "column_name": "doctor_id",
+      "referenced_table": "users",
+      "referenced_column": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "access_grants",
+      "column_name": "patient_id",
+      "referenced_table": "users",
+      "referenced_column": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "appointments",
+      "column_name": "doctor_id",
+      "referenced_table": "users",
+      "referenced_column": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "appointments",
+      "column_name": "patient_id",
+      "referenced_table": "users",
+      "referenced_column": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "audit_logs",
+      "column_name": "patient_id",
+      "referenced_table": "users",
+      "referenced_column": "id",
+      "delete_rule": "SET NULL"
+    },
+    {
+      "table_name": "audit_logs",
+      "column_name": "user_id",
+      "referenced_table": "users",
+      "referenced_column": "id",
+      "delete_rule": "SET NULL"
+    },
+    {
+      "table_name": "auth_sessions",
+      "column_name": "user_id",
+      "referenced_table": "users",
+      "referenced_column": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "doctor_profiles",
+      "column_name": "institution_id",
+      "referenced_table": "health_institutions",
+      "referenced_column": "id",
+      "delete_rule": "SET NULL"
+    },
+    {
+      "table_name": "doctor_profiles",
+      "column_name": "user_id",
+      "referenced_table": "users",
+      "referenced_column": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "document_deletions",
+      "column_name": "document_id",
+      "referenced_table": "documents",
+      "referenced_column": "id",
+      "delete_rule": "SET NULL"
+    },
+    {
+      "table_name": "document_deletions",
+      "column_name": "patient_id",
+      "referenced_table": "users",
+      "referenced_column": "id",
+      "delete_rule": "SET NULL"
+    },
+    {
+      "table_name": "documents",
+      "column_name": "patient_id",
+      "referenced_table": "users",
+      "referenced_column": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "documents",
+      "column_name": "uploaded_by",
+      "referenced_table": "users",
+      "referenced_column": "id",
+      "delete_rule": "NO ACTION"
+    },
+    {
+      "table_name": "lab_reports",
+      "column_name": "document_id",
+      "referenced_table": "documents",
+      "referenced_column": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "lab_reports",
+      "column_name": "patient_id",
+      "referenced_table": "users",
+      "referenced_column": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "lab_test_items",
+      "column_name": "lab_report_id",
+      "referenced_table": "lab_reports",
+      "referenced_column": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "password_reset_tokens",
+      "column_name": "user_id",
+      "referenced_table": "users",
+      "referenced_column": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "patient_profiles",
+      "column_name": "user_id",
+      "referenced_table": "users",
+      "referenced_column": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "prescription_items",
+      "column_name": "prescription_id",
+      "referenced_table": "prescriptions",
+      "referenced_column": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "prescriptions",
+      "column_name": "document_id",
+      "referenced_table": "documents",
+      "referenced_column": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "prescriptions",
+      "column_name": "patient_id",
+      "referenced_table": "users",
+      "referenced_column": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "privacy_acceptances",
+      "column_name": "user_id",
+      "referenced_table": "users",
+      "referenced_column": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "qr_visitor_requests",
+      "column_name": "grant_id",
+      "referenced_table": "access_grants",
+      "referenced_column": "id",
+      "delete_rule": "CASCADE"
+    }
+  ],
+  "uniqueConstraints": [
+    {
+      "table_name": "access_grants",
+      "columns": "{id}"
+    },
+    {
+      "table_name": "access_grants",
+      "columns": "{token}"
+    },
+    {
+      "table_name": "appointments",
+      "columns": "{id}"
+    },
+    {
+      "table_name": "audit_logs",
+      "columns": "{id}"
+    },
+    {
+      "table_name": "auth_sessions",
+      "columns": "{token_hash}"
+    },
+    {
+      "table_name": "doctor_profiles",
+      "columns": "{id}"
+    },
+    {
+      "table_name": "doctor_profiles",
+      "columns": "{user_id}"
+    },
+    {
+      "table_name": "document_deletions",
+      "columns": "{document_id}"
+    },
+    {
+      "table_name": "document_deletions",
+      "columns": "{id}"
+    },
+    {
+      "table_name": "documents",
+      "columns": "{id}"
+    },
+    {
+      "table_name": "health_institutions",
+      "columns": "{id}"
+    },
+    {
+      "table_name": "health_institutions",
+      "columns": "{name,city}"
+    },
+    {
+      "table_name": "lab_reports",
+      "columns": "{document_id}"
+    },
+    {
+      "table_name": "lab_reports",
+      "columns": "{id}"
+    },
+    {
+      "table_name": "lab_test_items",
+      "columns": "{id}"
+    },
+    {
+      "table_name": "password_reset_tokens",
+      "columns": "{id}"
+    },
+    {
+      "table_name": "password_reset_tokens",
+      "columns": "{token_hash}"
+    },
+    {
+      "table_name": "password_reset_tokens",
+      "columns": "{user_id}"
+    },
+    {
+      "table_name": "patient_profiles",
+      "columns": "{id}"
+    },
+    {
+      "table_name": "patient_profiles",
+      "columns": "{user_id}"
+    },
+    {
+      "table_name": "prescription_items",
+      "columns": "{id}"
+    },
+    {
+      "table_name": "prescriptions",
+      "columns": "{document_id}"
+    },
+    {
+      "table_name": "prescriptions",
+      "columns": "{id}"
+    },
+    {
+      "table_name": "privacy_acceptances",
+      "columns": "{id}"
+    },
+    {
+      "table_name": "privacy_acceptances",
+      "columns": "{user_id,version}"
+    },
+    {
+      "table_name": "qr_visitor_requests",
+      "columns": "{credential_hash}"
+    },
+    {
+      "table_name": "qr_visitor_requests",
+      "columns": "{grant_id}"
+    },
+    {
+      "table_name": "security_rate_limits",
+      "columns": "{key}"
+    },
+    {
+      "table_name": "users",
+      "columns": "{email}"
+    },
+    {
+      "table_name": "users",
+      "columns": "{id}"
+    },
+    {
+      "table_name": "users",
+      "columns": "{rut}"
+    }
+  ]
+}

@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const rateLimit = require('../middlewares/rate-limit.middleware');
+router.use(rateLimit({ scope: 'access-grants', max: 600, windowSeconds: 60 }));
 
 const AccessGrantController = require(
   '../controllers/access-grant.controller'

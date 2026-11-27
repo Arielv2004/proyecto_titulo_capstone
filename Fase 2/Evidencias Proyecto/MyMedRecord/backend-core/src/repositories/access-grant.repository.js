@@ -1,3 +1,4 @@
+const clinical = require('../services/clinical-store.service');
 const db = require('../config/db');
 
 class AccessGrantRepository {
@@ -279,7 +280,7 @@ class AccessGrantRepository {
     // =====================================================
 
     const profileQuery = `
-      SELECT to_char(birth_date, 'YYYY-MM-DD') AS birth_date,
+      SELECT id, to_char(birth_date, 'YYYY-MM-DD') AS birth_date,
              gender, biological_sex, gender_other, blood_type, health_insurance, is_organ_donor, allergies,
              chronic_conditions, updated_at
       FROM patient_profiles
@@ -291,7 +292,7 @@ class AccessGrantRepository {
       [patientId]
     );
 
-    const profile = profileRes.rows[0] || {};
+    const profile = await clinical.hydrate('patient_profiles', profileRes.rows[0]) || {};
 
     // =====================================================
     // 3. RECETAS CON SUS MEDICAMENTOS
@@ -384,9 +385,9 @@ class AccessGrantRepository {
           profile.chronic_conditions || [],
         updatedAt: profile.updated_at || null,
       },
-      prescriptions: prescriptionsRes.rows,
-      labReports: labReportsRes.rows,
-      documents: documentsRes.rows,
+      prescriptions: await clinical.hydrate('prescriptions', prescriptionsRes.rows),
+      labReports: await clinical.hydrate('lab_reports', labReportsRes.rows),
+      documents: await clinical.hydrate('documents', documentsRes.rows),
     };
   }
 }

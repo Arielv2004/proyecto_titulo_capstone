@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const clinical = require('../services/clinical-store.service');
 
 class PatientProfileRepository {
   /**
@@ -38,85 +39,23 @@ class PatientProfileRepository {
    * Actualizar o insertar (upsert) el perfil clínico del paciente
    */
   static async upsertProfile(userId, data) {
-    const {
-      bloodType = null,
-      healthInsurance = null,
-      isOrganDonor = true,
-      allergies = [],
-      chronicConditions = [],
-      emergencyContactName = null,
-      emergencyContactPhone = null,
-      birthDate = null,
-      gender = null,
-    } = data;
-
-    const query = `
-      WITH changed_phone AS (
-        UPDATE users SET phone = $12
-        WHERE id = $1 AND role = 'PACIENTE' AND $11::boolean
-        RETURNING phone
-      )
-      INSERT INTO patient_profiles (
-        user_id,
-        birth_date,
-        gender,
-        biological_sex,
-        gender_other,
-        blood_type,
-        health_insurance,
-        is_organ_donor,
-        allergies,
-        chronic_conditions,
-        emergency_contact_name,
-        emergency_contact_phone,
-        updated_at
-      )
-      VALUES ($1, $2, $3, $15, $18, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
-      ON CONFLICT (user_id) DO UPDATE SET
-        birth_date = COALESCE(EXCLUDED.birth_date, patient_profiles.birth_date),
-        gender = CASE WHEN $17 THEN EXCLUDED.gender ELSE patient_profiles.gender END,
-        biological_sex = CASE WHEN $16 THEN EXCLUDED.biological_sex ELSE patient_profiles.biological_sex END,
-        gender_other = CASE WHEN $19 THEN EXCLUDED.gender_other ELSE patient_profiles.gender_other END,
-        blood_type = EXCLUDED.blood_type,
-        health_insurance = EXCLUDED.health_insurance,
-        is_organ_donor = EXCLUDED.is_organ_donor,
-        allergies = EXCLUDED.allergies,
-        chronic_conditions = EXCLUDED.chronic_conditions,
-        emergency_contact_name = CASE WHEN $13 THEN EXCLUDED.emergency_contact_name ELSE patient_profiles.emergency_contact_name END,
-        emergency_contact_phone = CASE WHEN $14 THEN EXCLUDED.emergency_contact_phone ELSE patient_profiles.emergency_contact_phone END,
-        updated_at = CURRENT_TIMESTAMP
-      RETURNING id, user_id, to_char(birth_date, 'YYYY-MM-DD') AS birth_date,
-                gender, biological_sex, gender_other, blood_type, health_insurance, is_organ_donor, allergies,
-                chronic_conditions, emergency_contact_name, emergency_contact_phone, updated_at,
-                CASE WHEN $11 THEN (SELECT phone FROM changed_phone)
-                     ELSE (SELECT phone FROM users WHERE id = $1) END AS phone;
-    `;
-
-    const values = [
-      userId,
-      birthDate,
-      gender,
-      bloodType,
-      healthInsurance,
-      isOrganDonor,
-      Array.isArray(allergies) ? allergies : [],
-      Array.isArray(chronicConditions) ? chronicConditions : [],
-      emergencyContactName,
-      emergencyContactPhone,
-      data.phone !== undefined,
-      data.phone ?? null,
-      data.emergencyContactName !== undefined,
-      data.emergencyContactPhone !== undefined,
-      data.biologicalSex ?? null,
-      data.biologicalSex !== undefined,
-      data.gender !== undefined,
-      data.genderOther ?? null,
-      data.genderOther !== undefined,
-    ];
-
-    const result = await db.query(query, values);
-    return result.rows[0];
+    return clinical.transaction(async client => {
+        await client.query('SELECT id FROM users WHERE id=$1 FOR UPDATE',[userId]);
+        const profile=(await client.query(`INSERT INTO patient_profiles(user_id) VALUES($1)
+          ON CONFLICT(user_id) DO UPDATE SET user_id=EXCLUDED.user_id RETURNING id`,[userId])).rows[0];
+        if (data.phone !== undefined) await client.query('UPDATE users SET phone=$2 WHERE id=$1',[userId,data.phone]);
+        const mapping={birthDate:'birth_date',gender:'gender',biologicalSex:'biological_sex',genderOther:'gender_other',
+          bloodType:'blood_type',healthInsurance:'health_insurance',isOrganDonor:'is_organ_donor',
+          allergies:'allergies',chronicConditions:'chronic_conditions',emergencyContactName:'emergency_contact_name',emergencyContactPhone:'emergency_contact_phone'};
+        const changes={updated_at:new Date()};
+        for(const [input,column] of Object.entries(mapping)) if(data[input]!==undefined) changes[column]=data[input];
+        const result=await clinical.update('patient_profiles',profile.id,changes,client);
+        const phone=(await client.query('SELECT phone FROM users WHERE id=$1',[userId])).rows[0].phone;
+        return {...result,phone};
+    });
   }
 }
+
+clinical.reads(PatientProfileRepository, {findByUserId:'patient_profiles'});
 
 module.exports = PatientProfileRepository;

@@ -1,0 +1,73 @@
+ejecucion;caso;estado;duracion_ms
+Regresion inicial;E2E-05 | Compartir directamente, consultar y revocar;passed;5912
+Regresion inicial;E2E-06 | Visitante QR: aprobación, consulta, segundo canje y revocación;passed;13026
+Regresion inicial;E2E-07 | Paciente rechaza solicitud QR y no permite consulta;passed;7494
+Regresion inicial;E2E-09 | Lectura de imagen QR generada y aprobación;passed;8153
+Regresion inicial;ACC-01 | Accesibilidad automática y diseño móvil del portal paciente;passed;1896
+Regresion inicial;INT-CUENTA-01 | Exportación, eliminación y rechazo de la sesión anterior;passed;2072
+Regresion inicial;INT-DOC-01 | Rechaza sesión ausente y rol médico;passed;24
+Regresion inicial;INT-DOC-02 | Rechaza ausencia de archivo, MIME y más de 10 MB;passed;87
+Regresion inicial;INT-DOC-03 | Analiza, corrige, confirma, persiste y descarga;passed;87
+Regresion inicial;INT-DOC-04 | Otra cuenta no puede confirmar ni descargar un documento ajeno;passed;128
+Regresion inicial;INT-DOC-05 | Descartar impide confirmación posterior;passed;46
+Regresion inicial;INT-DOC-06 | Proveedor no disponible conserva revisión manual;passed;24
+Regresion inicial;E2E-01 | Login real y persistencia de sesión PACIENTE;passed;2726
+Regresion inicial;E2E-02 | Login real y persistencia de sesión MEDICO;passed;1529
+Regresion inicial;E2E-03 | Sin sesión no puede abrir portal paciente;passed;763
+Regresion inicial;SEG-01 | JWT manipulado, identificador inválido y rol indebido;passed;23
+Regresion inicial;SEG-02 | Cuenta desactivada o rol cambiado no conserva autorización;passed;33
+Regresion inicial;SEG-03 | Un médico no puede revocar el permiso del paciente;passed;44
+Regresion inicial;SEG-04 | Pase vencido no se puede canjear ni generar consulta;passed;30
+Regresion inicial;ROB-01 | Dos confirmaciones concurrentes no duplican ni producen 500;failed;83
+Regresion inicial;ROB-02 | Timeout real de 60 segundos conserva revisión manual;passed;60137
+Reprueba documental;INT-DOC-01 | Rechaza sesión ausente y rol médico;passed;46
+Reprueba documental;INT-DOC-02 | Rechaza ausencia de archivo, MIME y más de 10 MB;passed;83
+Reprueba documental;INT-DOC-03 | Analiza, corrige, confirma, persiste y descarga;passed;81
+Reprueba documental;INT-DOC-04 | Otra cuenta no puede confirmar ni descargar un documento ajeno;passed;130
+Reprueba documental;INT-DOC-05 | Descartar impide confirmación posterior;passed;63
+Reprueba documental;INT-DOC-06 | Proveedor no disponible conserva revisión manual;passed;26
+Reprueba documental;ROB-01 | Dos confirmaciones concurrentes no duplican ni producen 500;passed;87
+Regresion con cifrado: dependencia IA;E2E-04 | Receta real: subir, corregir, confirmar y persistir;failed;39913
+Regresion con cifrado: dependencia IA;E2E-05 | Compartir directamente, consultar y revocar;passed;5378
+Regresion con cifrado: dependencia IA;E2E-06 | Visitante QR: aprobación, consulta, segundo canje y revocación;passed;11443
+Regresion con cifrado: dependencia IA;E2E-07 | Paciente rechaza solicitud QR y no permite consulta;passed;7719
+Regresion con cifrado: dependencia IA;E2E-08 | Receta manuscrita: revisión y confirmación desde navegador;failed;26303
+Regresion con cifrado: dependencia IA;E2E-09 | Lectura de imagen QR generada y aprobación;passed;8682
+Regresion con cifrado: dependencia IA;ACC-01 | Accesibilidad automática y diseño móvil del portal paciente;passed;1890
+Regresion con cifrado: dependencia IA;INT-CUENTA-01 | Exportación, eliminación y rechazo de la sesión anterior;passed;2460
+Regresion con cifrado: dependencia IA;INT-DOC-01 | Rechaza sesión ausente y rol médico;passed;24
+Regresion con cifrado: dependencia IA;INT-DOC-02 | Rechaza ausencia de archivo, MIME y más de 10 MB;passed;91
+Regresion con cifrado: dependencia IA;INT-DOC-03 | Analiza, corrige, confirma, persiste y descarga;passed;139
+Regresion con cifrado: dependencia IA;INT-DOC-04 | Otra cuenta no puede confirmar ni descargar un documento ajeno;passed;155
+Regresion con cifrado: dependencia IA;INT-DOC-05 | Descartar impide confirmación posterior;passed;66
+Regresion con cifrado: dependencia IA;INT-DOC-06 | Proveedor no disponible conserva revisión manual;passed;33
+Regresion con cifrado: dependencia IA;E2E-01 | Login real y persistencia de sesión PACIENTE;passed;2369
+Regresion con cifrado: dependencia IA;E2E-02 | Login real y persistencia de sesión MEDICO;passed;1909
+Regresion con cifrado: dependencia IA;E2E-03 | Sin sesión no puede abrir portal paciente;passed;792
+Regresion con cifrado: dependencia IA;SEG-01 | JWT manipulado, identificador inválido y rol indebido;passed;26
+Regresion con cifrado: dependencia IA;SEG-02 | Cuenta desactivada o rol cambiado no conserva autorización;passed;47
+Regresion con cifrado: dependencia IA;SEG-03 | Un médico no puede revocar el permiso del paciente;passed;56
+Regresion con cifrado: dependencia IA;SEG-04 | Pase vencido no se puede canjear ni generar consulta;passed;37
+Regresion con cifrado: dependencia IA;ROB-01 | Dos confirmaciones concurrentes no duplican ni producen 500;passed;114
+Regresion con cifrado: dependencia IA;ROB-02 | Timeout real de 60 segundos conserva revisión manual;passed;60078
+Regresion final sin dependencia IA;E2E-05 | Compartir directamente, consultar y revocar;passed;5369
+Regresion final sin dependencia IA;E2E-06 | Visitante QR: aprobación, consulta, segundo canje y revocación;passed;13466
+Regresion final sin dependencia IA;E2E-07 | Paciente rechaza solicitud QR y no permite consulta;passed;7779
+Regresion final sin dependencia IA;E2E-09 | Lectura de imagen QR generada y aprobación;passed;6247
+Regresion final sin dependencia IA;ACC-01 | Accesibilidad automática y diseño móvil del portal paciente;passed;1829
+Regresion final sin dependencia IA;INT-CUENTA-01 | Exportación, eliminación y rechazo de la sesión anterior;passed;2244
+Regresion final sin dependencia IA;INT-DOC-01 | Rechaza sesión ausente y rol médico;passed;23
+Regresion final sin dependencia IA;INT-DOC-02 | Rechaza ausencia de archivo, MIME y más de 10 MB;passed;85
+Regresion final sin dependencia IA;INT-DOC-03 | Analiza, corrige, confirma, persiste y descarga;passed;133
+Regresion final sin dependencia IA;INT-DOC-04 | Otra cuenta no puede confirmar ni descargar un documento ajeno;passed;162
+Regresion final sin dependencia IA;INT-DOC-05 | Descartar impide confirmación posterior;passed;75
+Regresion final sin dependencia IA;INT-DOC-06 | Proveedor no disponible conserva revisión manual;passed;35
+Regresion final sin dependencia IA;E2E-01 | Login real y persistencia de sesión PACIENTE;passed;2414
+Regresion final sin dependencia IA;E2E-02 | Login real y persistencia de sesión MEDICO;passed;1539
+Regresion final sin dependencia IA;E2E-03 | Sin sesión no puede abrir portal paciente;passed;903
+Regresion final sin dependencia IA;SEG-01 | JWT manipulado, identificador inválido y rol indebido;passed;21
+Regresion final sin dependencia IA;SEG-02 | Cuenta desactivada o rol cambiado no conserva autorización;passed;32
+Regresion final sin dependencia IA;SEG-03 | Un médico no puede revocar el permiso del paciente;passed;45
+Regresion final sin dependencia IA;SEG-04 | Pase vencido no se puede canjear ni generar consulta;passed;29
+Regresion final sin dependencia IA;ROB-01 | Dos confirmaciones concurrentes no duplican ni producen 500;passed;97
+Regresion final sin dependencia IA;ROB-02 | Timeout real de 60 segundos conserva revisión manual;passed;60104

@@ -233,6 +233,11 @@ class UserRepository {
       );
 
       const user = result.rows[0];
+      if (termsVersion) {
+        await client.query(`INSERT INTO privacy_acceptances(user_id,version,accepted_at)
+          VALUES($1,$2,$3) ON CONFLICT(user_id,version) DO NOTHING`,
+          [user.id, termsVersion, user.terms_accepted_at]);
+      }
 
       // =================================================
       // AUDITORÍA DEL CONSENTIMIENTO
@@ -436,6 +441,8 @@ class UserRepository {
          WHERE id = $2`,
         [passwordHash, reset.user_id]
       );
+
+      await client.query('UPDATE auth_sessions SET revoked_at=COALESCE(revoked_at,NOW()) WHERE user_id=$1', [reset.user_id]);
 
       await client.query(
         `DELETE FROM password_reset_tokens
