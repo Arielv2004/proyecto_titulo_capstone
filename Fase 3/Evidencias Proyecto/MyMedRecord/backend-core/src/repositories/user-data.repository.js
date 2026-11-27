@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const Deletions = require('../services/document-deletion.service');
 
 class UserDataRepository {
   /**
@@ -192,6 +193,13 @@ class UserDataRepository {
     try {
       await client.query('BEGIN');
 
+      const stored = await client.query('SELECT id,patient_id,file_path FROM documents WHERE patient_id=$1', [userId]);
+      const deletionJobs = [];
+      for (const doc of stored.rows) {
+        const id = await Deletions.enqueue(doc, client);
+        if (id) deletionJobs.push(id);
+      }
+
       // 1. Eliminar el usuario (activa ON DELETE CASCADE en cascada)
       const deleteResult = await client.query(
         `DELETE FROM users WHERE id = $1 RETURNING id`,
@@ -217,7 +225,7 @@ class UserDataRepository {
       });
 
       await client.query('COMMIT');
-      return { success: true, auditLogId: auditLog?.id };
+      return { success: true, auditLogId: auditLog?.id, deletionJobs };
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;
@@ -227,4 +235,5 @@ class UserDataRepository {
   }
 }
 
+require('../services/clinical-store.service').reads(UserDataRepository, {findExportDocuments:'documents',findExportAppointments:'appointments'});
 module.exports = UserDataRepository;

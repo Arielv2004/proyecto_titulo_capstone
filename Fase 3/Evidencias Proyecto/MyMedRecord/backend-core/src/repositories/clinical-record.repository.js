@@ -193,4 +193,5 @@ class ClinicalRecordRepository {
   }
 }
 
+require('../services/clinical-store.service').reads(ClinicalRecordRepository, {findPatientProfile:'patient_profiles',findDocuments:'documents',findPrescriptions:'prescriptions',findLabReports:'lab_reports'});
 module.exports = ClinicalRecordRepository;

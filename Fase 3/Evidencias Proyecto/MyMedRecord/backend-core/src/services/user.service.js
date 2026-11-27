@@ -7,6 +7,7 @@ const DocumentService = require('./document.service');
 const SupabaseService = require('./supabase.service');
 const PDFService = require('./pdf.service');
 const axios = require('axios');
+const Deletions = require('./document-deletion.service');
 
 class UserService {
   /**
@@ -209,27 +210,19 @@ class UserService {
     };
 
     // 8. Borrar BD primero dentro de una transacción (CASCADE borra perfiles, documentos, recetas, etc.)
-    const { auditLogId } = await UserDataRepository.executeAccountDeletion({
+    const { auditLogId, deletionJobs } = await UserDataRepository.executeAccountDeletion({
       userId,
       auditDetails,
       ipAddress,
       userAgent,
     });
 
-    // 9. Borrar archivos físicos de Supabase Storage / disco local de forma no bloqueante de la transacción
+    // Los fallos conservan un trabajo persistente para el siguiente intento.
     const failedFiles = [];
-    await Promise.allSettled(
-      filesToDelete.map(async (filePath) => {
-        try {
-          const ok = await DocumentService.removeStoredFile(filePath);
-          if (!ok) {
-            failedFiles.push(filePath);
-          }
-        } catch (err) {
-          failedFiles.push(filePath);
-        }
-      })
-    );
+    for (const jobId of deletionJobs) {
+      try { if (!await Deletions.processJob(jobId)) failedFiles.push(jobId); }
+      catch { failedFiles.push(jobId); }
+    }
 
     // 10. Si algún archivo falló al borrarse en Supabase/disco, actualizar audit log para trazabilidad
     if (failedFiles.length > 0 && auditLogId) {

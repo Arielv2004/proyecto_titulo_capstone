@@ -91,4 +91,5 @@ class AppointmentRepository {
   }
 }
 
+require('../services/clinical-store.service').reads(AppointmentRepository, {findTodayByDoctor:'appointments',findById:'appointments',hasActiveAccess:'appointments'});
 module.exports = AppointmentRepository;

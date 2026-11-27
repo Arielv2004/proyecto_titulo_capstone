@@ -36,7 +36,7 @@ La plataforma destaca por su motor de Inteligencia Artificial que permite fotogr
 
 | Módulo / Funcionalidad | Estado | Descripción del Avance |
 | :--- | :---: | :--- |
-| **Base de Datos Relacional (PostgreSQL 15)** | [Completado] | 10 tablas normalizadas (`init.sql`) con índices, claves foráneas, restricciones de integridad y tabla de auditoría forense (`audit_logs`). |
+| **Base de Datos Relacional (PostgreSQL 15)** | [Completado] | 18 tablas (`init.sql` y migraciones incrementales) con índices, claves foráneas, restricciones de integridad y registro de actividad (`audit_logs`). |
 | **Autenticación Dual (RUT o Correo)** | [Completado] | Inicio de sesión con RUT Chileno (validación Módulo 11) o Email, gestionado con tokens JWT en cookies seguras HttpOnly. |
 | **Digitalización OCR con IA (ai-service)** | [Completado] | Microservicio en FastAPI que usa Tesseract para leer la imagen y Gemini (LLM) para estructurar los datos clínicos (medicamentos, diagnósticos). |
 | **Flujo de Confirmación Previa** | [Completado] | El paciente revisa, edita y valida los datos extraídos por la IA antes de guardarlos en su historial clínico, evitando datos erróneos. |
@@ -113,6 +113,12 @@ LLM_PROVIDER=gemini
 LLM_MODEL=gemini-1.5-flash
 LLM_API_KEY=su_api_key_de_gemini
 ```
+
+### Actualizar una base existente al modelo de 18 tablas
+
+Antes de iniciar la API actualizada, seguir [la guía de actualización del equipo](docs/modelo-datos/actualizar-equipo.md). Incluye migraciones, conversión de campos clínicos y verificación. Docker no vuelve a ejecutar `init.sql` sobre un volumen existente. No borrar el volumen ni ejecutar el inicializador sobre una base con datos.
+
+Configurar una `AES_SECRET_KEY` privada de exactamente 32 bytes antes de la conversión. Si la base ya tiene campos cifrados, conservar su clave actual.
 
 ### Paso 3: Iniciar Backend (API Node.js)
 

@@ -10,6 +10,7 @@ const patientOnly = require('../middlewares/rbac.middleware')('PACIENTE');
 const { isValidRut } = require('../utils/rut.util');
 
 const router = express.Router();
+const rateLimit = require('../middlewares/rate-limit.middleware');
 const cookie = 'mmr_qr_visitor';
 const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const hash = value => createHash('sha256').update(value).digest('hex');
@@ -55,7 +56,7 @@ function visitorIdentity(body) {
   return { name: name.trim(), rut: rut.trim().toUpperCase(), institution: institution.trim() };
 }
 
-router.post('/', handle(async (req, res) => {
+router.post('/', rateLimit({ scope: 'qr-visitor', max: 30 }), handle(async (req, res) => {
   const { token } = req.body || {};
   if (typeof token !== 'string' || !token.trim() || token.length > 100) {
     throw fail('Ingresa un pase QR válido.', 400);

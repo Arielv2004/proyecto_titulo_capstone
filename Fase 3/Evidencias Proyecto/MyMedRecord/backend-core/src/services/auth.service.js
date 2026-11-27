@@ -9,6 +9,7 @@ const UserRepository = require(
 
 const EmailService = require('./email.service');
 const config = require('../config/env');
+const Sessions = require('../repositories/session.repository');
 
 // Códigos de las 16 regiones de Chile.
 const VALID_REGION_CODES = new Set([
@@ -358,7 +359,7 @@ class AuthService {
 
     // La verificación profesional no se determina
     // desde los datos enviados por el formulario.
-    const token = this.generateToken(user);
+    const token = await Sessions.create(user, this.generateToken(user));
 
     return {
       user,
@@ -374,7 +375,7 @@ class AuthService {
     const user =
       await UserRepository.findByIdentifier(email);
 
-    if (!user) {
+    if (!user || !user.is_active) {
       const error = new Error(
         'Credenciales inválidas. Verifica tu correo o RUT y tu contraseña.'
       );
@@ -397,7 +398,7 @@ class AuthService {
       throw error;
     }
 
-    const token = this.generateToken(user);
+    const token = await Sessions.create(user, this.generateToken(user));
 
     const {
       password_hash,
@@ -513,6 +514,7 @@ class AuthService {
       config.JWT.SECRET,
       {
         expiresIn: config.JWT.EXPIRES_IN,
+        jwtid: crypto.randomUUID(),
       }
     );
   }

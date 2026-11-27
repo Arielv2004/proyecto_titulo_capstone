@@ -1,0 +1,155 @@
+TAP version 13
+# ◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+# [PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).
+# Aplicada: 001_add_terms_consent.sql
+# Aplicada: 001_password_reset_tokens.sql
+# Aplicada: 002_qr_visitor_requests.sql
+# Aplicada: 003_patient_identity.sql
+# Aplicada: 004_operational_controls.sql
+# Aplicada: 005_clinical_payloads.sql
+# Subtest: MOD-01 | Migración 14 a 19, idempotencia y registro de versiones
+ok 1 - MOD-01 | Migración 14 a 19, idempotencia y registro de versiones
+  ---
+  duration_ms: 1161.8175
+  type: 'test'
+  ...
+# Subtest: MOD-02 | Dos sesiones distintas; solo se almacenan hashes
+ok 2 - MOD-02 | Dos sesiones distintas; solo se almacenan hashes
+  ---
+  duration_ms: 215.0631
+  type: 'test'
+  ...
+# Subtest: MOD-03 | Logout revoca la cookie capturada y conserva otra sesión
+ok 3 - MOD-03 | Logout revoca la cookie capturada y conserva otra sesión
+  ---
+  duration_ms: 172.7992
+  type: 'test'
+  ...
+# Subtest: MOD-04 | Sesión vencida, JWT sin sesión y rol distinto son rechazados
+ok 4 - MOD-04 | Sesión vencida, JWT sin sesión y rol distinto son rechazados
+  ---
+  duration_ms: 175.471
+  type: 'test'
+  ...
+# [Error Handler] Error capturado: Error: El enlace de recuperación es inválido o ha expirado.
+#     at validationError (D:\\repo_capstone_main\\Fase 2\\Evidencias Proyecto\\MyMedRecord\\backend-core\\src\\services\\auth.service.js:38:17)
+#     at AuthService.resetPassword (D:\\repo_capstone_main\\Fase 2\\Evidencias Proyecto\\MyMedRecord\\backend-core\\src\\services\\auth.service.js:494:13)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+#     at async resetPassword (D:\\repo_capstone_main\\Fase 2\\Evidencias Proyecto\\MyMedRecord\\backend-core\\src\\controllers\\auth.controller.js:152:7) {
+#   statusCode: 400
+# }
+# Subtest: MOD-05 | Reset de contraseña revoca todas las sesiones y consume el enlace
+ok 5 - MOD-05 | Reset de contraseña revoca todas las sesiones y consume el enlace
+  ---
+  duration_ms: 410.2898
+  type: 'test'
+  ...
+# Subtest: MOD-06 | Registro almacena aceptación real y eliminación limpia sesiones y aceptación
+ok 6 - MOD-06 | Registro almacena aceptación real y eliminación limpia sesiones y aceptación
+  ---
+  duration_ms: 192.3192
+  type: 'test'
+  ...
+# [PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).
+# [PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).
+# [PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).
+# [PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).
+# [PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).
+# [PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).
+# [PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).
+# Subtest: MOD-07 | Límite concurrente persistido y recuperación tras caducidad
+ok 7 - MOD-07 | Límite concurrente persistido y recuperación tras caducidad
+  ---
+  duration_ms: 45.5641
+  type: 'test'
+  ...
+# Subtest: MOD-08 | Fallo de storage conserva tarea cifrada, reintento la completa
+ok 8 - MOD-08 | Fallo de storage conserva tarea cifrada, reintento la completa
+  ---
+  duration_ms: 20.8577
+  type: 'test'
+  ...
+# Subtest: MOD-09 | Eliminación real de archivo ficticio y bloqueo de rutas externas
+ok 9 - MOD-09 | Eliminación real de archivo ficticio y bloqueo de rutas externas
+  ---
+  duration_ms: 23.1129
+  type: 'test'
+  ...
+# Subtest: MOD-10 | La cola pendiente sobrevive a eliminar cuenta y documento
+ok 10 - MOD-10 | La cola pendiente sobrevive a eliminar cuenta y documento
+  ---
+  duration_ms: 107.0131
+  type: 'test'
+  ...
+# Subtest: MOD-11 | Instalación nueva produce el mismo esquema de 19 tablas
+ok 11 - MOD-11 | Instalación nueva produce el mismo esquema de 19 tablas
+  ---
+  duration_ms: 1245.3407
+  type: 'test'
+  ...
+# Subtest: MOD-12 | Confirmaciones simultáneas producen una receta y un rechazo controlado
+ok 12 - MOD-12 | Confirmaciones simultáneas producen una receta y un rechazo controlado
+  ---
+  duration_ms: 58.8577
+  type: 'test'
+  ...
+# Subtest: MOD-13 | Error al guardar un ítem revierte estado, receta y auditoría de confirmación
+ok 13 - MOD-13 | Error al guardar un ítem revierte estado, receta y auditoría de confirmación
+  ---
+  duration_ms: 53.2775
+  type: 'test'
+  ...
+# Subtest: MOD-14 | Perfil cifrado mantiene sexo, género, fecha y antecedentes al consultar
+ok 14 - MOD-14 | Perfil cifrado mantiene sexo, género, fecha y antecedentes al consultar
+  ---
+  duration_ms: 113.5031
+  type: 'test'
+  ...
+# Subtest: MOD-15 | Receta cifrada se consulta y edita sin perder la información original
+ok 15 - MOD-15 | Receta cifrada se consulta y edita sin perder la información original
+  ---
+  duration_ms: 65.2069
+  type: 'test'
+  ...
+# Subtest: MOD-16 | Laboratorio cifrado se edita y conserva resultados y observaciones
+ok 16 - MOD-16 | Laboratorio cifrado se edita y conserva resultados y observaciones
+  ---
+  duration_ms: 78.9547
+  type: 'test'
+  ...
+# {"registros_cifrados":{"patient_profiles":0,"documents":6,"prescriptions":1,"prescription_items":2,"lab_reports":1,"lab_test_items":3,"appointments":1}}
+# {"registros_cifrados":{"patient_profiles":0,"documents":0,"prescriptions":0,"prescription_items":0,"lab_reports":0,"lab_test_items":0,"appointments":0}}
+# [PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).
+# [PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).
+# [PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).
+# [PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).
+# [PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).
+# [PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).
+# [PostgreSQL] Conectado exitosamente a PostgreSQL (Docker).
+# Subtest: MOD-17 | Conversión de datos existentes es idempotente y permite exportar
+ok 17 - MOD-17 | Conversión de datos existentes es idempotente y permite exportar
+  ---
+  duration_ms: 180.2238
+  type: 'test'
+  ...
+# Subtest: MOD-18 | Cifrado detecta modificación de contenido y cambio de registro
+ok 18 - MOD-18 | Cifrado detecta modificación de contenido y cambio de registro
+  ---
+  duration_ms: 1.7427
+  type: 'test'
+  ...
+# Subtest: MOD-19 | Ficha compartida por médico y QR recupera campos cifrados sin exponer el payload
+ok 19 - MOD-19 | Ficha compartida por médico y QR recupera campos cifrados sin exponer el payload
+  ---
+  duration_ms: 28.8788
+  type: 'test'
+  ...
+1..19
+# tests 19
+# suites 0
+# pass 19
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 5060.4077
